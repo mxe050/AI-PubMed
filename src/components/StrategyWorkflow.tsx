@@ -1,14 +1,16 @@
 import { useState } from "react";
 import type { AppSettings, PubMedSearchResult } from "../types";
 import { buildPrompt } from "../utils/buildPrompt";
+import { buildApiFeedbackBlock } from "../utils/buildApiFeedbackBlock";
+import { buildAbstractsBlock } from "../utils/buildAbstractsBlock";
 import { extractSearchString } from "../utils/extractSearchString";
+import { srRevisionPrompt } from "../prompts/revision";
 import { FormFields } from "./FormFields";
 import { PromptDisplay } from "./PromptDisplay";
 import { AiResponseInput } from "./AiResponseInput";
 import { SearchStringInput } from "./SearchStringInput";
 import { PubMedSearchBox } from "./PubMedSearchBox";
 import { PubMedResultTable } from "./PubMedResultTable";
-import { RevisionPromptGenerator } from "./RevisionPromptGenerator";
 import { TopicSynthesisGenerator } from "./TopicSynthesisGenerator";
 
 interface FieldDef {
@@ -31,6 +33,40 @@ interface Props {
   mode: WorkflowMode;
 }
 
+interface SrIteration {
+  id: string;
+  searchString: string;
+  pubmedResult: PubMedSearchResult | null;
+  revisionInputs: {
+    relevantCount: string;
+    noiseDescription: string;
+    additionalKeywords: string;
+    termsToRemove: string;
+    userGoal: string;
+  };
+  revisionPrompt: string;
+  revisedAiResponse: string;
+}
+
+const emptyRevisionInputs = {
+  relevantCount: "",
+  noiseDescription: "",
+  additionalKeywords: "",
+  termsToRemove: "",
+  userGoal: "",
+};
+
+function makeIteration(searchString = ""): SrIteration {
+  return {
+    id: crypto.randomUUID(),
+    searchString,
+    pubmedResult: null,
+    revisionInputs: { ...emptyRevisionInputs },
+    revisionPrompt: "",
+    revisedAiResponse: "",
+  };
+}
+
 export function StrategyWorkflow({
   settings,
   fields,
@@ -41,12 +77,9 @@ export function StrategyWorkflow({
   const [values, setValues] = useState<Record<string, string>>({});
   const [generatedPrompt, setGeneratedPrompt] = useState("");
   const [aiResponse, setAiResponse] = useState("");
-  const [searchString, setSearchString] = useState("");
-  const [pubmedResult, setPubmedResult] = useState<PubMedSearchResult | null>(
-    null
-  );
-  const [selectedPmids, setSelectedPmids] = useState<string[]>([]);
-  const [iterationCount, setIterationCount] = useState(0);
+  const [iterations, setIterations] = useState<SrIteration[]>([
+    makeIteration(),
+  ]);
 
   function handleFieldChange(key: string, value: string) {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -55,22 +88,24 @@ export function StrategyWorkflow({
   function handleGeneratePrompt() {
     const requiredFields = fields.filter((f) => f.required);
     const missing = requiredFields.filter((f) => !values[f.key]?.trim());
-
     if (missing.length > 0) {
       alert(
         `以下の必須項目を入力してください：\n${missing.map((f) => f.label).join("\n")}`
       );
       return;
     }
-
-    const prompt = buildPrompt(promptTemplate, values);
-    setGeneratedPrompt(prompt);
+    setGeneratedPrompt(buildPrompt(promptTemplate, values));
   }
 
-  function extractSearchStringFromAi() {
+  function extractSearchStringFromInitialAi() {
     const extracted = extractSearchString(aiResponse);
     if (extracted) {
-      setSearchString(extracted);
+      updateIteration(0, { searchString: extracted });
+      setTimeout(() => {
+        document
+          .getElementById(`step-pubmed-0`)
+          ?.scrollIntoView({ behavior: "smooth" });
+      }, 100);
     } else {
       alert(
         "検索式を自動抽出できませんでした。AI回答からコピーして検索式欄に直接貼り付けてください。"
@@ -78,26 +113,25 @@ export function StrategyWorkflow({
     }
   }
 
-  function handlePubMedResult(result: PubMedSearchResult) {
-    setPubmedResult(result);
-    setSelectedPmids([]);
+  function updateIteration(index: number, partial: Partial<SrIteration>) {
+    setIterations((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], ...partial };
+      return next;
+    });
   }
 
-  function handleTogglePmid(pmid: string) {
-    setSelectedPmids((prev) =>
-      prev.includes(pmid) ? prev.filter((p) => p !== pmid) : [...prev, pmid]
-    );
-  }
-
-  function handleApplyRevisedSearchString(revised: string) {
-    setSearchString(revised);
-    setPubmedResult(null);
-    setSelectedPmids([]);
-    setIterationCount((n) => n + 1);
+  function spawnNextIteration(fromIndex: number, searchString: string) {
+    setIterations((prev) => {
+      // truncate to fromIndex+1, then append new iteration
+      const trimmed = prev.slice(0, fromIndex + 1);
+      return [...trimmed, makeIteration(searchString)];
+    });
     setTimeout(() => {
-      const el = document.getElementById("step-4-pubmed");
-      if (el) el.scrollIntoView({ behavior: "smooth" });
-    }, 100);
+      document
+        .getElementById(`step-pubmed-${fromIndex + 1}`)
+        ?.scrollIntoView({ behavior: "smooth" });
+    }, 200);
   }
 
   const question = values.question || "";
@@ -123,8 +157,7 @@ export function StrategyWorkflow({
           <h2>Step 2: AI用プロンプト</h2>
           <PromptDisplay prompt={generatedPrompt} />
           <p className="hint">
-            このプロンプトをコピーして、ChatGPT / Claude /
-            Geminiなどの外部AIに貼り付けてください。
+            このプロンプトをコピーしてChatGPT / Claude / Geminiなどに貼り付けてください。
           </p>
         </section>
       )}
@@ -137,97 +170,350 @@ export function StrategyWorkflow({
           {aiResponse && (
             <div className="step3-action">
               <p className="hint">
-                AI回答に検索式（コードブロック）が含まれていれば、ボタン1つでStep 4の検索式欄に流し込めます。
-                PMIDの実在確認は、PubMed検索後の最終ステップ（Step 6）で行います。
+                AI回答に検索式（コードブロック）が含まれていれば、ボタン1つで次のStepの検索式欄に流し込みます。
               </p>
               <button
                 className="btn btn-primary"
-                onClick={extractSearchStringFromAi}
+                onClick={extractSearchStringFromInitialAi}
               >
-                AI回答から検索式を抽出してStep 4へ
+                AI回答から検索式を抽出して次のStepへ
               </button>
             </div>
           )}
         </section>
       )}
 
-      {aiResponse && (
-        <section id="step-4-pubmed" className="workflow-section">
-          <h2>
-            Step 4: PubMed検索
-            {iterationCount > 0 && (
-              <span className="iteration-badge">
-                改善ループ {iterationCount} 回目
-              </span>
-            )}
-          </h2>
-          <SearchStringInput
-            value={searchString}
-            onChange={setSearchString}
-            onExtractFromAi={extractSearchStringFromAi}
-          />
-          {searchString && (
-            <PubMedSearchBox
+      {/* Iteration steps: each iteration has 3 explicit numbered steps for SR,
+          or just 2 (PubMed + synthesis) for topic */}
+      {aiResponse &&
+        iterations.map((iter, idx) =>
+          mode === "topic-synthesis" ? (
+            <TopicIterationBlock
+              key={iter.id}
               settings={settings}
-              searchString={searchString}
-              onResult={handlePubMedResult}
+              question={question}
+              iteration={iter}
+              stepBase={4 + idx * 2}
+              onUpdate={(p) => updateIteration(idx, p)}
+            />
+          ) : (
+            <SrIterationBlock
+              key={iter.id}
+              settings={settings}
+              question={question}
+              iteration={iter}
+              iterationIndex={idx}
+              stepBase={4 + idx * 3}
+              onUpdate={(p) => updateIteration(idx, p)}
+              onSpawnNext={(s) => spawnNextIteration(idx, s)}
+              hasNext={idx < iterations.length - 1}
+            />
+          )
+        )}
+    </div>
+  );
+}
+
+/* ========== Topic Iteration (PubMed + Synthesis) ========== */
+
+function TopicIterationBlock({
+  settings,
+  question,
+  iteration,
+  stepBase,
+  onUpdate,
+}: {
+  settings: AppSettings;
+  question: string;
+  iteration: SrIteration;
+  stepBase: number;
+  onUpdate: (p: Partial<SrIteration>) => void;
+}) {
+  return (
+    <>
+      <section
+        id={`step-pubmed-0`}
+        className="workflow-section"
+      >
+        <h2>Step {stepBase}: PubMed検索</h2>
+        <SearchStringInput
+          value={iteration.searchString}
+          onChange={(v) => onUpdate({ searchString: v })}
+        />
+        {iteration.searchString && (
+          <PubMedSearchBox
+            settings={settings}
+            searchString={iteration.searchString}
+            onResult={(result) => onUpdate({ pubmedResult: result })}
+          />
+        )}
+        {iteration.pubmedResult && (
+          <>
+            <PubMedResultTable
+              result={iteration.pubmedResult}
+              selectedPmids={[]}
+              onToggle={() => {}}
+            />
+            <MeshObservationGuide pubmedResult={iteration.pubmedResult} />
+          </>
+        )}
+      </section>
+
+      {iteration.pubmedResult && (
+        <section className="workflow-section">
+          <h2>Step {stepBase + 1}: 統合プロンプト生成</h2>
+          <p className="hint">
+            PubMed検索結果（タイトル・抄録・MeSH）を、AIに戻して最終回答を統合させます。
+            AIは訓練データに含まれる「論文の考察セクション」の知識と統合して答えます。
+          </p>
+          <TopicSynthesisGenerator
+            question={question}
+            executedSearchString={iteration.searchString}
+            pubmedResult={iteration.pubmedResult}
+          />
+        </section>
+      )}
+    </>
+  );
+}
+
+/* ========== SR Iteration (PubMed + Revision Prompt + AI Response Extract) ========== */
+
+function SrIterationBlock({
+  settings,
+  question,
+  iteration,
+  iterationIndex,
+  stepBase,
+  onUpdate,
+  onSpawnNext,
+  hasNext,
+}: {
+  settings: AppSettings;
+  question: string;
+  iteration: SrIteration;
+  iterationIndex: number;
+  stepBase: number;
+  onUpdate: (p: Partial<SrIteration>) => void;
+  onSpawnNext: (searchString: string) => void;
+  hasNext: boolean;
+}) {
+  const iterationLabel = iterationIndex === 0 ? "初回" : `${iterationIndex + 1}回目`;
+
+  function handleGenerateRevisionPrompt() {
+    if (!iteration.pubmedResult) return;
+    const prompt = buildPrompt(srRevisionPrompt, {
+      question,
+      executedSearchString: iteration.searchString,
+      apiFeedbackBlock: buildApiFeedbackBlock(iteration.pubmedResult),
+      abstractsBlock: buildAbstractsBlock(iteration.pubmedResult),
+      resultCount: String(iteration.pubmedResult.count),
+      relevantCountTop20: iteration.revisionInputs.relevantCount || "未入力",
+      noiseDescription: iteration.revisionInputs.noiseDescription || "未入力",
+      additionalKeywords: iteration.revisionInputs.additionalKeywords || "未入力",
+      termsToRemove: iteration.revisionInputs.termsToRemove || "未入力",
+      userGoal: iteration.revisionInputs.userGoal || "未入力",
+    });
+    onUpdate({ revisionPrompt: prompt });
+  }
+
+  function handleExtractAndProceed() {
+    const extracted = extractSearchString(iteration.revisedAiResponse);
+    if (extracted) {
+      onSpawnNext(extracted);
+    } else {
+      alert(
+        "改善された検索式を自動抽出できませんでした。AI回答からコピーして手動で次の検索式欄に貼り付けてください。"
+      );
+    }
+  }
+
+  return (
+    <>
+      {/* Step (4 + 3N): PubMed検索 */}
+      <section
+        id={`step-pubmed-${iterationIndex}`}
+        className="workflow-section"
+      >
+        <h2>
+          Step {stepBase}: PubMed検索
+          <span className="iteration-badge">{iterationLabel}</span>
+        </h2>
+        <SearchStringInput
+          value={iteration.searchString}
+          onChange={(v) => onUpdate({ searchString: v })}
+        />
+        {iteration.searchString && (
+          <PubMedSearchBox
+            settings={settings}
+            searchString={iteration.searchString}
+            onResult={(result) => onUpdate({ pubmedResult: result })}
+          />
+        )}
+        {iteration.pubmedResult && (
+          <>
+            <PubMedResultTable
+              result={iteration.pubmedResult}
+              selectedPmids={[]}
+              onToggle={() => {}}
+            />
+            <MeshObservationGuide pubmedResult={iteration.pubmedResult} />
+          </>
+        )}
+      </section>
+
+      {/* Step (5 + 3N): 改善プロンプト */}
+      {iteration.pubmedResult && (
+        <section className="workflow-section">
+          <h2>
+            Step {stepBase + 1}: 改善プロンプト生成
+            <span className="iteration-badge">{iterationLabel}</span>
+          </h2>
+          <p className="hint">
+            上位文献のタイトル・抄録・付与MeSH・Publication
+            Types・Query Translationが改善プロンプトに自動挿入されます。
+            AIは付与MeSHから同義語を発見し、抄録から漏れている自由語を補い、
+            <strong>査読（PRESS / PRISMA-S）通過品質</strong>の検索式を作成します。
+          </p>
+
+          <h4>改善プロンプトに含める評価（任意）</h4>
+          <div className="form-group">
+            <label>上位20件中、関連が高そうな件数</label>
+            <input
+              type="text"
+              value={iteration.revisionInputs.relevantCount}
+              onChange={(e) =>
+                onUpdate({
+                  revisionInputs: {
+                    ...iteration.revisionInputs,
+                    relevantCount: e.target.value,
+                  },
+                })
+              }
+              placeholder="例：8件"
+            />
+          </div>
+          <div className="form-group">
+            <label>ノイズとして多かった内容</label>
+            <textarea
+              rows={2}
+              value={iteration.revisionInputs.noiseDescription}
+              onChange={(e) =>
+                onUpdate({
+                  revisionInputs: {
+                    ...iteration.revisionInputs,
+                    noiseDescription: e.target.value,
+                  },
+                })
+              }
+              placeholder="例：動物実験が多い、小児の論文が混入している"
+            />
+          </div>
+          <div className="form-group">
+            <label>追加したい検索語</label>
+            <textarea
+              rows={2}
+              value={iteration.revisionInputs.additionalKeywords}
+              onChange={(e) =>
+                onUpdate({
+                  revisionInputs: {
+                    ...iteration.revisionInputs,
+                    additionalKeywords: e.target.value,
+                  },
+                })
+              }
+            />
+          </div>
+          <div className="form-group">
+            <label>除外したい検索語</label>
+            <textarea
+              rows={2}
+              value={iteration.revisionInputs.termsToRemove}
+              onChange={(e) =>
+                onUpdate({
+                  revisionInputs: {
+                    ...iteration.revisionInputs,
+                    termsToRemove: e.target.value,
+                  },
+                })
+              }
+            />
+          </div>
+          <div className="form-group">
+            <label>希望</label>
+            <textarea
+              rows={2}
+              value={iteration.revisionInputs.userGoal}
+              onChange={(e) =>
+                onUpdate({
+                  revisionInputs: {
+                    ...iteration.revisionInputs,
+                    userGoal: e.target.value,
+                  },
+                })
+              }
+              placeholder="例：件数を500件以下に絞りたい"
+            />
+          </div>
+
+          <button
+            className="btn btn-primary"
+            onClick={handleGenerateRevisionPrompt}
+          >
+            改善プロンプトを生成
+          </button>
+
+          {iteration.revisionPrompt && (
+            <PromptDisplay
+              prompt={iteration.revisionPrompt}
+              title="改善プロンプト"
             />
           )}
         </section>
       )}
 
-      {pubmedResult && (
+      {/* Step (6 + 3N): AI改善回答 paste + 抽出 */}
+      {iteration.revisionPrompt && (
         <section className="workflow-section">
-          <h2>Step 5: 検索結果の確認</h2>
-          <PubMedResultTable
-            result={pubmedResult}
-            selectedPmids={selectedPmids}
-            onToggle={handleTogglePmid}
-          />
-          <MeshObservationGuide pubmedResult={pubmedResult} />
-        </section>
-      )}
-
-      {pubmedResult && mode === "topic-synthesis" && (
-        <section className="workflow-section">
-          <h2>Step 6: AIに統合させる（最終回答）</h2>
+          <h2>
+            Step {stepBase + 2}: AI改善回答の貼り付け
+            <span className="iteration-badge">{iterationLabel}</span>
+          </h2>
           <p className="hint">
-            トピック探索では、PubMed検索結果（タイトル・抄録・MeSH）をAIに戻し、
-            AIの訓練データに含まれる「考察セクションの知識」と統合して最終回答を作ります。
-            これがこのアプリの本来の目的です。
+            上の改善プロンプトを外部AIに貼り付け、返ってきた改善回答全体をここに貼り付けてください。
+            「AI回答から検索式を抽出して次のStepへ」を押すと、抽出された検索式で次のPubMed検索ステップが自動的に開きます。
           </p>
-          <TopicSynthesisGenerator
-            settings={settings}
-            question={question}
-            executedSearchString={searchString}
-            pubmedResult={pubmedResult}
+          <textarea
+            value={iteration.revisedAiResponse}
+            onChange={(e) =>
+              onUpdate({ revisedAiResponse: e.target.value })
+            }
+            rows={10}
+            placeholder="AIから返ってきた改善回答全体をここに貼り付け..."
+            style={{ width: "100%" }}
           />
+          {iteration.revisedAiResponse && (
+            <div className="step3-action">
+              <p className="hint">
+                {hasNext
+                  ? "次のPubMed検索ステップは既に開かれています。再抽出すると上書きされます。"
+                  : "次のPubMed検索ステップが新たに開きます。"}
+              </p>
+              <button
+                className="btn btn-primary"
+                onClick={handleExtractAndProceed}
+              >
+                AI回答から検索式を抽出して次のStepへ
+              </button>
+            </div>
+          )}
         </section>
       )}
-
-      {pubmedResult && mode === "sr-revision" && (
-        <section className="workflow-section">
-          <h2>Step 6: 改善プロンプト → AIに戻して査読品質の検索式に</h2>
-          <p className="hint">
-            上位文献の<strong>タイトル・抄録・付与MeSH・Publication Types・Query Translation</strong>
-            が改善プロンプトに自動挿入されます。
-            AIは付与MeSHから同義語を発見し、抄録から漏れている自由語を補い、
-            <strong>査読（PRESS / PRISMA-S）通過品質</strong>の検索式を作成します。
-            AIの改善回答から最終検索式を抽出して、再度PubMedで検索できます。これを繰り返して精度を上げてください。
-          </p>
-          <RevisionPromptGenerator
-            question={question}
-            executedSearchString={searchString}
-            pubmedResult={pubmedResult}
-            onApplyRevisedSearchString={handleApplyRevisedSearchString}
-            useSrPrompt
-          />
-        </section>
-      )}
-
-    </div>
+    </>
   );
 }
+
+/* ========== MeSH observation guide ========== */
 
 function MeshObservationGuide({
   pubmedResult,
@@ -246,11 +532,7 @@ function MeshObservationGuide({
 
   return (
     <div className="mesh-observation-guide">
-      <h4>付与MeSH・抄録・Publication Types（自動取得）</h4>
-      <p className="hint">
-        以下は検索結果上位から自動収集された情報です。Step
-        6の改善プロンプトに自動的に含まれるため、手動でPubMedからコピーする必要はありません。
-      </p>
+      <h4>付与MeSH・抄録・Publication Types（自動取得・次ステップへ自動挿入）</h4>
       <p>
         <strong>抄録取得済み:</strong> {abstractsCount} /{" "}
         {pubmedResult.articles.length} 件
@@ -261,9 +543,7 @@ function MeshObservationGuide({
           <p>{meshTerms.slice(0, 30).join("; ")}</p>
         </div>
       ) : (
-        <p className="hint">
-          MeSHが取得できていません。EFetchが失敗した可能性があります。
-        </p>
+        <p className="hint">MeSHが取得できていません。</p>
       )}
       {pubTypes.length > 0 && (
         <div className="pub-type-list">

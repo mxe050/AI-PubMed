@@ -36,6 +36,10 @@ export function SearchStringInput({ value, onChange, onExtractFromAi }: Props) {
         placeholder="PubMed検索式をここに入力または貼り付け..."
       />
       {warning && <p className="warning-text">{warning}</p>}
+      <p className="hint">
+        下の「<strong>PubMed APIで検索</strong>」ボタンを押すと、このアプリ内に検索結果（タイトル・抄録・MeSH等）が表示され、自動的に次のStepへ進めます。
+        「PubMedサイトで開く」は外部参照用です（検索結果はアプリに戻ってきません）。
+      </p>
       <div className="button-group">
         {onExtractFromAi && (
           <button className="btn btn-secondary" onClick={onExtractFromAi}>
@@ -54,7 +58,7 @@ export function SearchStringInput({ value, onChange, onExtractFromAi }: Props) {
           onClick={handleOpenPubMed}
           disabled={!value}
         >
-          PubMedで開く
+          PubMedサイトで開く（外部・参考）
         </button>
       </div>
     </div>
