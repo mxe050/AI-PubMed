@@ -31,7 +31,7 @@ export default function App() {
   return (
     <div className="app">
       <header className="app-header">
-        <h1>AI支援 PubMed検索プロンプト支援ツール</h1>
+        <h1>医療関係者のためのAI検索（PubMed・SR）</h1>
         <p className="app-subtitle">
           AI APIには一切通信しません。PubMed公式API（NCBI E-utilities）のみを使用します。
         </p>

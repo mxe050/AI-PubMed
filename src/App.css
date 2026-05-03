@@ -1560,6 +1560,24 @@ tr.unverified {
   padding: 4px 10px;
 }
 
+.bulk-translate-box {
+  background: var(--color-info-bg);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin: 12px 0;
+}
+
+.bulk-translate-box h5 {
+  margin: 0 0 6px;
+  color: var(--color-primary);
+  font-size: 0.95rem;
+}
+
+.bulk-translate-box .hint {
+  margin: 4px 0 8px;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .app-header h1 {

@@ -145,6 +145,7 @@ export function FactCheckTab({ settings }: Props) {
               {verifiedArticles.length > 0 && (
                 <div className="verified-section">
                   <h4>✓ 実在確認済みPMID（抄録付き＋要約用プロンプト）</h4>
+                  <BulkTranslateButton articles={verifiedArticles} />
                   <div className="verified-list">
                     {verifiedArticles.map((a) => (
                       <FactCheckArticleCard key={a.pmid} article={a} />
@@ -181,6 +182,108 @@ export function FactCheckTab({ settings }: Props) {
           </ul>
         )}
       </section>
+    </div>
+  );
+}
+
+function BulkTranslateButton({ articles }: { articles: PubMedArticle[] }) {
+  const [copied, setCopied] = useState(false);
+  const [showPrompt, setShowPrompt] = useState(false);
+
+  const articleBlocks = articles
+    .map((a, idx) => {
+      const lines: string[] = [];
+      lines.push(`--- [${idx + 1}] PMID ${a.pmid} ---`);
+      lines.push(`Title: ${a.title ?? "(no title)"}`);
+      if (a.journal) lines.push(`Journal: ${a.journal}${a.year ? " (" + a.year + ")" : ""}`);
+      if (a.authors?.length) {
+        lines.push(
+          `Authors: ${a.authors.slice(0, 5).join(", ")}${a.authors.length > 5 ? " et al." : ""}`
+        );
+      }
+      if (a.meshTerms?.length) {
+        lines.push(`MeSH: ${a.meshTerms.slice(0, 10).join("; ")}`);
+      }
+      lines.push(`Abstract:\n${a.abstractText ?? "(抄録は取得できませんでした)"}`);
+      return lines.join("\n");
+    })
+    .join("\n\n");
+
+  const bulkPrompt = `あなたは医学情報専門家です。以下に、PubMedから取得した ${articles.length} 件の論文の抄録があります。
+すべての抄録を読み、次の2段階で日本語化してください。
+
+# 第1段階：各抄録の日本語訳と簡潔な要約
+それぞれの抄録について、以下の形式で出力してください：
+
+## [番号] PMID xxxxxxx — タイトル日本語訳
+- 雑誌・年・著者
+- **日本語要約（5〜8行）**：研究目的・対象・主要結果・結論を含む
+- **キーポイント（箇条書き2〜4個）**：臨床的に重要な点
+
+# 第2段階：全${articles.length}件のまとめ
+全抄録を横断して以下を日本語で記述してください：
+
+## 共通テーマ
+複数の抄録に共通する主題、対象、介入、アウトカムをまとめてください。
+
+## 結論の傾向
+結果の方向性（賛成／反対／中立）、効果の大きさ、エビデンスの質を集約してください。
+矛盾する結果がある場合は明示してください。
+
+## 主要なエビデンスギャップ
+これらの抄録から見えてくる、まだ明確になっていない論点や今後の研究課題を挙げてください。
+
+## 臨床への示唆
+医療現場でこれらのエビデンスをどう活用できるかを2〜4行でまとめてください。
+
+# 重要ルール
+- 日本語訳・要約はあくまで抄録の内容に忠実に。あなたの記憶からの情報を混ぜないでください。
+- 抄録に書かれていないことを補足する場合は【AI記憶・要確認】とラベルを付けてください。
+- 数値・PMID・固有名詞は原文のまま正確に転記してください。
+
+---
+
+# 抄録データ（${articles.length}件）
+
+${articleBlocks}`;
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(bulkPrompt);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      const textarea = document.createElement("textarea");
+      textarea.value = bulkPrompt;
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  }
+
+  return (
+    <div className="bulk-translate-box">
+      <h5>全{articles.length}件の抄録を一括で翻訳＋まとめ</h5>
+      <p className="hint">
+        確認済み抄録{articles.length}件を、AIに「日本語訳＋個別要約＋全体まとめ」させるプロンプトを生成します。
+        ChatGPT / Claude / Geminiなどに貼り付けてください。
+        抄録量が多い場合はClaude（長文処理に強い）やGemini（長文コンテキスト）が向きます。
+      </p>
+      <div className="button-group">
+        <button className="btn btn-primary" onClick={handleCopy}>
+          {copied ? "コピーしました" : "全抄録の翻訳＋まとめプロンプトをコピー"}
+        </button>
+        <button
+          className="btn btn-secondary"
+          onClick={() => setShowPrompt((v) => !v)}
+        >
+          {showPrompt ? "プロンプト本文を隠す" : "プロンプト本文を表示"}
+        </button>
+      </div>
+      {showPrompt && <pre className="summary-prompt">{bulkPrompt}</pre>}
     </div>
   );
 }

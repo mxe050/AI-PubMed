@@ -54,7 +54,7 @@ export function TopicSynthesisGenerator({
         copyLabel="元の疑問をコピー"
         terminal
       >
-        <details open>
+        <details>
           <summary>
             <strong>なぜこれが必要か（クリックで詳細）</strong>
           </summary>
@@ -74,7 +74,7 @@ export function TopicSynthesisGenerator({
           </ul>
         </details>
 
-        <details open>
+        <details>
           <summary>
             <strong>使うAIモデルについて（クリックで詳細）</strong>
           </summary>
