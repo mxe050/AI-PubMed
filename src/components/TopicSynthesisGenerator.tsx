@@ -104,10 +104,10 @@ export function TopicSynthesisGenerator({
 
       {/* === Prompt 2: Plain enhanced === */}
       <PromptCard
-        title="プロンプト2：プレーン強化版（プレーンの良さを残しつつ、ファクトチェック対応）"
+        title="プロンプト2：プレーン多角分解版（質問解釈のブレを抑える）"
         kind="plain-enhanced"
         prompt={plainEnhanced}
-        copyLabel="プレーン強化プロンプトをコピー"
+        copyLabel="プレーン多角分解プロンプトをコピー"
         terminal
       >
         <details>
@@ -116,21 +116,26 @@ export function TopicSynthesisGenerator({
           </summary>
           <ul>
             <li>
-              質問の本質はプロンプト1と同じく「もとの疑問そのまま」ですが、回答に
-              <strong>ハルシネーションラベル</strong>
-              （【AI記憶・確認済み】【AI記憶・未確認】【一般論】）の付与を指示しています。
+              <strong>元の疑問はそのままプロンプトに含まれます</strong>（質問本文を加工しません）。プロンプト1と同じく構造化・検索式化はしません。
             </li>
             <li>
-              これにより、後で「AI出力ファクトチェック」タブで検証する際、確認すべきPMIDや事実が明確に区別されます。
+              プロンプト1との違いは、AIが質問を<strong>単一の解釈で処理しないように指示</strong>することです。
             </li>
             <li>
-              構造化・検索式化はせず、ユーザーの疑問に直接答えてもらうという姿勢はプロンプト1と同じです。
+              重要語の<strong>「そのものの問題／使われ方／解釈／応用／他概念との混同／条件・文脈依存」</strong>を区別させ、
+              元の質問と同じ意図を持ちうる<strong>別表現の質問を4種類</strong>（字面忠実／意図補足／範囲拡張／誤解回避）作らせて、それぞれに個別回答させます。
+            </li>
+            <li>
+              候補を<strong>A: 直接該当 ／ B: 意図に強く合う ／ C: 関連 ／ D: 似ているが別物 ／ E: 除外</strong>に分類し、最終回答を統合します。
+            </li>
+            <li>
+              「もっとも妥当な解釈」と「なぜ回答が変わりうるか」をAIに明示させるため、質問文のわずかな違いによる<strong>回答のブレを可視化</strong>できます。
+            </li>
+            <li>
+              プレーン1の「短くて素直」とは違い、深い分解が必要なため、<strong>Pro／上位モデル</strong>推奨です（無料枠でも上位モデルが1日数回使えるサービスがあります）。
             </li>
           </ul>
         </details>
-        <p className="hint">
-          ※ プロンプト1と同じく、AIモデルの地力が出ます。Pro／上位モデルでの利用を推奨します。
-        </p>
       </PromptCard>
 
       {/* === Prompt 3: PubMed integrated synthesis === */}
