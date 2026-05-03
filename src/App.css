@@ -642,6 +642,60 @@ tr.unverified {
   margin: 8px 0;
 }
 
+/* Step 3 action area */
+.step3-action {
+  margin-top: 16px;
+  padding: 12px;
+  background: var(--color-info-bg);
+  border-radius: var(--radius);
+  border: 1px solid var(--color-primary);
+}
+
+.step3-action .hint {
+  margin-top: 0;
+}
+
+/* Topic synthesis */
+.topic-synthesis-generator h3 {
+  font-size: 0.95rem;
+  margin: 16px 0 8px;
+}
+
+.hint-stats p {
+  margin: 4px 0;
+  font-size: 0.85rem;
+}
+
+.synthesis-final {
+  margin-top: 24px;
+  padding: 16px;
+  background: #f0fdf4;
+  border: 1px solid var(--color-success);
+  border-radius: var(--radius);
+}
+
+.synthesis-final h3 {
+  margin: 16px 0 8px;
+  color: var(--color-success);
+}
+
+.synthesis-final h3:first-child {
+  margin-top: 0;
+}
+
+.final-answer {
+  background: white;
+  padding: 16px;
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 600px;
+  overflow-y: auto;
+  border: 1px solid var(--color-border);
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .app-header h1 {

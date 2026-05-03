@@ -2,8 +2,9 @@ import { useState } from "react";
 import type { PubMedSearchResult } from "../types";
 import { buildPrompt } from "../utils/buildPrompt";
 import { buildApiFeedbackBlock } from "../utils/buildApiFeedbackBlock";
+import { buildAbstractsBlock } from "../utils/buildAbstractsBlock";
 import { extractSearchString } from "../utils/extractSearchString";
-import { revisionPrompt } from "../prompts/revision";
+import { revisionPrompt, srRevisionPrompt } from "../prompts/revision";
 import { PromptDisplay } from "./PromptDisplay";
 
 interface Props {
@@ -11,6 +12,8 @@ interface Props {
   executedSearchString: string;
   pubmedResult?: PubMedSearchResult;
   onApplyRevisedSearchString?: (revised: string) => void;
+  /** Use SR-specific peer-review-quality prompt */
+  useSrPrompt?: boolean;
 }
 
 export function RevisionPromptGenerator({
@@ -18,6 +21,7 @@ export function RevisionPromptGenerator({
   executedSearchString,
   pubmedResult,
   onApplyRevisedSearchString,
+  useSrPrompt = false,
 }: Props) {
   const [relevantCount, setRelevantCount] = useState("");
   const [noiseDescription, setNoiseDescription] = useState("");
@@ -29,10 +33,12 @@ export function RevisionPromptGenerator({
   const [extractedRevised, setExtractedRevised] = useState<string | null>(null);
 
   function handleGenerate() {
-    const prompt = buildPrompt(revisionPrompt, {
+    const template = useSrPrompt ? srRevisionPrompt : revisionPrompt;
+    const prompt = buildPrompt(template, {
       question,
       executedSearchString,
       apiFeedbackBlock: buildApiFeedbackBlock(pubmedResult),
+      abstractsBlock: buildAbstractsBlock(pubmedResult),
       resultCount: pubmedResult ? String(pubmedResult.count) : "未取得",
       relevantCountTop20: relevantCount || "未入力",
       noiseDescription: noiseDescription || "未入力",

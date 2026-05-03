@@ -44,7 +44,7 @@ export function GradeTab({ settings }: Props) {
         fields={gradeFields}
         promptTemplate={template}
         description={`GRADE-ADOLOPMENT: ${current?.label ?? subStrategy}`}
-        enforcePubMed
+        mode="grade-revision"
       />
     </div>
   );

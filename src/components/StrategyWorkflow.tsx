@@ -10,6 +10,7 @@ import { PubMedSearchBox } from "./PubMedSearchBox";
 import { PubMedResultTable } from "./PubMedResultTable";
 import { PmidVerifier } from "./PmidVerifier";
 import { RevisionPromptGenerator } from "./RevisionPromptGenerator";
+import { TopicSynthesisGenerator } from "./TopicSynthesisGenerator";
 
 interface FieldDef {
   key: string;
@@ -21,13 +22,14 @@ interface FieldDef {
   placeholder?: string;
 }
 
+export type WorkflowMode = "topic-synthesis" | "sr-revision" | "grade-revision";
+
 interface Props {
   settings: AppSettings;
   fields: FieldDef[];
   promptTemplate: string;
   description: string;
-  /** Force "must end with PubMed" mode (for SR / GRADE). */
-  enforcePubMed?: boolean;
+  mode: WorkflowMode;
 }
 
 export function StrategyWorkflow({
@@ -35,7 +37,7 @@ export function StrategyWorkflow({
   fields,
   promptTemplate,
   description,
-  enforcePubMed = false,
+  mode,
 }: Props) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [generatedPrompt, setGeneratedPrompt] = useState("");
@@ -88,7 +90,6 @@ export function StrategyWorkflow({
     );
   }
 
-  /** Called when user has revised search string from AI improvement and wants to re-loop. */
   function handleApplyRevisedSearchString(revised: string) {
     setSearchString(revised);
     setPubmedResult(null);
@@ -101,9 +102,6 @@ export function StrategyWorkflow({
   }
 
   const question = values.question || "";
-
-  const isAiRoute =
-    !enforcePubMed && /ルート\s*B|ルートB|AI直接回答ルート/.test(aiResponse);
 
   return (
     <div className="strategy-workflow">
@@ -137,27 +135,17 @@ export function StrategyWorkflow({
           <h2>Step 3: AI回答の貼り付け</h2>
           <AiResponseInput value={aiResponse} onChange={setAiResponse} />
 
-          {aiResponse && isAiRoute && (
-            <div className="ai-route-banner">
-              <h4>AI直接回答ルートが選ばれました</h4>
-              <p>
-                AIはこのトピックについて「PubMed検索ではなくAIの解説で進める」と判定したようです。
-                以下の点に注意してください：
+          {aiResponse && (
+            <div className="step3-action">
+              <p className="hint">
+                AI回答に検索式（コードブロック）が含まれていれば、ボタン1つでStep 4の検索式欄に流し込めます。
               </p>
-              <ul>
-                <li>
-                  AI回答内の【確認済み】【未確認・要検証】【一般論】のラベルを必ずチェックしてください。
-                </li>
-                <li>
-                  PMIDが含まれている場合は、必ず下記のPMID実在確認を実行してください。
-                </li>
-                <li>
-                  AI回答末尾の「ファクトチェック手順」に従い、一次資料への到達を試みてください。
-                </li>
-                <li>
-                  PubMed検索式（B-6）が提示されていればStep 4で参考検索を試せます。必須ではありません。
-                </li>
-              </ul>
+              <button
+                className="btn btn-primary"
+                onClick={extractSearchStringFromAi}
+              >
+                AI回答から検索式を抽出してStep 4へ
+              </button>
             </div>
           )}
 
@@ -168,10 +156,7 @@ export function StrategyWorkflow({
       )}
 
       {aiResponse && (
-        <section
-          id="step-4-pubmed"
-          className="workflow-section"
-        >
+        <section id="step-4-pubmed" className="workflow-section">
           <h2>
             Step 4: PubMed検索
             {iterationCount > 0 && (
@@ -180,12 +165,6 @@ export function StrategyWorkflow({
               </span>
             )}
           </h2>
-          {isAiRoute && (
-            <p className="hint">
-              AIルートが選ばれているため、PubMed検索は任意です。
-              B-6の参考検索式があれば試してください。
-            </p>
-          )}
           <SearchStringInput
             value={searchString}
             onChange={setSearchString}
@@ -213,14 +192,50 @@ export function StrategyWorkflow({
         </section>
       )}
 
-      {pubmedResult && (
+      {pubmedResult && mode === "topic-synthesis" && (
+        <section className="workflow-section">
+          <h2>Step 6: AIに統合させる（最終回答）</h2>
+          <p className="hint">
+            トピック探索では、PubMed検索結果（タイトル・抄録・MeSH）をAIに戻し、
+            AIの訓練データに含まれる「考察セクションの知識」と統合して最終回答を作ります。
+            これがこのアプリの本来の目的です。
+          </p>
+          <TopicSynthesisGenerator
+            settings={settings}
+            question={question}
+            executedSearchString={searchString}
+            pubmedResult={pubmedResult}
+          />
+        </section>
+      )}
+
+      {pubmedResult && mode === "sr-revision" && (
+        <section className="workflow-section">
+          <h2>Step 6: 改善プロンプト → AIに戻して査読品質の検索式に</h2>
+          <p className="hint">
+            上位文献の<strong>タイトル・抄録・付与MeSH・Publication Types・Query Translation</strong>
+            が改善プロンプトに自動挿入されます。
+            AIは付与MeSHから同義語を発見し、抄録から漏れている自由語を補い、
+            <strong>査読（PRESS / PRISMA-S）通過品質</strong>の検索式を作成します。
+            AIの改善回答から最終検索式を抽出して、再度PubMedで検索できます。これを繰り返して精度を上げてください。
+          </p>
+          <RevisionPromptGenerator
+            question={question}
+            executedSearchString={searchString}
+            pubmedResult={pubmedResult}
+            onApplyRevisedSearchString={handleApplyRevisedSearchString}
+            useSrPrompt
+          />
+        </section>
+      )}
+
+      {pubmedResult && mode === "grade-revision" && (
         <section className="workflow-section">
           <h2>Step 6: 改善プロンプト → AIに戻して精度を上げる</h2>
           <p className="hint">
-            PubMed検索結果（件数、上位文献、付与MeSH、Publication
-            Types、Query
-            Translation）が改善プロンプトに自動挿入されます。
-            AIの改善回答を貼り戻すと、Step 7で次のループに進めます。
+            上位文献のタイトル・抄録・付与MeSH・Publication Types・Query
+            Translationが改善プロンプトに自動挿入されます。
+            AIの改善回答を貼り戻すと、最終検索式を抽出してPubMedで再検索できます。
           </p>
           <RevisionPromptGenerator
             question={question}
@@ -245,13 +260,20 @@ function MeshObservationGuide({
   const pubTypes = Array.from(
     new Set(pubmedResult.articles.flatMap((a) => a.publicationTypes ?? []))
   );
+  const abstractsCount = pubmedResult.articles.filter(
+    (a) => a.abstractText
+  ).length;
 
   return (
     <div className="mesh-observation-guide">
-      <h4>付与MeSH・Publication Types（自動取得）</h4>
+      <h4>付与MeSH・抄録・Publication Types（自動取得）</h4>
       <p className="hint">
-        これらは検索結果上位に頻出するMeSHです。Step 6の改善プロンプトに自動的に含まれます。
-        手動でPubMedからMeSHをコピーする必要はありません。
+        以下は検索結果上位から自動収集された情報です。Step
+        6の改善プロンプトに自動的に含まれるため、手動でPubMedからコピーする必要はありません。
+      </p>
+      <p>
+        <strong>抄録取得済み:</strong> {abstractsCount} /{" "}
+        {pubmedResult.articles.length} 件
       </p>
       {meshTerms.length > 0 ? (
         <div className="mesh-list">

@@ -1,20 +1,5 @@
-export const revisionPrompt = `以下はPubMedで実行した検索結果です。
-医学情報専門家として検索式を改善してください。
-
-# 重要：このタスクはPubMed検索式の改善です
-- 必ずPubMedで実行可能な一文の検索式を出力してください。
-- AI記憶からの定性的解説ではなく、検索式そのものを返してください。
-- 最後に「最終推奨検索式」セクションでは、必ず \`\`\`text コードブロック内に一文検索式のみを記載してください（コメントや改行は入れない）。
-
-# 改善方針
-- 重要文献を落とさずにノイズを減らす
-- 上位文献に付与されていたMeSH Termsで適切なものは積極的に取り込む（同義語の発見源として最も信頼できる）
-- Query translationを見て、AutomaticTermMappingで意図せず展開されている箇所がないか確認する
-- MeSHと[tiab]のバランスを調整する
-- 広すぎる語を削除または近接検索化する
-- 漏れている同義語を追加する
-- 検索式内の検索語は英語のみを使用する
-
+// Generic revision prompt (used by GRADE and as base)
+const revisionTail = `
 ---
 
 # 元の疑問
@@ -23,8 +8,11 @@ export const revisionPrompt = `以下はPubMedで実行した検索結果です�
 # 実行した検索式
 {{executedSearchString}}
 
-# PubMed APIで取得した情報（自動収集）
+# PubMed APIで取得した情報（自動収集：件数・PMID・タイトル・付与MeSH・Publication Types・Query Translation）
 {{apiFeedbackBlock}}
+
+# 上位文献の抄録（取得済み分）
+{{abstractsBlock}}
 
 # ユーザーによる評価
 - 検索結果件数：{{resultCount}}
@@ -47,9 +35,13 @@ export const revisionPrompt = `以下はPubMedで実行した検索結果です�
 | MeSH | 取り込み | 理由 |
 |---|---|---|
 
-## 3. 削除または修正すべき語
+## 3. 上位文献の抄録から拾うべき自由語
+抄録に頻出するが現在の検索式に含まれていない重要な自由語を表で示してください。
 
-## 4. 追加すべき語
+| 自由語 | 提案フィールドタグ | 取り込み理由 |
+|---|---|---|
+
+## 4. 削除または修正すべき語
 
 ## 5. 修正版検索式（3パターン）
 
@@ -85,3 +77,46 @@ export const revisionPrompt = `以下はPubMedで実行した検索結果です�
 | Outcomeが過剰に含まれていないか |  |  |
 | Study design filterが過剰でないか |  |  |
 `;
+
+// SR-specific revision prompt (peer-review quality)
+export const srRevisionPrompt = `あなたは熟練した医学情報専門家であり、システマティックレビューの査読を通過する品質の検索式を作成します。
+
+# 重要：このタスクはSR検索式の改善です
+査読者（PRESS、PRISMA-S）が以下を要求することを念頭に置いてください：
+
+- **網羅性（Sensitivity）**：重要文献を漏れなく拾う。MeSHと自由語（[tiab]）の両方を必ず併用する
+- **特異度（Specificity）の妥当性**：ノイズ削減は必要だが、感度を犠牲にしない
+- **再現性**：MeSHと[tiab]に明示的にフィールドタグを付け、Automatic Term Mapping依存を排除する
+- **透明性**：なぜその語を含めた・除外したかが論理的に説明できる
+- **動物研究除外**：NOT (animals[mh] NOT humans[mh]) を最終検索式に含める
+- **言語制限・年制限の明示**：必要に応じて[la]や[dp]を付ける
+
+# 改善方針
+- 上位文献に付与されていたMeSH Termsを最大限取り込む（同義語の発見源として最も信頼できる）
+- Query Translationを確認し、ATMで意図せず展開されている箇所をフィールドタグで縛る
+- 上位文献の抄録に頻出する自由語のうち、検索語に含まれていないものを補う
+- ANDで結合する主要概念は2〜3個まで
+- Outcomeは原則含めない
+- Comparisonは含めることで重要文献を落とすなら含めない
+
+# 出力ルール
+- 必ずPubMedで実行可能な一文の検索式を出力する
+- 最終推奨検索式は \`\`\`text コードブロック内に一文のみ（コメント・改行・説明文を入れない）
+- 検索式内の検索語は英語のみ
+` + revisionTail;
+
+// Generic revision prompt (topic / GRADE)
+export const revisionPrompt = `以下はPubMedで実行した検索結果です。
+医学情報専門家として検索式を改善してください。
+
+# 重要：このタスクはPubMed検索式の改善です
+- 必ずPubMedで実行可能な一文の検索式を出力してください
+- 最終推奨検索式は \`\`\`text コードブロック内に一文のみ（コメント・改行・説明文を入れない）
+
+# 改善方針
+- 重要文献を落とさずにノイズを減らす
+- 上位文献に付与されていたMeSH Termsで適切なものは積極的に取り込む
+- Query Translationを確認し、ATMで意図せず展開されている箇所をフィールドタグで縛る
+- 上位文献の抄録から、検索式に含まれていない重要な自由語を補う
+- 検索式内の検索語は英語のみを使用する
+` + revisionTail;

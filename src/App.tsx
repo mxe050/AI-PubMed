@@ -48,7 +48,8 @@ export default function App() {
             settings={settings}
             fields={topicFields}
             promptTemplate={topicInitialPrompt}
-            description="PICOに乗りにくい疑問や、概念探索、用語法、分類体系、歴史的経緯、研究テーマ探索に使います。"
+            description="概念探索、用語法、分類体系、歴史的経緯、論争点など、PubMedの抄録だけでは拾いきれないトピックに使います。PubMedで候補文献を集め、AIで論文の考察まで含めた最終回答を統合します。"
+            mode="topic-synthesis"
           />
         )}
 
@@ -57,8 +58,8 @@ export default function App() {
             settings={settings}
             fields={srFields}
             promptTemplate={srInitialPrompt}
-            description="PICOに基づくSR、メタ解析、診療ガイドライン用の効果検索に使います。最終的に必ずPubMedで完結します。"
-            enforcePubMed
+            description="PICOに基づくSR、メタ解析、診療ガイドライン用の効果検索に使います。最終的に必ずPubMedで完結し、査読（PRESS/PRISMA-S）通過品質の検索式を作ります。"
+            mode="sr-revision"
           />
         )}
 
