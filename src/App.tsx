@@ -57,7 +57,8 @@ export default function App() {
             settings={settings}
             fields={srFields}
             promptTemplate={srInitialPrompt}
-            description="PICOに基づくSR、メタ解析、診療ガイドライン用の効果検索に使います。PとIを中心に検索し、MeSHと[tiab]を併用します。"
+            description="PICOに基づくSR、メタ解析、診療ガイドライン用の効果検索に使います。最終的に必ずPubMedで完結します。"
+            enforcePubMed
           />
         )}
 
