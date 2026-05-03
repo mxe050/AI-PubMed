@@ -1,0 +1,77 @@
+export const etdTerms = {
+  problem: {
+    label: "Problem",
+    description: "疾患負担、頻度、有病率、発症率、baseline risk、重症度",
+    terms: [
+      "burden[tiab]",
+      "prevalence[tiab]",
+      "incidence[tiab]",
+      "epidemiology[tiab]",
+      "baseline risk[tiab]",
+      "disease burden[tiab]",
+    ],
+  },
+  values_preferences: {
+    label: "Values and preferences",
+    description: "患者価値観、選好、意思決定、満足度、utility",
+    terms: [
+      "patient preference*[tiab]",
+      "patient value*[tiab]",
+      "patient perspective*[tiab]",
+      "patient satisfaction[tiab]",
+      "decision making[mh]",
+      "patient participation[mh]",
+      "utilities[tiab]",
+    ],
+  },
+  resource_use: {
+    label: "Resource use",
+    description: "費用、医療資源、費用効果、経済評価",
+    terms: [
+      "cost*[tiab]",
+      "economic*[tiab]",
+      "cost-effectiveness[tiab]",
+      "resource use[tiab]",
+      "health care costs[mh]",
+      "cost-benefit analysis[mh]",
+    ],
+  },
+  equity: {
+    label: "Equity",
+    description: "医療格差、アクセス、社会経済的要因、脆弱集団",
+    terms: [
+      "equity[tiab]",
+      "inequity[tiab]",
+      "disparit*[tiab]",
+      "access[tiab]",
+      "socioeconomic[tiab]",
+      "vulnerable population*[tiab]",
+      "health status disparities[mh]",
+    ],
+  },
+  acceptability: {
+    label: "Acceptability",
+    description: "患者・医療者・政策決定者にとっての受容性",
+    terms: [
+      "acceptability[tiab]",
+      "acceptable[tiab]",
+      "attitude*[tiab]",
+      "perception*[tiab]",
+      "stakeholder*[tiab]",
+      "clinician perspective*[tiab]",
+      "patient perspective*[tiab]",
+    ],
+  },
+  feasibility: {
+    label: "Feasibility",
+    description: "実装可能性、医療体制、障壁、促進因子",
+    terms: [
+      "feasibility[tiab]",
+      "implementation[tiab]",
+      "barrier*[tiab]",
+      "facilitator*[tiab]",
+      "health services accessibility[mh]",
+      "delivery of health care[mh]",
+    ],
+  },
+} as const;
