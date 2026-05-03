@@ -22,7 +22,7 @@ interface FieldDef {
   placeholder?: string;
 }
 
-export type WorkflowMode = "topic-synthesis" | "sr-revision" | "grade-revision";
+export type WorkflowMode = "topic-synthesis" | "sr-revision";
 
 interface Props {
   settings: AppSettings;
@@ -229,22 +229,6 @@ export function StrategyWorkflow({
         </section>
       )}
 
-      {pubmedResult && mode === "grade-revision" && (
-        <section className="workflow-section">
-          <h2>Step 6: 改善プロンプト → AIに戻して精度を上げる</h2>
-          <p className="hint">
-            上位文献のタイトル・抄録・付与MeSH・Publication Types・Query
-            Translationが改善プロンプトに自動挿入されます。
-            AIの改善回答を貼り戻すと、最終検索式を抽出してPubMedで再検索できます。
-          </p>
-          <RevisionPromptGenerator
-            question={question}
-            executedSearchString={searchString}
-            pubmedResult={pubmedResult}
-            onApplyRevisedSearchString={handleApplyRevisedSearchString}
-          />
-        </section>
-      )}
     </div>
   );
 }

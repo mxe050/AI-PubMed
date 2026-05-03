@@ -1,24 +1,28 @@
 import { useState } from "react";
-import type { AppSettings, StrategyType } from "./types";
+import type { AppSettings } from "./types";
 import { loadSettings } from "./utils/settingsStorage";
-import { SettingsPanel } from "./components/SettingsPanel";
+import { HowToUseTab } from "./components/HowToUseTab";
 import { StrategyWorkflow } from "./components/StrategyWorkflow";
-import { GradeTab } from "./components/GradeTab";
+import { GradeExplainerTab } from "./components/GradeExplainerTab";
 import { topicInitialPrompt, topicFields } from "./prompts/topicExploration";
 import { srInitialPrompt, srFields } from "./prompts/systematicReview";
 import "./App.css";
 
-type TabType = StrategyType | "settings";
+type TabType =
+  | "how_to_use"
+  | "topic_exploration"
+  | "systematic_review"
+  | "grade_explainer";
 
 const tabs: { key: TabType; label: string }[] = [
+  { key: "how_to_use", label: "使い方・設定" },
   { key: "topic_exploration", label: "トピック探索" },
   { key: "systematic_review", label: "システマティックレビュー" },
-  { key: "grade_adolopment", label: "GRADE-ADOLOPMENT" },
-  { key: "settings", label: "設定" },
+  { key: "grade_explainer", label: "GRADE-ADOLOPMENT解説" },
 ];
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<TabType>("topic_exploration");
+  const [activeTab, setActiveTab] = useState<TabType>("how_to_use");
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
 
   return (
@@ -43,12 +47,19 @@ export default function App() {
       </nav>
 
       <main className="app-main">
+        {activeTab === "how_to_use" && (
+          <HowToUseTab
+            settings={settings}
+            onSettingsChange={setSettings}
+          />
+        )}
+
         {activeTab === "topic_exploration" && (
           <StrategyWorkflow
             settings={settings}
             fields={topicFields}
             promptTemplate={topicInitialPrompt}
-            description="概念探索、用語法、分類体系、歴史的経緯、論争点など、PubMedの抄録だけでは拾いきれないトピックに使います。PubMedで候補文献を集め、AIで論文の考察まで含めた最終回答を統合します。"
+            description="概念探索、用語法、分類体系、歴史的経緯、論争点など、PubMedの抄録だけでは拾いきれないトピックに使います。PubMedで候補文献を集め、AIで論文の考察まで含めた最終回答を統合します。最後にPubMedで全PMIDを実在確認＋抄録取得してハルシネーションを検出します。"
             mode="topic-synthesis"
           />
         )}
@@ -58,19 +69,12 @@ export default function App() {
             settings={settings}
             fields={srFields}
             promptTemplate={srInitialPrompt}
-            description="PICOに基づくSR、メタ解析、診療ガイドライン用の効果検索に使います。最終的に必ずPubMedで完結し、査読（PRESS/PRISMA-S）通過品質の検索式を作ります。"
+            description="PICOに基づくSR、メタ解析、診療ガイドライン用の効果検索に使います。最終的に必ずPubMedで完結し、査読（PRESS / PRISMA-S）通過品質の検索式と、その構築理由の解説を作ります。"
             mode="sr-revision"
           />
         )}
 
-        {activeTab === "grade_adolopment" && <GradeTab settings={settings} />}
-
-        {activeTab === "settings" && (
-          <SettingsPanel
-            initialSettings={settings}
-            onChange={setSettings}
-          />
-        )}
+        {activeTab === "grade_explainer" && <GradeExplainerTab />}
       </main>
 
       <footer className="app-footer">

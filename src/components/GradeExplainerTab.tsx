@@ -1,0 +1,536 @@
+export function GradeExplainerTab() {
+  return (
+    <div className="grade-explainer">
+      <header className="grade-header">
+        <h2>GRADE-ADOLOPMENT 解説</h2>
+        <p className="grade-subtitle">
+          既存ガイドラインの採用（Adoption）・適応（Adaptation）・新規開発（De novo development）を統合した、効率的で信頼性の高い診療ガイドライン作成手法
+        </p>
+      </header>
+
+      <section className="grade-section">
+        <h3>GRADE-ADOLOPMENTとは</h3>
+        <p>
+          <strong>GRADE-ADOLOPMENT</strong>は、Schünemannら（2017）が提唱した診療ガイドライン作成のフレームワークです。
+          名称は <strong>ADO</strong>ption（採択）+ <strong>ADAP</strong>tation（適応）+
+          de novo deve<strong>LOPMENT</strong>（新規開発）の合成語で、
+          GRADE Evidence to Decision (EtD) frameworkを共通基盤として、
+          疑問ごとに最適な手段（採択 / 適応 / 新規開発）を選択する手法です。
+        </p>
+
+        <div className="callout">
+          <h4>本手法の利点</h4>
+          <ul>
+            <li>すべてをde novoで作成する場合に比べ、人的・金銭的資源を大幅に削減できる</li>
+            <li>EtD frameworkにより推奨の根拠と判断過程が透明化される</li>
+            <li>各国・各組織が自分たちの文脈に合わせて推奨を「ローカライズ」できる</li>
+            <li>パネル合意形成が構造化され、討議が効率化する</li>
+          </ul>
+        </div>
+
+        <h4>3つのアプローチ</h4>
+        <div className="approach-grid">
+          <div className="approach-box adopted">
+            <h5>Adoption（採択）</h5>
+            <p>
+              既存の信頼できる推奨を、修正なしでそのまま採用する。
+              対象集団・介入・比較・エビデンスの確実性は原典と同じ。
+              <br />
+              <strong>もっとも資源効率の良い方法。</strong>
+            </p>
+          </div>
+          <div className="approach-box adapted">
+            <h5>Adaptation（適応）</h5>
+            <p>
+              既存の推奨を自国・自組織の文脈に合わせて修正する。
+              対象・介入・比較・エビデンスの確実性のいずれかが原典と異なる場合がある。
+              <br />
+              「条件」「モニタリング」「実装」「研究の含意」を追加で示す。
+            </p>
+          </div>
+          <div className="approach-box denovo">
+            <h5>De novo development（新規開発）</h5>
+            <p>
+              既存の信頼できるガイドラインや推奨が存在しない、または利用できない場合に、
+              新規にエビデンス統合（SR/HTA等）から推奨を作成する。
+              <br />
+              <strong>もっとも資源を要する方法。</strong>
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section className="grade-section">
+        <h3>フローチャート</h3>
+        <p>
+          下図はSchünemannら（2017, J Clin Epidemiol 81: 101-110）のFigure 1を日本語化したものです。
+        </p>
+        <Flowchart />
+        <p className="hint">
+          原典フローチャートでは、各ステップに番号が付与されています。
+          以下に各ステップの詳細を解説します。
+        </p>
+      </section>
+
+      <section className="grade-section">
+        <h3>ステップごとの詳細解説</h3>
+
+        <Step
+          number={1}
+          title="ガイドライン主題の選定（Select guideline topic）"
+          body="ガイドラインで扱う領域・主題を決定します。Saudi Arabia事例では、保健省関係者のニーズ調査に基づき主題を選定しました。利害関係者（臨床家・患者代表・政策決定者）の関与が重要です。"
+        />
+
+        <Step
+          number={2}
+          title="疑問の優先順位付け（Prioritize questions）"
+          body="各主題に対し、3〜15個程度の重要臨床疑問（CQ）を選定します。9段階Likert（1=最低、9=最高）の重要度評価をパネル投票で行います。患者視点、介入の利用可能性、法的問題は考慮しますが、資源制約を理由に除外することは避けます。"
+        />
+
+        <Step
+          number={3}
+          title="適切な原典ガイドラインの同定（Identify appropriate source guidelines）"
+          body={
+            <>
+              <p>採択・適応の候補となる原典ガイドラインを探します。原典は以下の条件を満たす必要があります：</p>
+              <ul>
+                <li><strong>Relevant</strong>：自分たちの疑問に関連する</li>
+                <li><strong>Credible（信頼できる）</strong>：方法論的に堅牢</li>
+                <li><strong>Relatively recent</strong>：比較的新しい</li>
+                <li><strong>Ideally used GRADE approach</strong>：理想的にはGRADE手法を使用している</li>
+              </ul>
+              <p>
+                これらを満たす原典が<strong>見つからない場合</strong>、ADOLOPMENTは適用できず、新規ガイドライン開発（de novo）に移行します。
+              </p>
+            </>
+          }
+        />
+
+        <Step
+          number={4}
+          title="原典推奨と各優先疑問のマッチング（Match source guideline recommendations to each prioritized question）"
+          body="ステップ2で選定した各疑問に対し、原典ガイドラインの推奨を対応付けます。一致するものがあれば次のステップへ、なければde novo developmentに進みます。"
+        />
+
+        <Step
+          number={5}
+          title="一致する推奨は存在するか？（Matching recommendation exists?）"
+          body={
+            <>
+              <ul>
+                <li><strong>Yes</strong>：ステップ6（既存SRの更新）へ進む</li>
+                <li><strong>No</strong>：ステップ14（de novo development）へ進む</li>
+              </ul>
+            </>
+          }
+        />
+
+        <Step
+          number={6}
+          title="必要に応じてSRを更新（Update systematic review as needed）"
+          body="原典ガイドラインの根拠となるSRを確認し、最終検索日から3か月以上経過していれば更新検索を行います。原典の検索式を流用し、新しい一次研究を追加します。"
+        />
+
+        <Step
+          number={7}
+          title="原典ガイドラインにEtDが含まれているか？（ETD from source guidelines?）"
+          body={
+            <>
+              <ul>
+                <li><strong>Yes</strong>：ステップ9（EtD判断の再評価）へ進む</li>
+                <li><strong>No or incomplete</strong>：ステップ8（EtDを新規作成）へ進む</li>
+              </ul>
+              <p>
+                原典にEtDがない、または不完全な場合は、自分たちでEtDを作成する必要があります。
+              </p>
+            </>
+          }
+        />
+
+        <Step
+          number={8}
+          title="EtDを新規作成（Develop ETD）"
+          body="原典にEtDがない場合、エビデンス（SR、HTA、抄録、専門家意見）からEtDを構築します。基準は8項目（後述）。"
+        />
+
+        <Step
+          number={9}
+          title="EtD判断を再評価（Reassess ETD judgements）"
+          body="原典にEtDがある場合、自国・自組織の文脈で各EtD基準（疾患負担、価値観、エビデンスの確実性、利益と害、資源、公平性、受容性、実行可能性）の判断が変わるかを再評価します。"
+        />
+
+        <Step
+          number={10}
+          title="推奨を作成（Develop recommendation）"
+          body="EtD（再評価済みまたは新規）に基づいて、推奨の方向（推奨／非推奨）と強度（強い／条件付き）を決定します。パネルでコンセンサスまたは投票で決定します。"
+        />
+
+        <Step
+          number={11}
+          title="作成した推奨は原典と類似しているか？（&quot;Adoloped&quot; recommendation similar to source?）"
+          body={
+            <>
+              <ul>
+                <li><strong>Yes</strong>：ステップ12（採択：Adopted）</li>
+                <li><strong>No</strong>：ステップ13（適応：Adapted）</li>
+              </ul>
+            </>
+          }
+        />
+
+        <Step
+          number={12}
+          title="ADOPTED RECOMMENDATION（採択された推奨）"
+          body="原典の推奨をそのまま採用。実装情報や採択理由を追記する場合がある。"
+          variant="adopted"
+        />
+
+        <Step
+          number={13}
+          title="ADAPTED RECOMMENDATION（適応された推奨）"
+          body="原典推奨を文脈に合わせて修正。EtD frameworkで「なぜ判断が異なったか」を透明に記述する。"
+          variant="adapted"
+        />
+
+        <Step
+          number={14}
+          title="De novo development（新規開発）"
+          body="原典が利用できない場合、新規にSR/HTAを実施し、EtDを構築する。"
+        />
+
+        <Step
+          number={15}
+          title="NEW RECOMMENDATION（新規推奨）"
+          body="新規SRに基づいて作成された推奨。3つのうちもっとも資源を要するルート。"
+          variant="denovo"
+        />
+      </section>
+
+      <section className="grade-section">
+        <h3>EtD（Evidence to Decision）8基準</h3>
+        <p>
+          GRADE EtD frameworkでは、推奨の方向と強度に影響する8つの基準を構造的に評価します。
+          GRADE-ADOLOPMENTの各ステップ（特にステップ7〜10）の中核となる枠組みです。
+        </p>
+        <table className="etd-table">
+          <thead>
+            <tr>
+              <th>基準</th>
+              <th>内容</th>
+              <th>強い推奨に向かいやすい状況</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Problem（問題）</strong></td>
+              <td>疾患負担、頻度、有病率、ベースラインリスク、重症度</td>
+              <td>問題の重要性が大きい</td>
+            </tr>
+            <tr>
+              <td><strong>Values and preferences（価値観・選好）</strong></td>
+              <td>アウトカムの患者にとっての重要性、選好の個人差</td>
+              <td>選好のばらつきが小さく重要性が一致</td>
+            </tr>
+            <tr>
+              <td><strong>Certainty in the evidence（エビデンスの確実性）</strong></td>
+              <td>GRADEによるエビデンスの確実性評価（高 / 中 / 低 / 非常に低）</td>
+              <td>確実性が高いほど</td>
+            </tr>
+            <tr>
+              <td><strong>Benefits and harms（利益と害）</strong></td>
+              <td>絶対効果、利益・害のバランス</td>
+              <td>正味の利益または害が大きい</td>
+            </tr>
+            <tr>
+              <td><strong>Resource use（資源使用）</strong></td>
+              <td>費用、費用対効果、増分利益</td>
+              <td>資源効率が明確に有利／不利</td>
+            </tr>
+            <tr>
+              <td><strong>Equity（公平性）</strong></td>
+              <td>医療格差の縮小、アクセスの公平性</td>
+              <td>不公平を縮小させる可能性が高い</td>
+            </tr>
+            <tr>
+              <td><strong>Acceptability（受容性）</strong></td>
+              <td>患者・医療者・政策決定者にとっての受容性</td>
+              <td>主要関係者の大多数が受け入れる</td>
+            </tr>
+            <tr>
+              <td><strong>Feasibility（実行可能性）</strong></td>
+              <td>実装可能性、医療体制の制約</td>
+              <td>実行可能性が高い</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section className="grade-section">
+        <h3>具体例</h3>
+
+        <div className="example-box">
+          <h4>例1：Adoption（採択）— 透析開始時期</h4>
+          <p>
+            Saudi Arabia保健省ガイドライン：「成人（18歳以上）でステージ5（GFR≦15
+            mL/min/1.73m²）の慢性腎臓病患者では、『早期開始』ではなく『遅延開始』の方針を推奨する（強い推奨、中等度の確実性）」
+          </p>
+          <p className="hint">
+            原典のEtD基準（疾患負担、価値観、利益と害、資源など）の判断が自国の文脈と一致したため、原典推奨をそのまま採用。
+          </p>
+        </div>
+
+        <div className="example-box">
+          <h4>例2：Adaptation（適応）— 乳がんスクリーニング</h4>
+          <p>
+            原典（カナダTask Force）：「40-50歳女性へのスクリーニングを<strong>推奨しない（弱い推奨）</strong>」
+          </p>
+          <p>
+            Saudi Arabia版（適応後）：「40-50歳女性へのスクリーニングを<strong>条件付きで推奨する</strong>」
+          </p>
+          <p className="hint">
+            理由：自国の若年女性のベースラインリスクが高いと推定されたため、EtDの「Problem」と「Benefits and harms」基準で原典と異なる判断となった。
+            EtD frameworkで判断の差を透明に記述。
+          </p>
+        </div>
+
+        <div className="example-box">
+          <h4>例3：De novo development（新規開発）— 多枝病変PCI</h4>
+          <p>
+            原典（NICE）：エビデンス不足により推奨を保留。
+          </p>
+          <p>
+            Saudi Arabia版（新規開発）：検索更新により試験参加者が約200人（2試験）から約1,000人（4試験）に増加。<br />
+            「STEMI＋多枝病変患者では、責任病変のみのPCIよりも<strong>多枝PCIを提案する（条件付き、低い確実性）</strong>」
+          </p>
+          <p className="hint">
+            原典が推奨を出していなかったため、新規にエビデンス統合を実施。ローカルなベースラインリスクと実行可能性も考慮。
+          </p>
+        </div>
+      </section>
+
+      <section className="grade-section">
+        <h3>本アプリでGRADE-ADOLOPMENTを支援するには</h3>
+        <p>
+          本アプリの「トピック探索」「システマティックレビュー」タブで以下のように対応できます：
+        </p>
+        <ul>
+          <li>
+            <strong>原典ガイドライン探索（ステップ3）</strong>：「トピック探索」タブで「○○について既存の信頼できるガイドラインを探したい」と入力。AIが既存GLの候補と検索式を提示し、PubMedで実在確認できる。
+          </li>
+          <li>
+            <strong>SR更新（ステップ6）</strong>：「システマティックレビュー」タブで原典SRの最終検索日と検索式をメモに含めて入力。AIがupdate searchを設計。
+          </li>
+          <li>
+            <strong>EtD補助検索（ステップ7-9）</strong>：「トピック探索」タブで個別EtD基準（価値観、資源使用、公平性等）の補助検索を行う。
+          </li>
+          <li>
+            <strong>De novo SR検索（ステップ14）</strong>：「システマティックレビュー」タブで通常のSR検索を実施。
+          </li>
+        </ul>
+      </section>
+
+      <section className="grade-section references">
+        <h3>主要参考文献</h3>
+        <ol>
+          <li>
+            Schünemann HJ, Wiercioch W, Brozek J, et al. GRADE Evidence to Decision (EtD) frameworks for adoption, adaptation, and de novo development of trustworthy recommendations: GRADE-ADOLOPMENT.{" "}
+            <em>J Clin Epidemiol</em>. 2017;81:101-110.
+          </li>
+          <li>
+            Alonso-Coello P, Schünemann HJ, Moberg J, et al. GRADE Evidence to Decision (EtD) frameworks: a systematic and transparent approach to making well informed healthcare choices. 1: Introduction.{" "}
+            <em>BMJ</em>. 2016;353:i2016.
+          </li>
+          <li>
+            Alonso-Coello P, Oxman AD, Moberg J, et al. GRADE Evidence to Decision (EtD) frameworks: a systematic and transparent approach to making well informed healthcare choices. 2: Clinical practice guidelines.{" "}
+            <em>BMJ</em>. 2016;353:i2089.
+          </li>
+          <li>
+            Schünemann HJ, Wiercioch W, Etxeandia I, et al. Guidelines 2.0: systematic development of a comprehensive checklist for a successful guideline enterprise.{" "}
+            <em>CMAJ</em>. 2014;186(3):E123-E142.
+          </li>
+        </ol>
+      </section>
+    </div>
+  );
+}
+
+interface StepProps {
+  number: number;
+  title: string;
+  body: React.ReactNode;
+  variant?: "adopted" | "adapted" | "denovo";
+}
+
+function Step({ number, title, body, variant }: StepProps) {
+  return (
+    <div className={`grade-step ${variant ?? ""}`}>
+      <div className="grade-step-number">{number}</div>
+      <div className="grade-step-content">
+        <h4>{title}</h4>
+        {typeof body === "string" ? <p>{body}</p> : body}
+      </div>
+    </div>
+  );
+}
+
+function Flowchart() {
+  return (
+    <div className="grade-flowchart">
+      <FlowBox kind="topic" num={1}>
+        ガイドライン主題の選定
+      </FlowBox>
+      <FlowArrow />
+
+      <FlowBox kind="topic" num={2}>
+        疑問の優先順位付け
+      </FlowBox>
+      <FlowArrow />
+
+      <div className="flow-row-with-criteria">
+        <FlowBox kind="topic" num={3}>
+          適切な原典ガイドラインの同定
+        </FlowBox>
+        <div className="flow-criteria">
+          <ul>
+            <li>関連性（Relevant）</li>
+            <li>信頼性（Credible）</li>
+            <li>比較的新しい（Recent）</li>
+            <li>理想的にはGRADE手法</li>
+          </ul>
+        </div>
+      </div>
+
+      <div className="flow-branch">
+        <div className="flow-branch-no">
+          <div className="flow-branch-label">No</div>
+          <FlowBox kind="terminal-na">
+            新規ガイドライン開発<br />
+            ADOLOPMENT適用外
+          </FlowBox>
+        </div>
+        <div className="flow-branch-yes">
+          <div className="flow-branch-label">Yes</div>
+          <FlowArrow />
+          <FlowBox kind="topic" num={4}>
+            各優先疑問に原典推奨を対応付ける
+          </FlowBox>
+          <FlowArrow />
+          <FlowDiamond num={5}>
+            一致する推奨が存在するか?
+          </FlowDiamond>
+
+          <div className="flow-branch">
+            <div className="flow-branch-no">
+              <div className="flow-branch-label">No</div>
+              <FlowArrow />
+              <FlowBox kind="denovo" num={14}>
+                De novo development<br />（新規開発）
+              </FlowBox>
+              <FlowArrow />
+              <FlowBox kind="terminal-denovo" num={15}>
+                NEW<br />RECOMMENDATION<br />（新規推奨）
+              </FlowBox>
+            </div>
+
+            <div className="flow-branch-yes">
+              <div className="flow-branch-label">Yes</div>
+              <FlowArrow />
+              <FlowBox kind="topic" num={6}>
+                必要に応じてSRを更新
+              </FlowBox>
+              <FlowArrow />
+              <FlowDiamond num={7}>
+                原典ガイドラインに<br />EtDが含まれているか?
+              </FlowDiamond>
+
+              <div className="flow-branch">
+                <div className="flow-branch-no">
+                  <div className="flow-branch-label">No / 不完全</div>
+                  <FlowArrow />
+                  <FlowBox kind="topic" num={8}>
+                    EtDを新規作成
+                  </FlowBox>
+                </div>
+                <div className="flow-branch-yes">
+                  <div className="flow-branch-label">Yes</div>
+                  <FlowArrow />
+                  <FlowBox kind="topic" num={9}>
+                    EtD判断を再評価
+                  </FlowBox>
+                </div>
+              </div>
+
+              <FlowArrow />
+              <FlowBox kind="topic" num={10}>
+                推奨を作成
+              </FlowBox>
+              <FlowArrow />
+              <FlowDiamond num={11}>
+                作成した推奨は<br />原典と類似しているか?
+              </FlowDiamond>
+
+              <div className="flow-branch">
+                <div className="flow-branch-no">
+                  <div className="flow-branch-label">No</div>
+                  <FlowArrow />
+                  <FlowBox kind="terminal-adapted" num={13}>
+                    ADAPTED<br />RECOMMENDATION<br />（適応された推奨）
+                  </FlowBox>
+                </div>
+                <div className="flow-branch-yes">
+                  <div className="flow-branch-label">Yes</div>
+                  <FlowArrow />
+                  <FlowBox kind="terminal-adopted" num={12}>
+                    ADOPTED<br />RECOMMENDATION<br />（採択された推奨）
+                  </FlowBox>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface FlowBoxProps {
+  num?: number;
+  children: React.ReactNode;
+  kind:
+    | "topic"
+    | "denovo"
+    | "terminal-adopted"
+    | "terminal-adapted"
+    | "terminal-denovo"
+    | "terminal-na";
+}
+
+function FlowBox({ num, children, kind }: FlowBoxProps) {
+  return (
+    <div className={`flow-box flow-box-${kind}`}>
+      {num !== undefined && <span className="flow-num">{num}</span>}
+      <span className="flow-text">{children}</span>
+    </div>
+  );
+}
+
+function FlowDiamond({
+  num,
+  children,
+}: {
+  num: number;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className="flow-diamond-wrapper">
+      <div className="flow-diamond">
+        <span className="flow-num">{num}</span>
+        <span className="flow-text">{children}</span>
+      </div>
+    </div>
+  );
+}
+
+function FlowArrow() {
+  return <div className="flow-arrow" aria-hidden="true">↓</div>;
+}
