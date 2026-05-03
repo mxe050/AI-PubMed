@@ -5,6 +5,7 @@ import { buildApiFeedbackBlock } from "../utils/buildApiFeedbackBlock";
 import { buildAbstractsBlock } from "../utils/buildAbstractsBlock";
 import { extractSearchString } from "../utils/extractSearchString";
 import { srRevisionPrompt } from "../prompts/revision";
+import { topicPlainEnhancedPrompt } from "../prompts/topicExploration";
 import { FormFields } from "./FormFields";
 import { PromptDisplay } from "./PromptDisplay";
 import { AiResponseInput } from "./AiResponseInput";
@@ -159,6 +160,22 @@ export function StrategyWorkflow({
           <p className="hint">
             このプロンプトをコピーしてChatGPT / Claude / Geminiなどに貼り付けてください。
           </p>
+
+          {mode === "topic-synthesis" && values.question && (
+            <div className="step2-secondary-prompt">
+              <PromptDisplay
+                prompt={buildPrompt(topicPlainEnhancedPrompt, {
+                  question: values.question,
+                })}
+                title="プレーン多角分解版（任意・先に試せる版）"
+              />
+              <p className="warning-text">
+                ⚠ このプロンプトで一度AIに検索（質問）すると、自分の知りたい結果が出る場合があります。
+                ただし、それは網羅的な検索ではないので、それだけで判断しないこと。
+                必ず後段のPubMed検索＋統合プロンプト（プロンプト3）と合わせて利用してください。
+              </p>
+            </div>
+          )}
         </section>
       )}
 

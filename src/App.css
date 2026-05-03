@@ -1578,6 +1578,22 @@ tr.unverified {
   margin: 4px 0 8px;
 }
 
+.step2-secondary-prompt {
+  margin-top: 20px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--color-border);
+}
+
+.step2-secondary-prompt .warning-text {
+  background: var(--color-warning-bg);
+  border-left: 4px solid var(--color-warning);
+  padding: 10px 14px;
+  border-radius: 4px;
+  margin-top: 10px;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .app-header h1 {
