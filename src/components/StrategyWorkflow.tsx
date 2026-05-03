@@ -261,10 +261,10 @@ function TopicIterationBlock({
 
       {iteration.pubmedResult && (
         <section className="workflow-section">
-          <h2>Step {stepBase + 1}: 統合プロンプト生成</h2>
+          <h2>Step {stepBase + 1}: 3本のAIプロンプト</h2>
           <p className="hint">
-            PubMed検索結果（タイトル・抄録・MeSH）を、AIに戻して最終回答を統合させます。
-            AIは訓練データに含まれる「論文の考察セクション」の知識と統合して答えます。
+            元の疑問の「本質」を保ったまま、複数の視点でAIから回答を得ます。
+            プレーン版、プレーン強化版、PubMed統合版の3本を提示します。
           </p>
           <TopicSynthesisGenerator
             question={question}
