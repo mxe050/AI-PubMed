@@ -8,7 +8,6 @@ import { AiResponseInput } from "./AiResponseInput";
 import { SearchStringInput } from "./SearchStringInput";
 import { PubMedSearchBox } from "./PubMedSearchBox";
 import { PubMedResultTable } from "./PubMedResultTable";
-import { PmidVerifier } from "./PmidVerifier";
 import { RevisionPromptGenerator } from "./RevisionPromptGenerator";
 import { TopicSynthesisGenerator } from "./TopicSynthesisGenerator";
 
@@ -139,6 +138,7 @@ export function StrategyWorkflow({
             <div className="step3-action">
               <p className="hint">
                 AI回答に検索式（コードブロック）が含まれていれば、ボタン1つでStep 4の検索式欄に流し込めます。
+                PMIDの実在確認は、PubMed検索後の最終ステップ（Step 6）で行います。
               </p>
               <button
                 className="btn btn-primary"
@@ -147,10 +147,6 @@ export function StrategyWorkflow({
                 AI回答から検索式を抽出してStep 4へ
               </button>
             </div>
-          )}
-
-          {aiResponse && (
-            <PmidVerifier settings={settings} aiResponse={aiResponse} />
           )}
         </section>
       )}

@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { AppSettings } from "./types";
 import { loadSettings } from "./utils/settingsStorage";
 import { HowToUseTab } from "./components/HowToUseTab";
+import { FactCheckTab } from "./components/FactCheckTab";
 import { StrategyWorkflow } from "./components/StrategyWorkflow";
 import { GradeExplainerTab } from "./components/GradeExplainerTab";
 import { topicInitialPrompt, topicFields } from "./prompts/topicExploration";
@@ -10,12 +11,14 @@ import "./App.css";
 
 type TabType =
   | "how_to_use"
+  | "fact_check"
   | "topic_exploration"
   | "systematic_review"
   | "grade_explainer";
 
 const tabs: { key: TabType; label: string }[] = [
   { key: "how_to_use", label: "使い方・設定" },
+  { key: "fact_check", label: "AI出力ファクトチェック" },
   { key: "topic_exploration", label: "トピック探索" },
   { key: "systematic_review", label: "システマティックレビュー" },
   { key: "grade_explainer", label: "GRADE-ADOLOPMENT解説" },
@@ -53,6 +56,8 @@ export default function App() {
             onSettingsChange={setSettings}
           />
         )}
+
+        {activeTab === "fact_check" && <FactCheckTab settings={settings} />}
 
         {activeTab === "topic_exploration" && (
           <StrategyWorkflow
