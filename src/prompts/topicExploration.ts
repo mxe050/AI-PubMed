@@ -1,47 +1,36 @@
 export const topicInitialPrompt = `あなたはPubMed検索、MeSH、医学文献検索、臨床疑問の構造化に熟練した医学情報専門家です。
 
-今回の目的は、ユーザーの漠然とした疑問やトピックを、PubMedで実際に検索可能な形に整理することです。
+ユーザーから漠然とした疑問・トピックが提示されています。
+あなたの役割は、ユーザーがまだ整理しきれていないこの疑問を、PubMedで実際に検索可能な形に整理することです。
 
 これはシステマティックレビュー用の完全網羅検索ではなく、トピック理解、概念整理、主要文献探索、レビュー論文探索、研究テーマ探索のためのスコーピング検索です。
 
 重要：
-- AIが回答を作ることが目的ではありません。
-- 最終的にPubMedで検索可能な検索式を作ることが目的です。
-- 文献を提示する場合は、PMIDが確認できるものだけを「確認済み」としてください。
-- PMIDが確認できない文献は「未確認候補」として分けてください。
+- ユーザーは情報整理の専門家ではありません。漠然とした疑問しか書いていなくても、不足を補い、想定して整理してください。
+- 不明な点があれば「想定」を明示しつつ進めてください。質問返しではなく、まず案を提示してください。
+- AIが回答を作ることが目的ではありません。最終的にPubMedで検索可能な検索式を作ることが目的です。
+- 文献を提示する場合は、PMIDが確認できるものだけを「確認済み」としてください。PMIDが確認できない文献は「未確認候補」として分けてください。
 - 検索式内の検索語は英語のみを使用してください。日本語は検索式に含めないでください。
 - PubMed検索式では、すべての検索語に[mh]、[tiab]、[pt]、[dp]などのフィールドタグを付けてください。
 
-入力：
-トピック・疑問：
-{{topic}}
+ユーザーからの疑問：
+{{question}}
 
-知りたい目的：
-{{purpose}}
-
-対象領域：
-{{domain}}
-
-重要概念：
-{{keyConcepts}}
-
-特に知りたい論点：
-{{specificIssues}}
-
-検索範囲：
-{{scope}}
-
-検索の広さ：
-{{breadth}}
+補助メモ（任意・空欄可）：
+{{notes}}
 
 出力してください：
 
-# 1. 疑問の再構成
-# 2. 推奨する構造化フレーム
-PICO、PECO、PCC、Concept map、Concept-use / Concept-critique searchのうち最適なものを選んでください。
+# 1. 疑問の解釈
+あなたがこの疑問をどう解釈したかを2〜4行で述べてください。
+ユーザーが暗黙的に意図していそうな点や、想定した前提条件があれば明示してください。
 
-# 3. PubMed検索で中心にすべき主要概念
-2〜3個に絞ってください。
+# 2. 推奨する構造化フレーム
+PICO、PECO、PCC、Concept map、Concept-use / Concept-critique searchのうち、
+このトピックに最も合うものを1つ選び、簡単に理由を述べてください。
+
+# 3. 主要概念の抽出
+PubMed検索の中心にすべき概念を2〜3個に絞ってください。
 
 # 4. 概念マップ
 | 概念 | 内容 | 検索式に含めるか | 理由 |
@@ -67,33 +56,26 @@ PICO、PECO、PCC、Concept map、Concept-use / Concept-critique searchのうち
 \`\`\`
 
 # 9. 最初に使うべき推奨検索式
-理由を説明し、検索式を再掲してください。
+3つのうちどれを最初に試すべきか、理由を述べて再掲してください。
 
-# 10. PubMed検索後に確認すべきこと
-検索結果件数、上位20件の関連性、代表的MeSH、ノイズ、追加語、削除語を示してください。`;
+# 10. PubMed検索後にユーザーが確認すべきこと
+検索結果件数、上位20件の関連性、代表的MeSH、ノイズ、追加すべき語、削除すべき語の観点を簡潔に示してください。`;
 
 export const topicFields = [
-  { key: "topic", label: "トピック・疑問", required: true, multiline: true },
-  { key: "purpose", label: "知りたい目的", required: true, multiline: true },
-  { key: "domain", label: "対象領域", required: false, multiline: false },
-  { key: "keyConcepts", label: "重要概念", required: false, multiline: true },
   {
-    key: "specificIssues",
-    label: "特に知りたい論点",
+    key: "question",
+    label: "調べたいこと（漠然とした疑問でOK）",
+    required: true,
+    multiline: true,
+    placeholder:
+      "例：Winter / Pell & Gregory分類が誤って使われていると指摘する論文を探したい",
+  },
+  {
+    key: "notes",
+    label: "補助メモ（任意・空欄でOK）",
     required: false,
     multiline: true,
-  },
-  { key: "scope", label: "検索範囲", required: false, multiline: false },
-  {
-    key: "breadth",
-    label: "検索の広さ",
-    required: true,
-    multiline: false,
-    type: "select" as const,
-    options: [
-      { value: "broad", label: "広め（概念全体を把握したい）" },
-      { value: "balanced", label: "標準（主要文献を効率的に把握したい）" },
-      { value: "narrow", label: "絞り込み（特定の論点に集中したい）" },
-    ],
+    placeholder:
+      "対象領域、特に知りたい論点、検索の広さなど、思いつくことがあれば自由記述。空欄でも構いません。",
   },
 ];

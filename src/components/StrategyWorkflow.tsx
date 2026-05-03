@@ -94,8 +94,7 @@ export function StrategyWorkflow({
     );
   }
 
-  const question =
-    values.topic || values.cq || values.prioritizedQuestion || "";
+  const question = values.question || "";
 
   return (
     <div className="strategy-workflow">

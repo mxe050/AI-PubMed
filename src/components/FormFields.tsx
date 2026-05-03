@@ -5,6 +5,7 @@ interface FieldDef {
   multiline: boolean;
   type?: "select";
   options?: { value: string; label: string }[];
+  placeholder?: string;
 }
 
 interface Props {
@@ -41,7 +42,8 @@ export function FormFields({ fields, values, onChange }: Props) {
               id={`field-${field.key}`}
               value={values[field.key] ?? ""}
               onChange={(e) => onChange(field.key, e.target.value)}
-              rows={3}
+              rows={4}
+              placeholder={field.placeholder}
             />
           ) : (
             <input
@@ -49,6 +51,7 @@ export function FormFields({ fields, values, onChange }: Props) {
               type="text"
               value={values[field.key] ?? ""}
               onChange={(e) => onChange(field.key, e.target.value)}
+              placeholder={field.placeholder}
             />
           )}
         </div>

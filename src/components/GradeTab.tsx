@@ -3,8 +3,7 @@ import type { AppSettings } from "../types";
 import {
   gradePromptMap,
   gradeSubStrategies,
-  gradeCommonFields,
-  gradeExtraFields,
+  gradeFields,
 } from "../prompts/gradeAdolopment";
 import type { GradeSubStrategy } from "../prompts/gradeAdolopment";
 import { StrategyWorkflow } from "./StrategyWorkflow";
@@ -16,8 +15,6 @@ interface Props {
 export function GradeTab({ settings }: Props) {
   const [subStrategy, setSubStrategy] = useState<GradeSubStrategy>("source_guideline");
 
-  const extra = gradeExtraFields[subStrategy] ?? [];
-  const fields = [...gradeCommonFields, ...extra];
   const template = gradePromptMap[subStrategy];
   const current = gradeSubStrategies.find((s) => s.key === subStrategy);
 
@@ -44,7 +41,7 @@ export function GradeTab({ settings }: Props) {
       <StrategyWorkflow
         key={subStrategy}
         settings={settings}
-        fields={fields}
+        fields={gradeFields}
         promptTemplate={template}
         description={`GRADE-ADOLOPMENT: ${current?.label ?? subStrategy}`}
       />
