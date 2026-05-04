@@ -1610,6 +1610,132 @@ tr.unverified {
   border: 1px solid var(--color-border);
 }
 
+/* === Citation candidate verification === */
+.citation-results {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.citation-card {
+  border: 1px solid var(--color-border);
+  border-left-width: 4px;
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  background: white;
+}
+
+.citation-card.citation-hit {
+  border-left-color: var(--color-success);
+  background: #f0fdf4;
+}
+
+.citation-card.citation-no_hit {
+  border-left-color: var(--color-error);
+  background: var(--color-error-bg);
+}
+
+.citation-card.citation-error {
+  border-left-color: var(--color-warning);
+  background: var(--color-warning-bg);
+}
+
+.citation-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+
+.citation-type-tag {
+  background: var(--color-info-bg);
+  color: var(--color-primary);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.citation-display {
+  flex: 1;
+  font-weight: 600;
+  font-size: 0.88rem;
+  word-break: break-word;
+  min-width: 200px;
+}
+
+.citation-badge {
+  padding: 2px 10px;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.citation-badge-hit {
+  background: #dcfce7;
+  color: var(--color-success);
+}
+
+.citation-badge-no-hit {
+  background: #fee2e2;
+  color: var(--color-error);
+}
+
+.citation-badge-error {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+
+.citation-meta {
+  margin: 6px 0;
+  font-size: 0.78rem;
+}
+
+.citation-meta details {
+  margin: 4px 0;
+}
+
+.citation-meta summary {
+  cursor: pointer;
+  color: var(--color-text-secondary);
+}
+
+.citation-query {
+  background: #f8fafc;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-family: "Consolas", "Monaco", "Menlo", monospace;
+  margin: 4px 0 0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.citation-context {
+  background: #f8fafc;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+  font-style: italic;
+  margin: 4px 0 0;
+}
+
+.citation-hits {
+  margin-top: 8px;
+}
+
+.citation-hits table {
+  font-size: 0.78rem;
+}
+
+.citation-hits th,
+.citation-hits td {
+  padding: 6px 8px;
+}
+
 .ebm-two-endings-explainer {
   background: var(--color-info-bg);
   border: 1px solid var(--color-primary);

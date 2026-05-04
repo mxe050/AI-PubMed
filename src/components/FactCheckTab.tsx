@@ -3,7 +3,12 @@ import type { AppSettings, PubMedArticle } from "../types";
 import { extractPmidsCategorized } from "../utils/extractPmidsCategorized";
 import type { ExtractedPmid } from "../utils/extractPmidsCategorized";
 import { extractUrls, extractDois } from "../utils/extractCitations";
+import { extractCitationCandidates } from "../utils/extractCitationCandidates";
 import { verifyPmidsWithAbstracts } from "../api/verifyPmidsWithAbstracts";
+import {
+  verifyCitationCandidates,
+  type CitationVerifyResult,
+} from "../api/verifyCitationCandidates";
 import { createNcbiRateLimiter } from "../utils/createNcbiRateLimiter";
 import { getEvidenceBadge, getRetractionStatus } from "../utils/evidenceLevel";
 import { checkMetadataMatch } from "../utils/metadataMatch";
@@ -25,9 +30,17 @@ export function FactCheckTab({ settings }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Citation candidate verification (titles, author+year)
+  const [citationResults, setCitationResults] = useState<
+    CitationVerifyResult[]
+  >([]);
+  const [citationLoading, setCitationLoading] = useState(false);
+  const [citationError, setCitationError] = useState<string | null>(null);
+
   const extractedPmids = extractPmidsCategorized(aiResponse);
   const extractedUrls = extractUrls(aiResponse);
   const extractedDois = extractDois(aiResponse);
+  const extractedCitations = extractCitationCandidates(aiResponse);
 
   const explicitCount = extractedPmids.filter(
     (e) => e.confidence === "explicit"
@@ -43,30 +56,53 @@ export function FactCheckTab({ settings }: Props) {
     setHasRun(true);
     setItems([]);
     setError(null);
+    setCitationResults([]);
+    setCitationError(null);
 
-    if (extractedPmids.length === 0) return;
+    const limiter = createNcbiRateLimiter(settings);
 
-    setLoading(true);
-    try {
-      const limiter = createNcbiRateLimiter(settings);
-      const verified = await verifyPmidsWithAbstracts(
-        extractedPmids.map((e) => e.pmid),
-        settings,
-        limiter
-      );
-      const verifiedMap = new Map(verified.map((a) => [a.pmid, a]));
-      const merged: VerifiedItem[] = extractedPmids.map((e) => {
-        const article = verifiedMap.get(e.pmid);
-        return {
-          extracted: e,
-          article: article && article.verified ? article : undefined,
-        };
-      });
-      setItems(merged);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "PubMed検索に失敗しました");
-    } finally {
-      setLoading(false);
+    // 1) PMID-based verification
+    if (extractedPmids.length > 0) {
+      setLoading(true);
+      try {
+        const verified = await verifyPmidsWithAbstracts(
+          extractedPmids.map((e) => e.pmid),
+          settings,
+          limiter
+        );
+        const verifiedMap = new Map(verified.map((a) => [a.pmid, a]));
+        const merged: VerifiedItem[] = extractedPmids.map((e) => {
+          const article = verifiedMap.get(e.pmid);
+          return {
+            extracted: e,
+            article: article && article.verified ? article : undefined,
+          };
+        });
+        setItems(merged);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "PubMed検索に失敗しました");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    // 2) Citation candidate verification (titles, author+year)
+    if (extractedCitations.length > 0) {
+      setCitationLoading(true);
+      try {
+        const results = await verifyCitationCandidates(
+          extractedCitations,
+          settings,
+          limiter
+        );
+        setCitationResults(results);
+      } catch (e) {
+        setCitationError(
+          e instanceof Error ? e.message : "タイトル・著者照合に失敗しました"
+        );
+      } finally {
+        setCitationLoading(false);
+      }
     }
   }
 
@@ -146,6 +182,10 @@ export function FactCheckTab({ settings }: Props) {
               <li>
                 URL: <strong>{extractedUrls.length}</strong> 件
               </li>
+              <li>
+                <strong>論文タイトル・著者+年候補（PMID無し引用の照合用）</strong>:{" "}
+                <strong>{extractedCitations.length}</strong> 件
+              </li>
             </ul>
           </div>
         )}
@@ -162,12 +202,34 @@ export function FactCheckTab({ settings }: Props) {
       {hasRun && (
         <section className="fact-check-section">
           <h3>2. 総合チェック結果サマリー</h3>
-          {loading && <p className="hint">PubMed APIで確認中...</p>}
-          {error && <p className="error-text">{error}</p>}
-
-          {!loading && extractedPmids.length === 0 && (
-            <p>AI回答にPMIDは含まれていませんでした。</p>
+          {loading && <p className="hint">PubMed APIで PMID 確認中...</p>}
+          {citationLoading && (
+            <p className="hint">
+              PubMed APIで タイトル・著者+年 を照合中...（候補ごとに1〜数秒かかります）
+            </p>
           )}
+          {error && <p className="error-text">PMID照合: {error}</p>}
+          {citationError && (
+            <p className="error-text">タイトル・著者照合: {citationError}</p>
+          )}
+
+          {!loading &&
+            !citationLoading &&
+            extractedPmids.length === 0 &&
+            extractedCitations.length === 0 && (
+              <p>AI回答にPMID・タイトル候補・著者+年パターンは検出されませんでした。</p>
+            )}
+
+          {!loading &&
+            !citationLoading &&
+            extractedPmids.length === 0 &&
+            extractedCitations.length > 0 && (
+              <p className="hint">
+                AI回答にPMIDは含まれていませんが、論文タイトル・著者+年の候補を{" "}
+                <strong>{extractedCitations.length}</strong> 件検出しました。
+                これらをPubMedで照合した結果は下のセクション「論文タイトル・著者+年でのPubMed照合」を参照してください。
+              </p>
+            )}
 
           {!loading && items.length > 0 && (
             <>
@@ -288,6 +350,29 @@ export function FactCheckTab({ settings }: Props) {
         </section>
       )}
 
+      {hasRun && extractedCitations.length > 0 && (
+        <section className="fact-check-section">
+          <h3>4-B. 論文タイトル・著者+年でのPubMed照合（PMID無し引用の確認）</h3>
+          <p className="hint">
+            AI 回答に PMID が含まれていなくても、引用符内のタイトル・「著者 et al. 年」形式の言及などからPubMed で実際に該当論文があるかを確認します。
+            各候補に対して PubMed ESearch を実行し、上位ヒットを表示します。
+            「ヒットあり」でも実際に AI が指す論文と一致するかは、タイトル・著者・年を照合してご自身で判断してください。
+          </p>
+
+          {citationLoading && (
+            <p className="hint">PubMedで照合中...しばらくお待ちください。</p>
+          )}
+
+          {citationResults.length > 0 && (
+            <div className="citation-results">
+              {citationResults.map((r) => (
+                <CitationResultCard key={r.candidate.id} result={r} />
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
       <section className="fact-check-section">
         <h3>5. URL確認</h3>
         <p className="hint">
@@ -312,6 +397,120 @@ export function FactCheckTab({ settings }: Props) {
           </ul>
         )}
       </section>
+    </div>
+  );
+}
+
+function CitationResultCard({ result }: { result: CitationVerifyResult }) {
+  const { candidate, hits, totalCount, error } = result;
+
+  const typeLabel: Record<string, string> = {
+    quoted_title: "引用符内タイトル",
+    italic_title: "イタリック内タイトル",
+    author_year: "著者+年",
+  };
+
+  const status = error
+    ? "error"
+    : hits.length === 0
+      ? "no_hit"
+      : "hit";
+
+  return (
+    <div className={`citation-card citation-${status}`}>
+      <div className="citation-header">
+        <span className="citation-type-tag">{typeLabel[candidate.type]}</span>
+        <span className="citation-display">{candidate.display}</span>
+        {status === "hit" && (
+          <span className="citation-badge citation-badge-hit">
+            ✓ {totalCount}件ヒット
+          </span>
+        )}
+        {status === "no_hit" && (
+          <span className="citation-badge citation-badge-no-hit">
+            ✗ ヒットなし
+          </span>
+        )}
+        {status === "error" && (
+          <span className="citation-badge citation-badge-error">
+            エラー
+          </span>
+        )}
+      </div>
+
+      <div className="citation-meta">
+        <details>
+          <summary>使用したESearchクエリ</summary>
+          <pre className="citation-query">{candidate.query}</pre>
+        </details>
+        <details>
+          <summary>AI回答中の前後文脈</summary>
+          <p className="citation-context">{candidate.context}</p>
+        </details>
+      </div>
+
+      {status === "no_hit" && (
+        <p className="warning-text">
+          ⚠ この候補は PubMed に該当論文が見つかりませんでした。
+          AI が捏造した（あるいはタイトル・著者の表記が不正確な）可能性があります。
+          表記揺れも考慮し、必要に応じて手動で
+          <a
+            href={`https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(candidate.query)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            {" "}PubMed で確認
+          </a>
+          してください。
+        </p>
+      )}
+
+      {status === "hit" && hits.length > 0 && (
+        <div className="citation-hits">
+          <p className="hint">上位 {hits.length} 件のヒット：</p>
+          <table>
+            <thead>
+              <tr>
+                <th>PMID</th>
+                <th>タイトル</th>
+                <th>著者</th>
+                <th>雑誌・年</th>
+              </tr>
+            </thead>
+            <tbody>
+              {hits.map((h) => (
+                <tr key={h.pmid}>
+                  <td>
+                    <a
+                      href={`https://pubmed.ncbi.nlm.nih.gov/${h.pmid}/`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {h.pmid}
+                    </a>
+                  </td>
+                  <td>{h.title ?? "(タイトル未取得)"}</td>
+                  <td>
+                    {h.authors?.slice(0, 3).join(", ") ?? "-"}
+                    {h.authors && h.authors.length > 3 && " et al."}
+                  </td>
+                  <td>
+                    {h.journal ?? "-"} {h.year ? `(${h.year})` : ""}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          <p className="hint">
+            ※ ヒットがあっても AI の指す論文と一致するかは、タイトル・著者・年を目視で確認してください。
+            ヒット件数が多い場合（{totalCount} 件など）は曖昧マッチの可能性があります。
+          </p>
+        </div>
+      )}
+
+      {status === "error" && (
+        <p className="error-text">エラー: {error}</p>
+      )}
     </div>
   );
 }
