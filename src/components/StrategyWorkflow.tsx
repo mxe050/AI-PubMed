@@ -41,6 +41,8 @@ interface Props {
   promptTemplate: string;
   description: string;
   mode: WorkflowMode;
+  /** Tab title shown as a header (matches other tabs' header style). */
+  title?: string;
 }
 
 interface SrIteration {
@@ -89,6 +91,7 @@ export function StrategyWorkflow({
   promptTemplate,
   description,
   mode,
+  title,
 }: Props) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [generatedPrompt, setGeneratedPrompt] = useState("");
@@ -162,6 +165,16 @@ export function StrategyWorkflow({
 
   return (
     <div className="strategy-workflow">
+      {title && (
+        <header className="strategy-header">
+          <h2>
+            {mode === "topic-synthesis" && (
+              <span className="tab-main-dot" aria-hidden="true">●</span>
+            )}
+            {title}
+          </h2>
+        </header>
+      )}
       <p className="strategy-description">{description}</p>
 
       <section className="workflow-section">

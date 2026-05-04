@@ -223,7 +223,7 @@ export function EbmTab({ settings }: Props) {
   return (
     <div className="ebm-tab">
       <header className="ebm-header">
-        <h2>EBMのための検索（EBM Step 2 Navigator）</h2>
+        <h2>EBMのための検索（補助機能・EBM Step 2 Navigator）</h2>
         <p className="hint">
           このアプリは <strong>EBM Step 2（情報検索）</strong>に特化したフローです。
           批判的吟味（Step 3）・推奨判断・治療方針決定は<strong>行いません</strong>。

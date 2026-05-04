@@ -71,10 +71,11 @@ export default function App() {
 
         {activeTab === "topic_exploration" && (
           <StrategyWorkflow
+            title="トピック探索（メイン機能）"
             settings={settings}
             fields={topicFields}
             promptTemplate={topicInitialPrompt}
-            description="概念探索、用語法、分類体系、歴史的経緯、論争点など、PubMedの抄録だけでは拾いきれないトピックに使います。PubMedで候補文献を集め、AIで論文の考察まで含めた最終回答を統合します。最後にPubMedで全PMIDを実在確認＋抄録取得してハルシネーションを検出します。"
+            description="概念探索、用語法、分類体系、歴史的経緯、論争点など、PubMedの抄録だけでは拾いきれないトピックに使います。PubMedで候補文献を集め、AIで論文の考察まで含めた最終回答を統合します。最後に「AI出力ファクトチェック」タブで全PMIDを実在確認＋抄録取得してハルシネーションを検出します。"
             mode="topic-synthesis"
           />
         )}
@@ -83,6 +84,7 @@ export default function App() {
 
         {activeTab === "systematic_review" && (
           <StrategyWorkflow
+            title="システマティックレビュー（補助機能）"
             settings={settings}
             fields={srFields}
             promptTemplate={srInitialPrompt}

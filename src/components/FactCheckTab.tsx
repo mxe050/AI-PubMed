@@ -251,7 +251,10 @@ ${aiResponse}
   return (
     <div className="fact-check-tab">
       <header className="fact-check-header">
-        <h2>AI出力ファクトチェック</h2>
+        <h2>
+          <span className="tab-main-dot" aria-hidden="true">●</span>
+          AI出力ファクトチェック（メイン機能）
+        </h2>
         <p className="hint">
           このタブは <strong>3段階のチェック</strong>{" "}
           を提供します。すべて自動化されるわけではなく、最終判断は人間の役目です。

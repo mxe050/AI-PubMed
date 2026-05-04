@@ -158,6 +158,18 @@ body {
   border-bottom: 1px solid var(--color-border);
 }
 
+.strategy-header {
+  text-align: center;
+  padding: 16px 0;
+  border-bottom: 2px solid var(--color-primary);
+  margin-bottom: 16px;
+}
+
+.strategy-header h2 {
+  margin: 0;
+  color: var(--color-primary);
+}
+
 .strategy-description {
   background: var(--color-info-bg);
   padding: 12px 16px;

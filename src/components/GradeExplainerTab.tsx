@@ -2,7 +2,7 @@ export function GradeExplainerTab() {
   return (
     <div className="grade-explainer">
       <header className="grade-header">
-        <h2>GRADE-ADOLOPMENT 解説</h2>
+        <h2>GRADE-ADOLOPMENT 解説（補助機能）</h2>
         <p className="grade-subtitle">
           既存ガイドラインの採用（Adoption）・適応（Adaptation）・新規開発（De novo development）を統合した、効率的で信頼性の高い診療ガイドライン作成手法
         </p>
