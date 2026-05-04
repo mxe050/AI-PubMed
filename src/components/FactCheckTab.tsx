@@ -40,7 +40,10 @@ export function FactCheckTab({ settings }: Props) {
   const extractedPmids = extractPmidsCategorized(aiResponse);
   const extractedUrls = extractUrls(aiResponse);
   const extractedDois = extractDois(aiResponse);
-  const extractedCitations = extractCitationCandidates(aiResponse);
+  const citationExtraction = extractCitationCandidates(aiResponse);
+  const extractedCitations = citationExtraction.candidates;
+  const skippedAuthorYearOnly = citationExtraction.skippedAuthorYearOnly;
+  const combinedAuthorYearCount = citationExtraction.combinedAuthorYearCount;
 
   const explicitCount = extractedPmids.filter(
     (e) => e.confidence === "explicit"
@@ -304,9 +307,21 @@ ${aiResponse}
                 URL: <strong>{extractedUrls.length}</strong> 件
               </li>
               <li>
-                <strong>論文タイトル・著者+年候補（PMID無し引用の照合用）</strong>:{" "}
+                <strong>論文タイトル候補（PMID無し引用の照合用）</strong>:{" "}
                 <strong>{extractedCitations.length}</strong> 件
+                {combinedAuthorYearCount > 0 && (
+                  <>
+                    （うち {combinedAuthorYearCount} 件は近接の「著者+年」と統合してクエリ強化済み）
+                  </>
+                )}
               </li>
+              {skippedAuthorYearOnly.length > 0 && (
+                <li className="warning-text">
+                  「著者+年」のみで近くにタイトルが無い引用:{" "}
+                  <strong>{skippedAuthorYearOnly.length}</strong> 件
+                  → <strong>ファクトチェック対象外</strong>（著者+年だけでは確実な照合不可能なため）
+                </li>
+              )}
             </ul>
           </div>
         )}

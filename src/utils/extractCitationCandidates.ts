@@ -2,8 +2,7 @@ export type CitationCandidateType =
   | "quoted_title"
   | "italic_title"
   | "english_plain_title"
-  | "title_year_pattern"
-  | "author_year";
+  | "title_year_pattern";
 
 export interface CitationCandidate {
   id: string;
@@ -14,11 +13,40 @@ export interface CitationCandidate {
   /** Display label for UI. */
   display: string;
   context: string;
+  /** When a nearby author+year is found, the title's query is enhanced with author+year filter. */
+  enhancedWithAuthorYear?: { author: string; year: string };
+}
+
+export interface SkippedAuthorYear {
+  raw: string;
+  context: string;
+}
+
+export interface ExtractionResult {
+  candidates: CitationCandidate[];
+  /** author+year mentions that have NO nearby title — cannot be reliably fact-checked. */
+  skippedAuthorYearOnly: SkippedAuthorYear[];
+  /** author+year mentions that DID have a nearby title and were used to enhance the title's query. */
+  combinedAuthorYearCount: number;
+}
+
+interface InternalCandidate extends CitationCandidate {
+  _startIndex: number;
+  _endIndex: number;
+}
+
+interface AuthorYearMatch {
+  raw: string;
+  authorRaw: string;
+  surname: string;
+  year: string;
+  index: number;
+  endIndex: number;
+  context: string;
 }
 
 /** Academic keywords that strongly suggest a phrase is a paper title. */
 const ACADEMIC_KEYWORDS = [
-  // study design
   "review",
   "systematic review",
   "meta-analysis",
@@ -35,13 +63,11 @@ const ACADEMIC_KEYWORDS = [
   "reliability",
   "reproducibility",
   "agreement",
-  // recommendation / guideline
   "guideline",
   "guidelines",
   "consensus",
   "statement",
   "recommendation",
-  // research focus
   "efficacy",
   "effectiveness",
   "safety",
@@ -56,7 +82,6 @@ const ACADEMIC_KEYWORDS = [
   "impact",
   "association",
   "relationship",
-  // study type
   "trial",
   "study",
   "studies",
@@ -70,12 +95,21 @@ const ACADEMIC_KEYWORDS_RE = new RegExp(
   "i"
 );
 
-export function extractCitationCandidates(text: string): CitationCandidate[] {
-  if (!text) return [];
-  const found = new Map<string, CitationCandidate>();
+/** Distance (chars) within which a nearby author+year is considered to belong to a title. */
+const AUTHOR_YEAR_PROXIMITY = 350;
 
-  // 1) Quoted titles: 「...」『...』 / "..." / “...” — but FILTER Japanese
-  //    descriptive sentences that aren't titles.
+export function extractCitationCandidates(text: string): ExtractionResult {
+  if (!text) {
+    return {
+      candidates: [],
+      skippedAuthorYearOnly: [],
+      combinedAuthorYearCount: 0,
+    };
+  }
+
+  const titles = new Map<string, InternalCandidate>();
+
+  // 1) Quoted titles
   const quotePatterns = [
     /「([^」]{8,250})」/g,
     /『([^』]{8,250})』/g,
@@ -89,20 +123,23 @@ export function extractCitationCandidates(text: string): CitationCandidate[] {
       const title = m[1].trim();
       if (!looksLikeTitle(title)) continue;
       const id = `quoted:${title.toLowerCase()}`;
-      if (!found.has(id)) {
-        found.set(id, {
+      if (!titles.has(id)) {
+        const cleanTitle = cleanTitleText(title);
+        titles.set(id, {
           id,
           raw: m[0],
           type: "quoted_title",
-          query: buildTitleQuery(title),
+          query: cleanTitle,
           display: title,
           context: getContext(text, m.index, 200),
+          _startIndex: m.index,
+          _endIndex: m.index + m[0].length,
         });
       }
     }
   }
 
-  // 2) Italic titles: *...* or _..._ (markdown italic)
+  // 2) Italic titles
   const italicPatterns = [
     /(?<!\*)\*([^*\n]{12,250})\*(?!\*)/g,
     /(?<![_\w])_([^_\n]{12,250})_(?!\w)/g,
@@ -113,22 +150,23 @@ export function extractCitationCandidates(text: string): CitationCandidate[] {
       const title = m[1].trim();
       if (!looksLikeTitle(title)) continue;
       const id = `italic:${title.toLowerCase()}`;
-      if (!found.has(id)) {
-        found.set(id, {
+      if (!titles.has(id)) {
+        const cleanTitle = cleanTitleText(title);
+        titles.set(id, {
           id,
           raw: m[0],
           type: "italic_title",
-          query: buildTitleQuery(title),
+          query: cleanTitle,
           display: title,
           context: getContext(text, m.index, 200),
+          _startIndex: m.index,
+          _endIndex: m.index + m[0].length,
         });
       }
     }
   }
 
-  // 3) English title followed by year in parentheses:
-  //    "Oral health status and ... systematic review (2006年)"
-  //    "Some Title: A Subtitle (2020)"
+  // 3) English title followed by year in parentheses
   const titleYearRe =
     /([A-Z][A-Za-zÀ-ſ0-9'\-,:;()&\s]{20,250}?)\s*[\(（]\s*((?:19|20)\d{2})\s*年?\s*[\)）]/g;
   let m: RegExpExecArray | null;
@@ -137,38 +175,46 @@ export function extractCitationCandidates(text: string): CitationCandidate[] {
     const year = m[2];
     if (!looksLikeEnglishTitle(title)) continue;
     const id = `title-year:${title.toLowerCase()}:${year}`;
-    if (!found.has(id)) {
-      found.set(id, {
+    if (!titles.has(id)) {
+      // Use plain title text — do NOT add year filter (overly strict, breaks search)
+      const cleanTitle = cleanTitleText(title);
+      titles.set(id, {
         id,
         raw: m[0],
         type: "title_year_pattern",
-        query: `(${buildTitleQuery(title)}) AND ${year}[dp]`,
+        query: cleanTitle,
         display: `${title} (${year})`,
         context: getContext(text, m.index, 200),
+        _startIndex: m.index,
+        _endIndex: m.index + m[0].length,
       });
     }
   }
 
-  // 4) English plain-text title: starts with capital, has academic keywords,
-  //    5-35 words, mostly English. (Catches inline mentions in Japanese prose.)
-  //    e.g. "...the paper Oral health status and health-related quality of life:
-  //    a systematic review showed..."
+  // 4) English plain-text titles
   const englishTitles = extractEnglishPlainTextTitles(text);
   for (const t of englishTitles) {
     const id = `english:${t.title.toLowerCase()}`;
-    if (!found.has(id)) {
-      found.set(id, {
+    if (!titles.has(id)) {
+      const cleanTitle = cleanTitleText(t.title);
+      titles.set(id, {
         id,
         raw: t.title,
         type: "english_plain_title",
-        query: buildTitleQuery(t.title),
+        query: cleanTitle,
         display: t.title,
         context: getContext(text, t.index, 200),
+        _startIndex: t.index,
+        _endIndex: t.index + t.title.length,
       });
     }
   }
 
-  // 5) Author + year: "Smith et al. 2017", "Smith and Jones 2020", etc.
+  // 5) Find author+year occurrences (NOT added as candidates directly).
+  //    These are used to either:
+  //    (a) enhance a nearby title's query, or
+  //    (b) be reported as "skipped — not verifiable" if no nearby title exists.
+  const authorYears: AuthorYearMatch[] = [];
   const authorYearRe =
     /([A-Z][a-zA-ZÀ-ſ'\-]{1,30}(?:\s+et\s+al\.?|\s+and\s+[A-Z][a-zA-ZÀ-ſ'\-]{1,30})?)[\s,(]+((?:19|20)\d{2})\b/g;
   while ((m = authorYearRe.exec(text)) !== null) {
@@ -180,39 +226,102 @@ export function extractCitationCandidates(text: string): CitationCandidate[] {
       .split(/\s+/)[0]
       .trim();
     if (surname.length < 2) continue;
-    const id = `author:${authorRaw.toLowerCase()}:${year}`;
-    if (!found.has(id)) {
-      const display = `${authorRaw}, ${year}`;
-      found.set(id, {
-        id,
-        raw: m[0],
-        type: "author_year",
-        query: `${surname}[Author] AND ${year}[dp]`,
-        display,
-        context: getContext(text, m.index, 200),
+    authorYears.push({
+      raw: m[0],
+      authorRaw,
+      surname,
+      year,
+      index: m.index,
+      endIndex: m.index + m[0].length,
+      context: getContext(text, m.index, 200),
+    });
+  }
+
+  // 6) Combine: for each author+year, find the nearest title within proximity.
+  //    If found, enhance the title's query with `AND Surname[Author] AND Year[dp]`.
+  //    If not found, add to skipped list.
+  const titleArray = Array.from(titles.values());
+  const skippedAuthorYearOnly: SkippedAuthorYear[] = [];
+  let combinedAuthorYearCount = 0;
+  const seenAuthorYearKeys = new Set<string>();
+
+  for (const ay of authorYears) {
+    const ayKey = `${ay.authorRaw.toLowerCase()}:${ay.year}`;
+    // Avoid duplicate processing of the same author+year mention
+    if (seenAuthorYearKeys.has(ayKey)) continue;
+
+    // Find nearest title within proximity (any direction)
+    let nearestTitle: InternalCandidate | null = null;
+    let nearestDist = Infinity;
+    for (const t of titleArray) {
+      // Distance: from author+year to title boundary
+      const dist =
+        ay.index < t._startIndex
+          ? t._startIndex - ay.endIndex
+          : ay.index - t._endIndex;
+      if (dist < AUTHOR_YEAR_PROXIMITY && dist < nearestDist) {
+        nearestTitle = t;
+        nearestDist = dist;
+      }
+    }
+
+    if (nearestTitle) {
+      // Note nearby author+year for display purposes only.
+      // Do NOT modify the query — adding [Author] / [dp] filters often
+      // breaks PubMed matching. The plain title text matches better via
+      // ATM (Automatic Term Mapping).
+      if (!nearestTitle.enhancedWithAuthorYear) {
+        nearestTitle.enhancedWithAuthorYear = {
+          author: ay.authorRaw,
+          year: ay.year,
+        };
+        nearestTitle.display = `${nearestTitle.display}（${ay.authorRaw}, ${ay.year}）`;
+      }
+      combinedAuthorYearCount++;
+      seenAuthorYearKeys.add(ayKey);
+    } else {
+      // Standalone author+year — cannot be reliably verified, skip.
+      skippedAuthorYearOnly.push({
+        raw: ay.raw,
+        context: ay.context,
       });
+      seenAuthorYearKeys.add(ayKey);
     }
   }
 
-  // Limit to 50 candidates
-  return Array.from(found.values()).slice(0, 50);
-}
+  // Strip internal fields from final output
+  const candidates: CitationCandidate[] = titleArray
+    .slice(0, 50)
+    .map(({ _startIndex: _s, _endIndex: _e, ...rest }) => {
+      void _s;
+      void _e;
+      return rest;
+    });
 
-function buildTitleQuery(title: string): string {
-  // Strip trailing punctuation, normalize whitespace
-  const t = title.replace(/[\s.,;:!?]+$/, "").replace(/\s+/g, " ").trim();
-  return `"${t}"[Title] OR "${t}"[Title/Abstract]`;
+  return {
+    candidates,
+    skippedAuthorYearOnly: skippedAuthorYearOnly.slice(0, 30),
+    combinedAuthorYearCount,
+  };
 }
 
 /**
- * Check if a quoted/italic string looks like a paper title.
- * - Reject Japanese descriptive sentences (verb-ending)
- * - Accept English title-like phrases or Japanese noun-phrase titles
+ * Clean a title string for use as a PubMed search query.
+ * Strategy: pass the title text as-is to PubMed (no quotes, no field tags,
+ * no OR alternatives). PubMed's Automatic Term Mapping (ATM) handles plain
+ * title text well. Adding [Title], [Title/Abstract], or year filters often
+ * BREAKS matching — many real titles fail to hit because of indexing
+ * differences (colons, special characters, journal-specific formatting).
  */
+function cleanTitleText(title: string): string {
+  return title
+    .replace(/[\s.,;:!?]+$/, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function looksLikeTitle(s: string): boolean {
   if (s.length < 12 || s.length > 250) return false;
-
-  // Reject obvious non-titles
   if (/^https?:\/\//i.test(s)) return false;
   if (/^[\d\s.\-_/]+$/.test(s)) return false;
   if (/^[A-Z_]+$/.test(s)) return false;
@@ -222,52 +331,32 @@ function looksLikeTitle(s: string): boolean {
   const isLetterRich = englishCharCount + japaneseCharCount >= 8;
   if (!isLetterRich) return false;
 
-  // If mostly English, treat as English title
   if (englishCharCount > japaneseCharCount * 2) {
     return looksLikeEnglishTitle(s);
   }
-
-  // If mostly Japanese, apply Japanese title heuristics
   if (japaneseCharCount > englishCharCount) {
     return looksLikeJapaneseTitle(s);
   }
-
-  // Mixed — accept if has space (multi-word) or is long
   return /\s/.test(s) || s.length >= 20;
 }
 
 function looksLikeEnglishTitle(s: string): boolean {
-  // Must start with capital letter
   if (!/^[A-Z]/.test(s.trim())) return false;
   const words = s.split(/\s+/);
   if (words.length < 3 || words.length > 40) return false;
-  // English titles often have either:
-  //   - Multiple words with first capital (Title Case or Sentence case)
-  //   - Or contain academic keywords
-  //   - Or have ":" subtitle marker
-  return (
-    ACADEMIC_KEYWORDS_RE.test(s) ||
-    /:/.test(s) ||
-    words.length >= 5
-  );
+  return ACADEMIC_KEYWORDS_RE.test(s) || /:/.test(s) || words.length >= 5;
 }
 
-/**
- * Reject Japanese descriptive sentences. Accept Japanese titles (typically
- * noun-phrases).
- */
 function looksLikeJapaneseTitle(s: string): boolean {
   const trimmed = s.trim();
 
-  // Reject sentences that look like complete predicates / declarative sentences
-  // Common verb endings or copula endings:
   const sentenceEndings = [
     /である\.?$/,
     /であった\.?$/,
     /です\.?$/,
     /ます\.?$/,
     /ました\.?$/,
-    /[いた]\.?$/, // verb-ending in past
+    /[いた]\.?$/,
     /なる\.?$/,
     /なった\.?$/,
     /示す\.?$/,
@@ -279,13 +368,12 @@ function looksLikeJapaneseTitle(s: string): boolean {
     /いる\.?$/,
     /推奨される\.?$/,
     /低下させる(要因|原因)?である\.?$/,
-    /[をがにはで][^を]*?(する|なる|される|なった)\.?$/, // 〜を〜する型
+    /[をがにはで][^を]*?(する|なる|される|なった)\.?$/,
   ];
   for (const re of sentenceEndings) {
     if (re.test(trimmed)) return false;
   }
 
-  // Common Japanese paper-title noun-phrase suffixes — accept these
   const titleSuffixes = [
     /検討$/,
     /報告$/,
@@ -323,16 +411,8 @@ function looksLikeJapaneseTitle(s: string): boolean {
   ];
   if (titleSuffixes.some((re) => re.test(trimmed))) return true;
 
-  // Reject anything that ends with a Japanese sentence punctuation that
-  // suggests a complete sentence
-  if (/[。.]$/.test(trimmed)) {
-    // Only accept if there's no verb-ending detected above (already filtered)
-    // and the content looks noun-like — but to be safe, reject by default
-    return false;
-  }
+  if (/[。.]$/.test(trimmed)) return false;
 
-  // Default: noun-phrase that doesn't end in obvious sentence pattern — accept
-  // only if it's reasonably title-like (no clear verb in middle either)
   if (/(?:である|でした|ました|されている|されていた|なる|示す|考えられる)/.test(trimmed)) {
     return false;
   }
@@ -340,18 +420,11 @@ function looksLikeJapaneseTitle(s: string): boolean {
   return true;
 }
 
-/**
- * Extract English-style paper titles from plain (un-quoted) text.
- * Strategy: scan for capitalized phrases with academic keywords or title-case
- * patterns.
- */
 function extractEnglishPlainTextTitles(
   text: string
 ): { title: string; index: number }[] {
   const out: { title: string; index: number }[] = [];
 
-  // Strategy A: phrases ending in academic keyword and contain colon
-  // Pattern: Capital + words + : + words + (optional academic keyword)
   const colonTitleRe =
     /([A-Z][A-Za-zÀ-ſ0-9'\-,&\s]{8,150}?:\s+[A-Za-zÀ-ſ0-9'\-,&\s]{5,150}?)(?=[.,;。、]|\s*\(|\s*\d{4}|$)/gm;
   let m: RegExpExecArray | null;
@@ -362,8 +435,6 @@ function extractEnglishPlainTextTitles(
     }
   }
 
-  // Strategy B: long English phrases with academic keywords (no colon)
-  // Look for capitalized start, 5-35 English words, contains academic keyword
   const phraseRe =
     /(?:^|[^A-Za-z])([A-Z][A-Za-zÀ-ſ0-9'\-,&]+(?:\s+[A-Za-zÀ-ſ0-9'\-,&]+){4,34})(?=[.,;。、:]|\s*\(\d|\s*$)/gm;
   while ((m = phraseRe.exec(text)) !== null) {
@@ -373,7 +444,6 @@ function extractEnglishPlainTextTitles(
       looksLikeEnglishTitle(candidate) &&
       hasGoodEnglishRatio(candidate)
     ) {
-      // Skip if already collected
       if (!out.some((o) => o.title === candidate)) {
         out.push({ title: candidate, index: m.index });
       }
