@@ -5,7 +5,10 @@ import { buildApiFeedbackBlock } from "../utils/buildApiFeedbackBlock";
 import { buildAbstractsBlock } from "../utils/buildAbstractsBlock";
 import { extractSearchString } from "../utils/extractSearchString";
 import { srRevisionPrompt } from "../prompts/revision";
-import { topicPlainEnhancedPrompt } from "../prompts/topicExploration";
+import {
+  topicPlainEnhancedPrompt,
+  topicSimplePrompt,
+} from "../prompts/topicExploration";
 import { FormFields } from "./FormFields";
 import { PromptDisplay } from "./PromptDisplay";
 import { AiResponseInput } from "./AiResponseInput";
@@ -164,25 +167,81 @@ export function StrategyWorkflow({
 
       {generatedPrompt && mode === "topic-synthesis" && values.question && (
         <section className="workflow-section">
-          <h2>Step 2: プレーン多角分解版プロンプト（このアプリの本体）</h2>
+          <h2>Step 2: 2本のプロンプト（このアプリの本体）</h2>
           <p className="hint">
-            <strong>トピック探索の本体プロンプトです。</strong>
-            このプロンプトを外部AI（ChatGPT / Claude / Geminiなど）に貼り付けて回答を得たら、
-            必要に応じて<strong>「AI出力ファクトチェック」タブ</strong>で PMID 実在確認・抄録取得・URL確認を行ってください。
+            <strong>トピック探索の本体です。</strong>
+            ここから先は2つのプロンプトを並列に提示します。性質が異なるため、目的に応じて使い分けてください。
+            完了後の検証は <strong>「AI出力ファクトチェック」タブ</strong> で行えます。
           </p>
-          <p className="hint">
-            <strong>このアプリのトピック探索はここで完結します。</strong>
-            PubMed検索式は出さず、AIの訓練知識から「タイトル・抄録には出てこない Discussion 埋没型情報」を引き出すことに集中する設計です。
-          </p>
-          <PromptDisplay
-            prompt={buildPrompt(topicPlainEnhancedPrompt, {
-              question: values.question,
-            })}
-            title="プレーン多角分解版プロンプト"
-          />
+
+          {/* Prompt A: Simple intuitive */}
+          <div className="prompt-card prompt-card-plain">
+            <div className="prompt-card-header">
+              <h3>プロンプトA：シンプル直感版（質問そのまま）</h3>
+              <span className="prompt-tag prompt-tag-terminal">→ ここで終了（必要に応じて検証）</span>
+            </div>
+            <details>
+              <summary><strong>このプロンプトの位置づけ（クリックで詳細）</strong></summary>
+              <ul>
+                <li>
+                  ユーザーの<strong>元の質問文をほぼそのままAIにぶつける</strong>最小プロンプトです。
+                  ハルシネーション抑制とラベル付与の指示だけを最小限に追加しています。
+                </li>
+                <li>
+                  <strong>直感を重視するため</strong>のプロンプトです。アプリ側で構造化・分解・連想パスの誘導を入れず、AIモデルの「地力」をそのまま使います。
+                </li>
+                <li>
+                  <strong>高性能モデル（GPT-5 / Claude Opus / Gemini Pro 等）であれば、これだけでも良い結果が出る可能性</strong>があります。プロンプトBの構造化指示が逆にバイアスになるケースを避けるための受け皿です。
+                </li>
+                <li>
+                  下のプロンプトBの結果と<strong>見比べる</strong>ことで、構造化が効いているか／効きすぎているかを判断できます。
+                </li>
+              </ul>
+            </details>
+            <PromptDisplay
+              prompt={buildPrompt(topicSimplePrompt, {
+                question: values.question,
+              })}
+              title="プロンプトA：シンプル直感版"
+            />
+          </div>
+
+          {/* Prompt B: Detailed Discussion-buried */}
+          <div className="prompt-card prompt-card-synthesis">
+            <div className="prompt-card-header">
+              <h3>プロンプトB：詳細版（Discussion 埋没型を狙う作り込み）</h3>
+              <span className="prompt-tag prompt-tag-continues">→ ここで終了（必要に応じて検証）</span>
+            </div>
+            <details>
+              <summary><strong>このプロンプトの位置づけ（クリックで詳細）</strong></summary>
+              <ul>
+                <li>
+                  <strong>言葉の揺らぎを含めて、ユーザーがトピックを完璧に言語化できなくても、的確に結果が返ってくるよう作り込んだ</strong>プロンプトです。
+                </li>
+                <li>
+                  PubMed のタイトル・抄録検索では構造的に拾えない<strong>本文埋没型情報</strong>（Discussion / 序論 / Methods / Limitations / 脚注に書かれた批判・運用差・歴史的経緯）を、AI の訓練知識から連想的に引き出します。
+                </li>
+                <li>
+                  質問タイプ判定（衰退理由型 / 誤用指摘型 / 評価変化型 / 運用差検出型 など）→ 視点シフト → 連想パス（著者・誌・地域・時代・後継概念）→ 候補列挙 → 本文内詳細抽出 → 統合まとめ、の順で出力されます。
+                </li>
+                <li>
+                  各候補論文には<strong>「選定理由」が毎件異なる切り口で</strong>書かれます。単調な繰り返しにならず、読み物としても楽しめる粒度を目指しています。
+                </li>
+                <li>
+                  内容は簡潔な日本語で要約されます。記憶からの呼び出しなのでファクトチェックタブでの照合は推奨されます。
+                </li>
+              </ul>
+            </details>
+            <PromptDisplay
+              prompt={buildPrompt(topicPlainEnhancedPrompt, {
+                question: values.question,
+              })}
+              title="プロンプトB：詳細版"
+            />
+          </div>
+
           <p className="warning-text">
-            ⚠ このプロンプトで一度AIに検索（質問）すると、自分の知りたい結果が出る場合があります。
-            ただし、それは網羅的な検索ではないので、それだけで判断しないこと。
+            ⚠ どちらのプロンプトの結果も、網羅的な検索ではありません。重要な判断にはPubMedや原文での確認を併用してください。
           </p>
         </section>
       )}
