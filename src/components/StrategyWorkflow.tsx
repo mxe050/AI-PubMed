@@ -210,27 +210,34 @@ export function StrategyWorkflow({
             完了後の検証は <strong>「AI出力ファクトチェック」タブ</strong> で行えます。
           </p>
 
-          {/* Prompt A: Simple intuitive */}
+          {/* Prompt A: Simple intuitive — hallucination allowed */}
           <div className="prompt-card prompt-card-plain">
             <div className="prompt-card-header">
-              <h3>プロンプトA：シンプル直感版（質問そのまま）</h3>
-              <span className="prompt-tag prompt-tag-terminal">→ ここで終了（必要に応じて検証）</span>
+              <h3>プロンプトA：シンプル直感版（ハルシネーション許容・自由連想）</h3>
+              <span className="prompt-tag prompt-tag-warn">⚠ ハルシネーション含む可能性あり・要ファクトチェック</span>
+            </div>
+            <div className="ai-ending-warning">
+              <strong>重要：</strong>
+              このプロンプトは、<strong>ハルシネーション（記憶違い・捏造）を含んでも構わない</strong>ことを明示し、AI に直感的・自由・連想的に回答させることを求めています。
+              そのため、AI 回答には<strong>誤った PMID・存在しない論文・記憶違い</strong>が含まれる可能性があります。
+              <strong>必ず「AI出力ファクトチェック」タブで PMID 実在確認・抄録取得・URL 確認を行ってください</strong>。
+              ハルシネーションチェックなしに本回答を信用してはいけません。
             </div>
             <details>
               <summary><strong>このプロンプトの位置づけ（クリックで詳細）</strong></summary>
               <ul>
                 <li>
                   ユーザーの<strong>元の質問文をほぼそのままAIにぶつける</strong>最小プロンプトです。
-                  ハルシネーション抑制とラベル付与の指示だけを最小限に追加しています。
+                  ハルシネーションを許容することで、AIの自由連想・突飛な視点・洞察を引き出します。
                 </li>
                 <li>
-                  <strong>直感を重視するため</strong>のプロンプトです。アプリ側で構造化・分解・連想パスの誘導を入れず、AIモデルの「地力」をそのまま使います。
+                  網羅性・厳密性よりも<strong>AIらしさ・直感・連想</strong>を優先します。
                 </li>
                 <li>
                   <strong>高性能モデル（GPT-5 / Claude Opus / Gemini Pro 等）であれば、これだけでも良い結果が出る可能性</strong>があります。プロンプトBの構造化指示が逆にバイアスになるケースを避けるための受け皿です。
                 </li>
                 <li>
-                  下のプロンプトBの結果と<strong>見比べる</strong>ことで、構造化が効いているか／効きすぎているかを判断できます。
+                  下のプロンプトBの結果と<strong>見比べる</strong>ことで、自由連想と構造化された分析の両方を活用できます。
                 </li>
               </ul>
             </details>
