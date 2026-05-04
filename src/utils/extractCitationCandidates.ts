@@ -2,7 +2,8 @@ export type CitationCandidateType =
   | "quoted_title"
   | "italic_title"
   | "english_plain_title"
-  | "title_year_pattern";
+  | "title_year_pattern"
+  | "author_year_journal";
 
 export interface CitationCandidate {
   id: string;
@@ -213,16 +214,20 @@ export function extractCitationCandidates(text: string): ExtractionResult {
   // 5) Find author+year occurrences (NOT added as candidates directly).
   //    These are used to either:
   //    (a) enhance a nearby title's query, or
-  //    (b) be reported as "skipped — not verifiable" if no nearby title exists.
+  //    (b) be promoted to "author_year_journal" candidate if a journal name follows the year, or
+  //    (c) be reported as "skipped — not verifiable" if no nearby title exists.
   const authorYears: AuthorYearMatch[] = [];
+  // Supports: "Smith (2020)", "Smith et al. (2020)", "Smith and Jones (2020)",
+  //           "Smith & Jones (2020)", "Smith, J. & Jones, K. (2020)"
   const authorYearRe =
-    /([A-Z][a-zA-ZÀ-ſ'\-]{1,30}(?:\s+et\s+al\.?|\s+and\s+[A-Z][a-zA-ZÀ-ſ'\-]{1,30})?)[\s,(]+((?:19|20)\d{2})\b/g;
+    /([A-Z][a-zA-ZÀ-ſ'\-]{1,30}(?:,?\s+[A-Z]\.?(?:\s*[A-Z]\.?)?)?(?:\s+et\s+al\.?|(?:\s+and|\s*&)\s+[A-Z][a-zA-ZÀ-ſ'\-]{1,30}(?:,?\s+[A-Z]\.?(?:\s*[A-Z]\.?)?)?)?)[\s,(]+((?:19|20)\d{2})\b/g;
   while ((m = authorYearRe.exec(text)) !== null) {
     const authorRaw = m[1].trim();
     const year = m[2];
     const surname = authorRaw
       .replace(/\s+et\s+al\.?$/i, "")
-      .split(/\s+and\s+/)[0]
+      .split(/\s+and\s+|\s*&\s*/)[0]
+      .replace(/,?\s+[A-Z]\.?\s*[A-Z]?\.?$/, "")
       .split(/\s+/)[0]
       .trim();
     if (surname.length < 2) continue;
@@ -238,23 +243,22 @@ export function extractCitationCandidates(text: string): ExtractionResult {
   }
 
   // 6) Combine: for each author+year, find the nearest title within proximity.
-  //    If found, enhance the title's query with `AND Surname[Author] AND Year[dp]`.
-  //    If not found, add to skipped list.
+  //    Priority:
+  //    (a) If a nearby title is found → enhance the title's display with author+year.
+  //    (b) Else if a journal name follows the year → promote to directly verifiable candidate.
+  //    (c) Else → add to skipped list (author+year alone is too vague).
   const titleArray = Array.from(titles.values());
   const skippedAuthorYearOnly: SkippedAuthorYear[] = [];
   let combinedAuthorYearCount = 0;
   const seenAuthorYearKeys = new Set<string>();
 
   for (const ay of authorYears) {
-    const ayKey = `${ay.authorRaw.toLowerCase()}:${ay.year}`;
-    // Avoid duplicate processing of the same author+year mention
+    const ayKey = `${ay.surname.toLowerCase()}:${ay.year}`;
     if (seenAuthorYearKeys.has(ayKey)) continue;
 
-    // Find nearest title within proximity (any direction)
     let nearestTitle: InternalCandidate | null = null;
     let nearestDist = Infinity;
     for (const t of titleArray) {
-      // Distance: from author+year to title boundary
       const dist =
         ay.index < t._startIndex
           ? t._startIndex - ay.endIndex
@@ -266,10 +270,6 @@ export function extractCitationCandidates(text: string): ExtractionResult {
     }
 
     if (nearestTitle) {
-      // Note nearby author+year for display purposes only.
-      // Do NOT modify the query — adding [Author] / [dp] filters often
-      // breaks PubMed matching. The plain title text matches better via
-      // ATM (Automatic Term Mapping).
       if (!nearestTitle.enhancedWithAuthorYear) {
         nearestTitle.enhancedWithAuthorYear = {
           author: ay.authorRaw,
@@ -279,24 +279,54 @@ export function extractCitationCandidates(text: string): ExtractionResult {
       }
       combinedAuthorYearCount++;
       seenAuthorYearKeys.add(ayKey);
-    } else {
-      // Standalone author+year — cannot be reliably verified, skip.
-      skippedAuthorYearOnly.push({
-        raw: ay.raw,
-        context: ay.context,
-      });
-      seenAuthorYearKeys.add(ayKey);
+      continue;
     }
+
+    // (b) No nearby title — check for journal name immediately after the year.
+    const journal = extractJournalAfterYear(text, ay.endIndex);
+    if (journal) {
+      // Build query: surname + (second surname?) + year + journal
+      const secondSurname = extractSecondSurname(ay.authorRaw);
+      const queryParts = [ay.surname];
+      if (secondSurname) queryParts.push(secondSurname);
+      queryParts.push(ay.year);
+      queryParts.push(journal);
+      const query = queryParts.join(" ");
+      const id = `ayj:${ayKey}:${journal.toLowerCase()}`;
+      if (!titles.has(id)) {
+        titles.set(id, {
+          id,
+          raw: ay.raw,
+          type: "author_year_journal",
+          query,
+          display: `${ay.authorRaw} (${ay.year}) ${journal}`,
+          context: ay.context,
+          _startIndex: ay.index,
+          _endIndex: ay.endIndex,
+        });
+      }
+      seenAuthorYearKeys.add(ayKey);
+      continue;
+    }
+
+    // (c) Standalone author+year — cannot be reliably verified.
+    skippedAuthorYearOnly.push({
+      raw: ay.raw,
+      context: ay.context,
+    });
+    seenAuthorYearKeys.add(ayKey);
   }
 
-  // Strip internal fields from final output
-  const candidates: CitationCandidate[] = titleArray
-    .slice(0, 50)
-    .map(({ _startIndex: _s, _endIndex: _e, ...rest }) => {
+  // Rebuild final array from titles map (which now includes any newly-added
+  // author_year_journal candidates from step 6).
+  const finalArray = Array.from(titles.values()).slice(0, 50);
+  const candidates: CitationCandidate[] = finalArray.map(
+    ({ _startIndex: _s, _endIndex: _e, ...rest }) => {
       void _s;
       void _e;
       return rest;
-    });
+    }
+  );
 
   return {
     candidates,
@@ -467,4 +497,77 @@ function getContext(text: string, index: number, radius: number): string {
   if (start > 0) snippet = "…" + snippet;
   if (end < text.length) snippet = snippet + "…";
   return snippet.replace(/\s+/g, " ").trim();
+}
+
+/**
+ * Extract a journal-name-like phrase that immediately follows a year.
+ * Pattern: after the closing paren of "(2021)", optionally separated by space/comma,
+ * find a sequence of capitalized words. Skips known non-journal words.
+ */
+function extractJournalAfterYear(text: string, afterIndex: number): string | null {
+  const tail = text.slice(afterIndex, afterIndex + 80);
+  const m = tail.match(
+    /^[\s,;.:)）]*([A-Z][A-Za-zÀ-ſ&]+(?:\s+(?:and\s+)?[A-Z][A-Za-zÀ-ſ&]+){0,5})/
+  );
+  if (!m) return null;
+  const candidate = m[1].trim();
+  if (candidate.length < 3 || candidate.length > 80) return null;
+  // Filter out obvious non-journal words.
+  const lower = candidate.toLowerCase();
+  const blocklist = [
+    "the",
+    "this",
+    "that",
+    "these",
+    "those",
+    "in",
+    "on",
+    "at",
+    "by",
+    "for",
+    "with",
+    "from",
+    "and",
+    "but",
+    "however",
+    "discussion",
+    "introduction",
+    "methods",
+    "results",
+    "conclusion",
+    "abstract",
+    "pmid",
+    "doi",
+    "pmc",
+    "review",
+    "is",
+    "was",
+    "were",
+    "are",
+    "be",
+    "been",
+    "they",
+    "their",
+    "his",
+    "her",
+    "our",
+    "we",
+  ];
+  if (blocklist.includes(lower.split(/\s+/)[0])) return null;
+  // Strip trailing PMID/DOI markers if accidentally captured
+  return candidate.replace(/\s+(PMID|DOI|PMC).*$/i, "").trim();
+}
+
+/**
+ * For "Smith and Jones" or "Smith & Jones" or "Smith, J. & Jones, K.",
+ * extract the second surname (Jones).
+ */
+function extractSecondSurname(authorRaw: string): string | null {
+  const parts = authorRaw.split(/\s+and\s+|\s*&\s*/);
+  if (parts.length < 2) return null;
+  const second = parts[1]
+    .replace(/,?\s+[A-Z]\.?\s*[A-Z]?\.?$/, "")
+    .split(/\s+/)[0]
+    .trim();
+  return second.length >= 2 ? second : null;
 }

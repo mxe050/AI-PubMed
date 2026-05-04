@@ -14,6 +14,13 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
         <p className="hint">
           AI APIには一切通信しません。PubMed公式API（NCBI E-utilities）のみを使用します。
         </p>
+        <p className="hint hint-warning">
+          ⚠ AIモデルは常に進化・変化しています。本アプリでプロンプトを生成して外部AIに渡すより、
+          外部AI（ChatGPT・Claude・Geminiなど）で直接ファクトチェックやトピック検索を行った方が、
+          より正確な回答になる場合があります。また、AIモデルの仕様変更により、
+          出力の形式・品質・精度が時期によって変わることがあります。
+          本アプリの結果を鵜呑みにせず、最終判断は必ず人間が行ってください。
+        </p>
       </header>
 
       <section className="how-to-use-section">

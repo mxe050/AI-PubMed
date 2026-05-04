@@ -40,6 +40,12 @@ export default function App() {
         <p className="app-subtitle">
           AI APIには一切通信しません。PubMed公式API（NCBI E-utilities）のみを使用します。
         </p>
+        <p className="app-subtitle app-subtitle-warning">
+          ⚠ AIモデルは日々進化・変化しています。本アプリで生成したプロンプトを外部AIに渡す方法より、
+          外部AIで直接トピック検索やファクトチェックを行った方が正確な回答になる場合もあります。
+          またAIモデルの仕様変更により、出力の品質や形式が変わることがあります。
+          本アプリの結果を盲信せず、最終判断は必ず人間が行ってください。
+        </p>
       </header>
 
       <nav className="tab-nav">
