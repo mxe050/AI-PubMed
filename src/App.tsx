@@ -23,7 +23,7 @@ type TabKind = "main" | "supp" | "meta";
 const tabs: { key: TabType; label: string; kind: TabKind }[] = [
   { key: "how_to_use", label: "使い方・設定", kind: "meta" },
   { key: "fact_check", label: "AI出力ファクトチェック", kind: "main" },
-  { key: "topic_exploration", label: "トピック探索", kind: "main" },
+  { key: "topic_exploration", label: "PubMedで見逃しやすい論文検索", kind: "main" },
   { key: "ebm_search", label: "EBMのための検索", kind: "supp" },
   { key: "systematic_review", label: "システマティックレビュー", kind: "supp" },
   { key: "grade_explainer", label: "GRADE-ADOLOPMENT解説", kind: "supp" },
@@ -62,7 +62,7 @@ export default function App() {
       </nav>
       <p className="tab-legend">
         <span className="tab-main-dot" aria-hidden="true">●</span>
-        がメイン機能（AI出力ファクトチェック・トピック探索）。EBM検索・SR・GRADEは補助です。
+        がメイン機能（AI出力ファクトチェック・PubMedで見逃しやすい論文検索）。EBM検索・SR・GRADEは補助です。
       </p>
 
       <main className="app-main">
@@ -77,11 +77,11 @@ export default function App() {
 
         {activeTab === "topic_exploration" && (
           <StrategyWorkflow
-            title="トピック探索（メイン機能）"
+            title="PubMedで見逃しやすい論文検索（メイン機能）"
             settings={settings}
             fields={topicFields}
             promptTemplate={topicInitialPrompt}
-            description="概念探索、用語法、分類体系、歴史的経緯、論争点など、PubMedの抄録だけでは拾いきれないトピックに使います。PubMedで候補文献を集め、AIで論文の考察まで含めた最終回答を統合します。最後に「AI出力ファクトチェック」タブで全PMIDを実在確認＋抄録取得してハルシネーションを検出します。"
+            description="PubMedのタイトル・抄録検索では見落とされる、本文内証拠（Discussion / Methods / Results / Limitations / Table / Figure / 参考文献にある批判・比較・改変・限界・代替分類への言及）を持つ論文を探します。地域名タイトル・地域誌・非英語圏著者・低被引用などを除外せず、見落としリスクの高い論文を意図的に拾い上げます。"
             mode="topic-synthesis"
           />
         )}

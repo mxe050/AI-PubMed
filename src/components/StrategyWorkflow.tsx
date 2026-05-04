@@ -7,11 +7,6 @@ import { extractSearchString } from "../utils/extractSearchString";
 import { extractSrExplanation } from "../utils/extractSrExplanation";
 import { srRevisionPrompt } from "../prompts/revision";
 import {
-  topicPlainEnhancedPrompt,
-  topicSimplePrompt,
-  topicEnglishDetailedPrompt,
-} from "../prompts/topicExploration";
-import {
   studyDesignFilters,
   applyStudyDesignFilter,
 } from "../utils/cochraneFilters";
@@ -233,160 +228,35 @@ export function StrategyWorkflow({
 
       {generatedPrompt && mode === "topic-synthesis" && values.question && (
         <section className="workflow-section">
-          <h2>Step 2: 3本のプロンプト（A → B → C の順に試す）</h2>
+          <h2>Step 2: プロンプトを外部AIに渡す</h2>
 
           <div className="prompt-recommendation-banner">
-            <h4>📌 まず「プロンプトA（推奨）」から使ってください</h4>
+            <h4>📌 PubMedで見逃しやすい論文検索プロンプト</h4>
             <p>
-              ほとんどの場合 <strong>プロンプトA（日本語・詳細版）</strong>{" "}
-              で十分良い結果が得られます。Aで結果が物足りない場合は、英語論文の連想記憶が強くなる
-              <strong>プロンプトB（英語版）</strong>を試してください。
-              それでも納得いかない場合のみ、最終手段として
-              <strong>プロンプトC（ハルシネーション許容・自由連想版）</strong>
-              を使ってください。
+              PubMedのタイトル・抄録検索では届かない、
+              <strong>本文内証拠（Discussion / Methods / Results / Limitations / Table / Figure / 参考文献）</strong>
+              に批判・比較・改変・限界・代替分類への言及を持つ論文を意図的に拾い上げるためのプロンプトです。
+              地域名タイトル・地域誌・非英語圏著者・低被引用などを除外せず、複合バイアス3要因以上を最優先で全文取得します。
             </p>
             <p className="hint">
-              いずれのプロンプトを使った場合も、回答は必ず{" "}
-              <strong>「AI出力ファクトチェック」タブ</strong>{" "}
+              回答は必ず <strong>「AI出力ファクトチェック」タブ</strong>{" "}
               でPMID実在確認・抄録取得・URL確認をしてください。
             </p>
           </div>
 
-          {/* Prompt A: Detailed Japanese — RECOMMENDED */}
           <div className="prompt-card prompt-card-synthesis">
             <div className="prompt-card-header">
-              <h3>プロンプトA：詳細版・日本語（★推奨・まずこれを試す）</h3>
-              <span className="prompt-tag prompt-tag-continues">推奨</span>
+              <h3>PubMedで見逃しやすい論文検索プロンプト</h3>
+              <span className="prompt-tag prompt-tag-continues">本文内証拠重視</span>
             </div>
-            <details>
-              <summary>
-                <strong>このプロンプトの利点・欠点（クリックで詳細）</strong>
-              </summary>
-              <ul>
-                <li>
-                  <strong>利点</strong>：日本語で書かれた構造化プロンプト。質問タイプ判定（衰退理由型・誤用指摘型・評価変化型・運用差検出型など）→ 視点シフト → 連想パス（著者・誌・地域・時代・後継概念）→ 候補列挙 → 本文内詳細抽出 → 統合まとめ、の順で網羅的かつ深い回答が得られる。
-                </li>
-                <li>
-                  <strong>利点</strong>：PubMedのタイトル・抄録検索では拾えない本文埋没型情報（Discussion / 序論 / Methods / Limitations / 脚注の批判・運用差・歴史的経緯）を、AIの訓練知識から連想的に引き出せる。
-                </li>
-                <li>
-                  <strong>利点</strong>：日本語の医学用語ニュアンスを保持しやすく、日本語論文や日本のガイドラインへの言及も拾いやすい。
-                </li>
-                <li>
-                  <strong>欠点</strong>：英語論文中心のトピックでは、AI内部処理が日本語経由になりやすく、英語固有名詞・著者名の連想が弱い場合がある。
-                </li>
-                <li>
-                  <strong>欠点</strong>：プロンプトが長く、チャット入力欄に収まらないモデルがある。
-                </li>
-                <li>
-                  <strong>欠点</strong>：構造化指示が逆にAIの自由連想を制限することがある（その場合はプロンプトC）。
-                </li>
-              </ul>
-            </details>
             <PromptDisplay
-              prompt={buildPrompt(topicPlainEnhancedPrompt, {
-                question: values.question,
-              })}
-              title="プロンプトA：詳細版・日本語"
-            />
-          </div>
-
-          {/* Prompt B: English version — for international literature */}
-          <div className="prompt-card prompt-card-plain-enhanced">
-            <div className="prompt-card-header">
-              <h3>プロンプトB：詳細版・英語（Aで足りない時の国際文献向け）</h3>
-              <span className="prompt-tag prompt-tag-terminal">補助</span>
-            </div>
-            <details>
-              <summary>
-                <strong>このプロンプトの利点・欠点（クリックで詳細）</strong>
-              </summary>
-              <ul>
-                <li>
-                  <strong>利点</strong>：プロンプトAを英語に翻訳した版。AI内部処理が英語ネイティブモードになるため、英語論文・英語固有名詞・英語著者名・MeSH用語の連想記憶が強化される。
-                </li>
-                <li>
-                  <strong>利点</strong>：英語論文中心のトピック（国際的な治療・分類・概念の歴史など）でAより深い結果が得られることがある。
-                </li>
-                <li>
-                  <strong>利点</strong>：プロンプト末尾に「英語で内部思考した上で、最終回答は日本語で出力」という指示が入っているため、ユーザーへの回答は日本語で返ってくる。
-                </li>
-                <li>
-                  <strong>欠点</strong>：日本語論文・日本のガイドライン・国内固有の運用差は、Aより拾いにくい。
-                </li>
-                <li>
-                  <strong>欠点</strong>：プロンプトが長く、チャット入力欄の上限に達するモデルがある。
-                </li>
-                <li>
-                  <strong>使いどころ</strong>：プロンプトAで結果が物足りないと感じた時、特に英語の国際文献を中心に拾いたい時。
-                </li>
-              </ul>
-            </details>
-            <PromptDisplay
-              prompt={buildPrompt(topicEnglishDetailedPrompt, {
-                question: values.question,
-              })}
-              title="プロンプトB：詳細版・英語（最終回答は日本語）"
-            />
-          </div>
-
-          {/* Prompt C: Hallucination-tolerant simple — last resort */}
-          <div className="prompt-card prompt-card-plain">
-            <div className="prompt-card-header">
-              <h3>
-                プロンプトC：シンプル直感版・ハルシネーション許容（最終手段）
-              </h3>
-              <span className="prompt-tag prompt-tag-warn">
-                ⚠ 最終手段・要ファクトチェック
-              </span>
-            </div>
-            <div className="ai-ending-warning">
-              <strong>重要：</strong>
-              このプロンプトは、
-              <strong>
-                ハルシネーション（記憶違い・捏造）を含んでも構わない
-              </strong>
-              ことを明示し、AIに直感的・自由・連想的に回答させるものです。
-              <strong>
-                必ず「AI出力ファクトチェック」タブでPMID実在確認を行ってください
-              </strong>
-              。
-            </div>
-            <details>
-              <summary>
-                <strong>このプロンプトの利点・欠点（クリックで詳細）</strong>
-              </summary>
-              <ul>
-                <li>
-                  <strong>利点</strong>：プロンプトが極めて短く、どんなチャットモデル・どんなチャット入力欄にも収まる。
-                </li>
-                <li>
-                  <strong>利点</strong>：構造化指示がないため、AIの自由連想・突飛な視点・直感が引き出される。高性能モデル（GPT-5 / Claude Opus / Gemini Pro等）の地力がそのまま出る。
-                </li>
-                <li>
-                  <strong>利点</strong>：A・Bの構造化指示が逆にバイアスになるケース（質問が極めて漠然とした探索的トピックなど）の受け皿。
-                </li>
-                <li>
-                  <strong>欠点</strong>：ハルシネーションが多い。捏造PMID・架空著者・誤った要約が混入する可能性がある。
-                </li>
-                <li>
-                  <strong>欠点</strong>：網羅性なし。質問タイプ判定なし。本文埋没型情報抽出なし。
-                </li>
-                <li>
-                  <strong>使いどころ</strong>：プロンプトAもBも結果が物足りないとき、最終手段として。回答は必ず「AI出力ファクトチェック」タブで照合してください。
-                </li>
-              </ul>
-            </details>
-            <PromptDisplay
-              prompt={buildPrompt(topicSimplePrompt, {
-                question: values.question,
-              })}
-              title="プロンプトC：シンプル直感版"
+              prompt={generatedPrompt}
+              title="PubMedで見逃しやすい論文検索プロンプト"
             />
           </div>
 
           <p className="warning-text">
-            ⚠ いずれのプロンプトも、結果はAI訓練知識からの想起であり網羅的な検索ではありません。重要な判断にはPubMedや原文での確認を併用してください。
+            ⚠ 結果はAI訓練知識からの想起と外部AIによる検索を含みますが、網羅的検索ではありません。重要な判断にはPubMedや原文での確認を併用してください。
           </p>
         </section>
       )}
