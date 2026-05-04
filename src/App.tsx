@@ -96,17 +96,15 @@ export default function App() {
                     “誤って使われている” と指摘している論文を探して』で
                     AIで聞いてみるか？」
                   </p>
-                  <p>→ 問題点が2つあります：</p>
+                  <p>→ 問題点が3つあります：</p>
                   <ol>
                     <li>
-                      <strong>（1）</strong>
                       この回答の論文は <em>Jaroń 2021</em>{" "}
                       ですが、その記載は <strong>考察（Discussion）</strong>{" "}
                       のところに書かれており、PubMed
                       のタイトル・抄録検索では拾えません。
                     </li>
                     <li>
-                      <strong>（2）</strong>
                       このプロンプトでは Opus 4.7
                       でもヒットせず、「Winter / Pell &amp; Gregory
                       の下顎第三大臼歯分類を、<strong>分類そのものを誤解</strong>
@@ -114,13 +112,12 @@ export default function App() {
                       例えば、ある別の基準として、
                       <em>イロハニが原文なのに、誤解してイロニと思い込んで使っている</em>
                       例が記載されている論文を探して。」とすると
-                      <strong>ヒットします</strong>。
+                      <strong>ドンピシャでヒットします</strong>。
                       このプロンプトの変換は、このような
                       <strong>揺らぎを網羅した検索</strong>
                       ができるように調整しています。
                     </li>
                     <li>
-                      <strong>（3）</strong>
                       このような疑問は臨床疑問として PICO
                       形式にできないため、PubMed より <strong>AIで直接検索</strong>
                       する方が便利です。
