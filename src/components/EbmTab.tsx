@@ -171,13 +171,29 @@ export function EbmTab({ settings }: Props) {
     });
   }
 
-  function applyHierarchyFilter(filter: string) {
-    if (!searchString.trim()) {
-      alert("先に基本検索式を入力してください。");
-      return;
-    }
-    const cleaned = searchString.trim().replace(/\s*AND\s*\([^)]*\[pt\][^)]*\)\s*$/i, "");
-    setSearchString(`${cleaned} AND (${filter})`);
+  function clearAll() {
+    if (!confirm("入力内容・取得結果をすべてクリアして最初からやり直しますか？")) return;
+    setRawQuestion("");
+    setSpecialty("");
+    setPurpose("treatment");
+    setPicoP("");
+    setPicoI("");
+    setPicoC("");
+    setPicoO("");
+    setShowPicoBrainstorm(false);
+    setPicoBrainstormPrompt("");
+    setPicoBrainstormResponse("");
+    setPicoCheckDismissed(false);
+    setPicoRefinementPrompt("");
+    setPicoRefinedAiResponse("");
+    setInitialPrompt("");
+    setAiResponse("");
+    setSearchString("");
+    setPubmedResult(null);
+    setPubmedEndingAiResponse("");
+    setExtractedRevisedSearch("");
+    setPubmedResultRound2(null);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   const aiEndingPromptText =
@@ -213,6 +229,18 @@ export function EbmTab({ settings }: Props) {
           批判的吟味（Step 3）・推奨判断・治療方針決定は<strong>行いません</strong>。
           目的は、次のEBM Step 3に渡せる「文献候補リスト」を、AIとPubMedの往復で作ることです。
         </p>
+        <div className="ebm-design-note">
+          <strong>本アプリの検索方針：</strong>
+          PubMed検索式には<strong>研究デザインフィルター（publication type / 研究デザイン語）を含めません</strong>。
+          P×I（×O）の主題ベースで広め1本を検索し、取得結果を後段（Step 5）でEBMヒエラルキー
+          （診療GL → SR → RCT → 非RCT → 非RCT以外の観察研究 → シミュレーション/基礎研究 → その他）の
+          全階層に分類します。「ガイドラインがあればGL、なければSR、なければRCT、…」という読み進めは検索後に判定します。
+        </div>
+        <div className="ebm-clear-bar">
+          <button className="btn btn-secondary" onClick={clearAll}>
+            🗑 すべての入力・結果をクリアして最初からやり直す
+          </button>
+        </div>
       </header>
 
       {/* Sticky context bar */}
@@ -482,76 +510,21 @@ export function EbmTab({ settings }: Props) {
         </section>
       )}
 
-      {/* Step 4: PubMed search with hierarchy filter buttons */}
+      {/* Step 4: PubMed search — broad / no design filter */}
       {aiResponse && (
         <section id="ebm-step-pubmed" className="workflow-section">
-          <h2>Step 4: PubMed検索（情報源ヒエラルキー）</h2>
-          <p className="hint">
-            EBM Step 2のヒエラルキーに従って、上位（GL/SR）から検索します。
-            下のボタンで現在の検索式に文献タイプフィルターを追加できます。
-          </p>
+          <h2>Step 4: PubMed検索（広め・研究デザイン非限定）</h2>
+          <div className="ebm-no-filter-note">
+            <strong>⚠ 研究デザインフィルターは入れません。</strong>
+            P×I（×O）の主題ベースで広め1本を検索します。
+            ヒエラルキー別の分類は Step 5 で行うため、この段階で
+            guideline[pt] / systematic review[pt] / randomized[tiab] などを足さないでください。
+          </div>
 
           <SearchStringInput
             value={searchString}
             onChange={setSearchString}
           />
-
-          <div className="ebm-hierarchy-buttons">
-            <button
-              className="btn btn-secondary btn-small"
-              onClick={() =>
-                applyHierarchyFilter("guideline[pt] OR practice guideline[pt]")
-              }
-            >
-              + ガイドライン
-            </button>
-            <button
-              className="btn btn-secondary btn-small"
-              onClick={() =>
-                applyHierarchyFilter(
-                  "systematic review[pt] OR meta-analysis[pt]"
-                )
-              }
-            >
-              + SR / メタ解析
-            </button>
-            <button
-              className="btn btn-secondary btn-small"
-              onClick={() =>
-                applyHierarchyFilter(
-                  "randomized controlled trial[pt] OR randomized[tiab] OR placebo[tiab]"
-                )
-              }
-            >
-              + RCT
-            </button>
-            <button
-              className="btn btn-secondary btn-small"
-              onClick={() =>
-                applyHierarchyFilter(
-                  'cohort[tiab] OR "case-control"[tiab] OR observational[tiab] OR registry[tiab]'
-                )
-              }
-            >
-              + 観察研究
-            </button>
-            <button
-              className="btn btn-secondary btn-small"
-              onClick={() =>
-                applyHierarchyFilter('"last 5 years"[dp] OR "last 5 years"[edat]')
-              }
-            >
-              + 直近5年
-            </button>
-            <button
-              className="btn btn-secondary btn-small"
-              onClick={() =>
-                applyHierarchyFilter("humans[mh] NOT (animals[mh] NOT humans[mh])")
-              }
-            >
-              + Humanのみ
-            </button>
-          </div>
 
           {searchString && (
             <PubMedSearchBox

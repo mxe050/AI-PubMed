@@ -1497,6 +1497,32 @@ tr.unverified {
   border-radius: var(--radius);
 }
 
+.ebm-design-note {
+  background: var(--color-info-bg);
+  border-left: 4px solid var(--color-primary);
+  padding: 10px 14px;
+  border-radius: 4px;
+  margin: 12px 0;
+  font-size: 0.85rem;
+  line-height: 1.7;
+}
+
+.ebm-clear-bar {
+  display: flex;
+  justify-content: flex-end;
+  margin: 8px 0;
+}
+
+.ebm-no-filter-note {
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning);
+  border-radius: 4px;
+  padding: 10px 14px;
+  margin: 8px 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
 .ebm-two-endings-explainer {
   background: var(--color-info-bg);
   border: 1px solid var(--color-primary);
