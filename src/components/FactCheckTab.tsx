@@ -569,14 +569,53 @@ ${aiResponse}
   );
 }
 
+function titleSimilarity(a: string, b: string): number {
+  if (!a || !b) return 0;
+  const normA = normalizeTitle(a);
+  const normB = normalizeTitle(b);
+  if (!normA || !normB) return 0;
+  if (normA === normB) return 1.0;
+  if (normA.includes(normB) || normB.includes(normA)) return 0.95;
+  const wordsA = new Set(normA.split(" ").filter((w) => w.length > 2));
+  const wordsB = new Set(normB.split(" ").filter((w) => w.length > 2));
+  if (wordsA.size === 0 || wordsB.size === 0) return 0;
+  const intersection = new Set(
+    Array.from(wordsA).filter((w) => wordsB.has(w))
+  );
+  const union = new Set([...Array.from(wordsA), ...Array.from(wordsB)]);
+  return intersection.size / union.size;
+}
+
+function normalizeTitle(s: string): string {
+  return s
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}\s]/gu, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 function CitationResultCard({ result }: { result: CitationVerifyResult }) {
   const { candidate, hits, totalCount, error } = result;
 
   const typeLabel: Record<string, string> = {
     quoted_title: "引用符内タイトル",
     italic_title: "イタリック内タイトル",
+    english_plain_title: "英語タイトル（平文）",
+    title_year_pattern: "タイトル+年",
     author_year: "著者+年",
   };
+
+  // Sort hits by title similarity to the candidate query (so closest-title match comes first).
+  const sortedHits = [...hits]
+    .map((h) => ({
+      hit: h,
+      sim: titleSimilarity(h.title ?? "", candidate.query),
+    }))
+    .sort((a, b) => b.sim - a.sim);
+
+  const bestSim = sortedHits[0]?.sim ?? 0;
+  const pubmedSearchUrl = `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(candidate.query)}`;
+  const advancedSearchUrl = `https://pubmed.ncbi.nlm.nih.gov/advanced/?term=${encodeURIComponent(candidate.query)}`;
 
   const status = error
     ? "error"
@@ -610,6 +649,24 @@ function CitationResultCard({ result }: { result: CitationVerifyResult }) {
         <details>
           <summary>使用したESearchクエリ</summary>
           <pre className="citation-query">{candidate.query}</pre>
+          <div className="citation-actions">
+            <button
+              className="btn btn-secondary btn-small"
+              onClick={() =>
+                window.open(pubmedSearchUrl, "_blank", "noopener,noreferrer")
+              }
+            >
+              🔍 このクエリでPubMedで検索（外部）
+            </button>
+            <button
+              className="btn btn-secondary btn-small"
+              onClick={() =>
+                window.open(advancedSearchUrl, "_blank", "noopener,noreferrer")
+              }
+            >
+              Advanced Search で開く
+            </button>
+          </div>
         </details>
         <details>
           <summary>AI回答中の前後文脈</summary>
@@ -633,9 +690,11 @@ function CitationResultCard({ result }: { result: CitationVerifyResult }) {
         </p>
       )}
 
-      {status === "hit" && hits.length > 0 && (
+      {status === "hit" && sortedHits.length > 0 && (
         <div className="citation-hits">
-          <p className="hint">上位 {hits.length} 件のヒット：</p>
+          <p className="hint">
+            上位 {sortedHits.length} 件のヒット（タイトル類似度の高い順に並び替え）：
+          </p>
           <table>
             <thead>
               <tr>
@@ -643,35 +702,55 @@ function CitationResultCard({ result }: { result: CitationVerifyResult }) {
                 <th>タイトル</th>
                 <th>著者</th>
                 <th>雑誌・年</th>
+                <th>類似度</th>
               </tr>
             </thead>
             <tbody>
-              {hits.map((h) => (
-                <tr key={h.pmid}>
-                  <td>
-                    <a
-                      href={`https://pubmed.ncbi.nlm.nih.gov/${h.pmid}/`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                    >
-                      {h.pmid}
-                    </a>
-                  </td>
-                  <td>{h.title ?? "(タイトル未取得)"}</td>
-                  <td>
-                    {h.authors?.slice(0, 3).join(", ") ?? "-"}
-                    {h.authors && h.authors.length > 3 && " et al."}
-                  </td>
-                  <td>
-                    {h.journal ?? "-"} {h.year ? `(${h.year})` : ""}
-                  </td>
-                </tr>
-              ))}
+              {sortedHits.map(({ hit: h, sim }, idx) => {
+                const isBestMatch = idx === 0 && sim >= 0.7;
+                return (
+                  <tr
+                    key={h.pmid}
+                    className={isBestMatch ? "best-match-row" : ""}
+                  >
+                    <td>
+                      <a
+                        href={`https://pubmed.ncbi.nlm.nih.gov/${h.pmid}/`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {h.pmid}
+                      </a>
+                      {isBestMatch && (
+                        <span className="best-match-badge">★ ベストマッチ</span>
+                      )}
+                    </td>
+                    <td>{h.title ?? "(タイトル未取得)"}</td>
+                    <td>
+                      {h.authors?.slice(0, 3).join(", ") ?? "-"}
+                      {h.authors && h.authors.length > 3 && " et al."}
+                    </td>
+                    <td>
+                      {h.journal ?? "-"} {h.year ? `(${h.year})` : ""}
+                    </td>
+                    <td className="similarity-cell">
+                      {(sim * 100).toFixed(0)}%
+                    </td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
+          {bestSim < 0.5 && (
+            <p className="warning-text">
+              ⚠ 上位ヒットでもタイトル類似度が {Math.round(bestSim * 100)}% と低めです。
+              AI が指す論文とは別の可能性があります。「このクエリでPubMedで検索」で件数を絞り込んで再確認してください。
+            </p>
+          )}
           <p className="hint">
             ※ ヒットがあっても AI の指す論文と一致するかは、タイトル・著者・年を目視で確認してください。
-            ヒット件数が多い場合（{totalCount} 件など）は曖昧マッチの可能性があります。
+            ヒット件数が多い場合（{totalCount} 件）は曖昧マッチの可能性があります。
+            上の「このクエリでPubMedで検索」ボタンで PubMed を直接開いて確認してください。
           </p>
         </div>
       )}

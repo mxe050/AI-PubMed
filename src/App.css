@@ -1738,6 +1738,39 @@ tr.unverified {
   padding: 6px 8px;
 }
 
+.citation-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 6px;
+}
+
+.best-match-row {
+  background: #f0fdf4 !important;
+}
+
+.best-match-row td {
+  border-color: var(--color-success) !important;
+}
+
+.best-match-badge {
+  display: inline-block;
+  background: var(--color-success);
+  color: white;
+  padding: 1px 6px;
+  border-radius: 8px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.similarity-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
 .ebm-two-endings-explainer {
   background: var(--color-info-bg);
   border: 1px solid var(--color-primary);
