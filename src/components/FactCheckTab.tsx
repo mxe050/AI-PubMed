@@ -645,34 +645,30 @@ function CitationResultCard({ result }: { result: CitationVerifyResult }) {
         )}
       </div>
 
-      <div className="citation-meta">
-        <details>
-          <summary>使用したESearchクエリ</summary>
-          <pre className="citation-query">{candidate.query}</pre>
-          <div className="citation-actions">
-            <button
-              className="btn btn-secondary btn-small"
-              onClick={() =>
-                window.open(pubmedSearchUrl, "_blank", "noopener,noreferrer")
-              }
-            >
-              🔍 このクエリでPubMedで検索（外部）
-            </button>
-            <button
-              className="btn btn-secondary btn-small"
-              onClick={() =>
-                window.open(advancedSearchUrl, "_blank", "noopener,noreferrer")
-              }
-            >
-              Advanced Search で開く
-            </button>
-          </div>
-        </details>
-        <details>
-          <summary>AI回答中の前後文脈</summary>
-          <p className="citation-context">{candidate.context}</p>
-        </details>
+      <div className="citation-query-row">
+        <code className="citation-query-inline">{candidate.query}</code>
+        <button
+          className="btn btn-secondary btn-small"
+          onClick={() =>
+            window.open(pubmedSearchUrl, "_blank", "noopener,noreferrer")
+          }
+        >
+          🔍 このクエリでPubMedで検索
+        </button>
+        <button
+          className="btn btn-secondary btn-small"
+          onClick={() =>
+            window.open(advancedSearchUrl, "_blank", "noopener,noreferrer")
+          }
+        >
+          Advanced Search
+        </button>
       </div>
+
+      <details className="citation-meta">
+        <summary>AI回答中の前後文脈</summary>
+        <p className="citation-context">{candidate.context}</p>
+      </details>
 
       {status === "no_hit" && (
         <p className="warning-text">
@@ -706,39 +702,30 @@ function CitationResultCard({ result }: { result: CitationVerifyResult }) {
               </tr>
             </thead>
             <tbody>
-              {sortedHits.map(({ hit: h, sim }, idx) => {
-                const isBestMatch = idx === 0 && sim >= 0.7;
-                return (
-                  <tr
-                    key={h.pmid}
-                    className={isBestMatch ? "best-match-row" : ""}
-                  >
-                    <td>
-                      <a
-                        href={`https://pubmed.ncbi.nlm.nih.gov/${h.pmid}/`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        {h.pmid}
-                      </a>
-                      {isBestMatch && (
-                        <span className="best-match-badge">★ ベストマッチ</span>
-                      )}
-                    </td>
-                    <td>{h.title ?? "(タイトル未取得)"}</td>
-                    <td>
-                      {h.authors?.slice(0, 3).join(", ") ?? "-"}
-                      {h.authors && h.authors.length > 3 && " et al."}
-                    </td>
-                    <td>
-                      {h.journal ?? "-"} {h.year ? `(${h.year})` : ""}
-                    </td>
-                    <td className="similarity-cell">
-                      {(sim * 100).toFixed(0)}%
-                    </td>
-                  </tr>
-                );
-              })}
+              {sortedHits.map(({ hit: h, sim }) => (
+                <tr key={h.pmid}>
+                  <td>
+                    <a
+                      href={`https://pubmed.ncbi.nlm.nih.gov/${h.pmid}/`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {h.pmid}
+                    </a>
+                  </td>
+                  <td>{h.title ?? "(タイトル未取得)"}</td>
+                  <td>
+                    {h.authors?.slice(0, 3).join(", ") ?? "-"}
+                    {h.authors && h.authors.length > 3 && " et al."}
+                  </td>
+                  <td>
+                    {h.journal ?? "-"} {h.year ? `(${h.year})` : ""}
+                  </td>
+                  <td className="similarity-cell">
+                    {(sim * 100).toFixed(0)}%
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
           {bestSim < 0.5 && (

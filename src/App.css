@@ -1738,31 +1738,28 @@ tr.unverified {
   padding: 6px 8px;
 }
 
-.citation-actions {
+.citation-query-row {
   display: flex;
   gap: 8px;
+  align-items: center;
   flex-wrap: wrap;
-  margin-top: 6px;
+  margin: 8px 0;
+  padding: 8px 10px;
+  background: #f8fafc;
+  border-radius: 4px;
+  border: 1px solid var(--color-border);
 }
 
-.best-match-row {
-  background: #f0fdf4 !important;
-}
-
-.best-match-row td {
-  border-color: var(--color-success) !important;
-}
-
-.best-match-badge {
-  display: inline-block;
-  background: var(--color-success);
-  color: white;
-  padding: 1px 6px;
-  border-radius: 8px;
-  font-size: 0.65rem;
-  font-weight: 700;
-  margin-left: 6px;
-  vertical-align: middle;
+.citation-query-inline {
+  flex: 1;
+  min-width: 200px;
+  font-size: 0.78rem;
+  font-family: "Consolas", "Monaco", "Menlo", monospace;
+  background: white;
+  padding: 4px 8px;
+  border-radius: 3px;
+  border: 1px solid var(--color-border);
+  word-break: break-word;
 }
 
 .similarity-cell {
