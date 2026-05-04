@@ -380,7 +380,7 @@ ${aiResponse}
           </button>
 
           <button
-            className="btn btn-secondary"
+            className="btn btn-danger"
             onClick={handleCopyAiCheckPrompt}
             disabled={!aiResponse.trim()}
             title="AI（ChatGPT/Claude/Gemini等のWeb検索可能なモデル）に渡してファクトチェックさせるためのプロンプトをコピー"
