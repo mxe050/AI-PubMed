@@ -18,6 +18,74 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
 
       <section className="how-to-use-section">
         <h3>このアプリの目的</h3>
+
+        <div className="purpose-statement">
+          <p>
+            <strong>このアプリは、安易にAIに頼らないためのアプリです。</strong>
+          </p>
+          <p>
+            AIだけで完結させたほうが、はるかに簡単で速いことは事実です。
+            しかし、医療においては、AIに頼り切ることが患者の安全に直結する重大な弊害を招く可能性があります。
+            本アプリは、<strong>AIの簡単・便利さを損なわない</strong>まま、
+            <strong>「あえて確認する」「あえて検索する」</strong>という医療者の覚悟を支えるためのワークフローを提供します。
+          </p>
+        </div>
+
+        <h4>AIに頼り切ることの弊害（最新研究より）</h4>
+        <p className="hint">
+          AIへの過度な依存が認知能力や思考プロセスに与える影響について、研究が始まっています。
+          結論はまだ確定していませんが、医療者は慎重に向き合うべきです。
+          以下の引用は代表的な研究例として示しますが、PMID等の正確な書誌情報は本アプリの「AI出力ファクトチェック」タブで必ず確認してください。
+        </p>
+
+        <div className="research-citation">
+          <span className="cite-label">研究例 1</span>
+          <strong>批判的思考エンゲージメントの低下</strong>
+          <br />
+          Microsoft Research と Carnegie Mellon University による2025年のCHI論文（Lee et al.）では、生成AIを業務に多用する知識労働者ほど、自己の批判的思考エンゲージメントが低下する傾向が報告されています。AIの回答を検証せず受け入れる姿勢が習慣化すると、判断のメタ認知が薄れる懸念があります。
+        </div>
+
+        <div className="research-citation">
+          <span className="cite-label">研究例 2</span>
+          <strong>AIエッセイ作成時の脳活動の変化</strong>
+          <br />
+          MITメディアラボのプレプリント（Kosmyna et al., 2025「Your Brain on ChatGPT」）では、ChatGPTを使って繰り返しエッセイを書いた群で、自力で書いた群と比べ脳波（EEG）の活動低下と記憶定着の悪化が示唆されました。長期的な認知への影響は未確定ですが、警鐘として重要な研究です。
+        </div>
+
+        <div className="research-citation">
+          <span className="cite-label">研究例 3</span>
+          <strong>医療系LLMのハルシネーション</strong>
+          <br />
+          医療領域の大規模言語モデルが、もっともらしい虚偽の引用・PMID・薬剤情報を生成することが多数の論文で報告されています（Goh et al. 2024 ほか）。一見正しそうな出力が、検証せずそのまま臨床判断に使われると、患者安全に致命的な影響を及ぼし得ます。
+        </div>
+
+        <div className="medical-imperative">
+          <h4>医療者として求められること</h4>
+          <ul>
+            <li>
+              <strong>患者の安全に関わる判断は、人間が責任を負う</strong>
+              ：AIは便利な助手であって、最終判断者ではありません。
+            </li>
+            <li>
+              <strong>引用論文・ガイドラインは原典で確認する</strong>
+              ：PMID・DOI・URLが実在するか、内容が一致するかを必ず照合する。
+            </li>
+            <li>
+              <strong>「もっともらしい嘘」に騙されない</strong>
+              ：AIは自信満々に存在しない論文を引用します。確認は義務です。
+            </li>
+            <li>
+              <strong>検索プロセスを記録し再現可能にする</strong>
+              ：検索式・検索日・取得文献を残し、後から再現できる形にする。
+            </li>
+            <li>
+              <strong>誤情報・嘘の記事に惑わされない</strong>
+              ：医療情報は患者の生命に直結します。一次情報源（PubMed・Cochrane・公式ガイドライン）に必ず当たる。
+            </li>
+          </ul>
+        </div>
+
+        <h4>本アプリの設計思想</h4>
         <p>
           本アプリは、医学文献検索において、AIの知的支援を活用しつつ、
           最終的にはPubMedで確認可能な文献・検索式に到達するための支援ツールです。
@@ -26,6 +94,19 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
           AIへのプロンプトを生成する役割をアプリが担い、AIへの問い合わせはユーザーが手動で外部AIサービス（ChatGPT、Claude、Geminiなど）に貼り付けて行います。
           AIから返ってきた検索式や引用文献は、PubMed公式APIで実在確認・抄録取得を行うことでハルシネーションを検出します。
         </p>
+
+        <div className="purpose-statement">
+          <p>
+            <strong>AIだけでやった方が、もちろんめちゃくちゃ簡単です。</strong>
+            それをあえてやらない<strong>根性</strong>、
+            あえて確認する<strong>覚悟</strong>こそが、医療者には求められます。
+          </p>
+          <p>
+            このアプリは、AIに頼り切ることなく、AIの簡単・便利さも損なわず、
+            その間で「人間が問いを保ち、AIで支援を受け、PubMedで実在確認する」ワークフローを提供します。
+            AIに頼り切らず、AIを<strong>「使い倒す」</strong>スタンスです。
+          </p>
+        </div>
       </section>
 
       <section className="how-to-use-section">

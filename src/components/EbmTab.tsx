@@ -8,7 +8,11 @@ import {
   ebmInitialPrompt,
   ebmAiEndingPrompt,
   ebmPubmedEndingPrompt,
+  ebmClassificationPrompt,
+  ebmPicoRefinementPrompt,
 } from "../prompts/ebmStep2";
+import { buildArticleListForClassification } from "../utils/buildArticleListForClassification";
+import { evaluatePicoCompleteness } from "../utils/evaluatePicoCompleteness";
 import { PromptDisplay } from "./PromptDisplay";
 import { SearchStringInput } from "./SearchStringInput";
 import { PubMedSearchBox } from "./PubMedSearchBox";
@@ -42,10 +46,33 @@ export function EbmTab({ settings }: Props) {
     null
   );
 
+  // 5-B sub-flow state
+  const [pubmedEndingAiResponse, setPubmedEndingAiResponse] = useState("");
+  const [extractedRevisedSearch, setExtractedRevisedSearch] = useState("");
+  const [pubmedResultRound2, setPubmedResultRound2] =
+    useState<PubMedSearchResult | null>(null);
+
+  // PICO refinement sub-flow state (Step 1)
+  const [picoRefinementPrompt, setPicoRefinementPrompt] = useState("");
+  const [picoRefinedAiResponse, setPicoRefinedAiResponse] = useState("");
+  const [picoCheckDismissed, setPicoCheckDismissed] = useState(false);
+
+  const picoEval = evaluatePicoCompleteness(rawQuestion);
+  const showPicoRefinement =
+    rawQuestion.trim().length > 0 &&
+    picoEval.recommendRefinement &&
+    !picoCheckDismissed;
+
   function generateInitialPrompt() {
     if (!rawQuestion.trim()) {
       alert("原質問を入力してください。");
       return;
+    }
+    if (picoEval.recommendRefinement && !picoCheckDismissed) {
+      const ok = confirm(
+        `この疑問はPICO要素のうち以下が不足している可能性があります：\n\n${picoEval.missing.join("、")}\n\n下のPICO洗練サブフローで疑問を磨くことを強く推奨します。\n\nそれでもこのまま初回プロンプト生成に進みますか？\n\n（OK = このまま進む / キャンセル = 戻ってPICO洗練を行う）`
+      );
+      if (!ok) return;
     }
     const purposeLabel =
       purposeOptions.find((p) => p.value === purpose)?.label ?? purpose;
@@ -56,6 +83,18 @@ export function EbmTab({ settings }: Props) {
       purpose: purposeLabel,
     });
     setInitialPrompt(prompt);
+  }
+
+  function generatePicoRefinementPrompt() {
+    const purposeLabel =
+      purposeOptions.find((p) => p.value === purpose)?.label ?? purpose;
+    const prompt = buildPrompt(ebmPicoRefinementPrompt, {
+      question: rawQuestion,
+      specialty: specialty || "未入力",
+      context: context || "未入力",
+      purpose: purposeLabel,
+    });
+    setPicoRefinementPrompt(prompt);
   }
 
   function extractSearchFromAi() {
@@ -72,6 +111,29 @@ export function EbmTab({ settings }: Props) {
         "検索式を自動抽出できませんでした。コードブロック（\\`\\`\\`text ... \\`\\`\\`）が含まれているか確認してください。"
       );
     }
+  }
+
+  function extractRevisedSearchFromAi() {
+    const extracted = extractSearchString(pubmedEndingAiResponse);
+    if (extracted) {
+      setExtractedRevisedSearch(extracted);
+    } else {
+      alert(
+        "改善検索式を自動抽出できませんでした。AI回答に\\`\\`\\`text コードブロックが含まれているか確認してください。"
+      );
+    }
+  }
+
+  function buildClassificationPromptText(): string {
+    if (!pubmedResultRound2) return "";
+    return buildPrompt(ebmClassificationPrompt, {
+      searchString: extractedRevisedSearch,
+      totalCount: String(pubmedResultRound2.count),
+      count: String(
+        Math.min(pubmedResultRound2.articles.length, 100)
+      ),
+      articleList: buildArticleListForClassification(pubmedResultRound2, 100),
+    });
   }
 
   function applyHierarchyFilter(filter: string) {
@@ -192,6 +254,67 @@ export function EbmTab({ settings }: Props) {
             ))}
           </select>
         </div>
+
+        {showPicoRefinement && (
+          <div className="pico-refinement-box">
+            <h4>⚠ PICO適合度のチェック</h4>
+            <p>
+              入力された疑問は、PubMed検索に進む前に以下の要素を補強することを推奨します：
+            </p>
+            <ul>
+              {picoEval.missing.map((m) => (
+                <li key={m}>{m}</li>
+              ))}
+              {rawQuestion.replace(/\s/g, "").length < 30 && (
+                <li>質問が短すぎる可能性（30文字未満）</li>
+              )}
+            </ul>
+            <p className="hint">
+              下の「PICO洗練プロンプトを生成」を押し、得たプロンプトをAIに投げると、PICOを補った洗練疑問文（3パターン）が得られます。
+              気に入った洗練版を上の「原質問」欄にコピー上書きして、再度「初回プロンプトを生成」に進んでください。
+              なお、現在の疑問でも問題ないと判断した場合は「このまま進める」で警告を消せます。
+            </p>
+
+            <div className="button-group">
+              <button
+                className="btn btn-primary"
+                onClick={generatePicoRefinementPrompt}
+              >
+                PICO洗練プロンプトを生成
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={() => setPicoCheckDismissed(true)}
+              >
+                このまま進める（PICO洗練をスキップ）
+              </button>
+            </div>
+
+            {picoRefinementPrompt && (
+              <>
+                <PromptDisplay
+                  prompt={picoRefinementPrompt}
+                  title="PICO洗練プロンプト"
+                />
+
+                <h5 style={{ marginTop: 12 }}>
+                  AIの洗練回答を貼り付け（任意・参照用）
+                </h5>
+                <p className="hint">
+                  AIから返ってきた回答をここに貼り付けると、3パターンの洗練疑問文を見ながら検討できます。
+                  気に入ったものを<strong>上の「原質問」欄にコピー上書き</strong>してから「初回プロンプトを生成」を押してください。
+                </p>
+                <textarea
+                  value={picoRefinedAiResponse}
+                  onChange={(e) => setPicoRefinedAiResponse(e.target.value)}
+                  rows={10}
+                  placeholder="AIから返ってきたPICO洗練回答全体をここに貼り付け..."
+                  style={{ width: "100%" }}
+                />
+              </>
+            )}
+          </div>
+        )}
 
         <button className="btn btn-primary" onClick={generateInitialPrompt}>
           初回プロンプトを生成（PICO + 検索語 + 検索式案）
@@ -436,7 +559,7 @@ export function EbmTab({ settings }: Props) {
           {/* PubMed-ending */}
           <div className="prompt-card prompt-card-pubmed-ending">
             <div className="prompt-card-header">
-              <h3>5-B. PubMed終了版プロンプト（AIが検索式を磨く）</h3>
+              <h3>5-B-1. PubMed終了版プロンプト（AIが検索式を磨く）</h3>
               <span className="prompt-tag prompt-tag-safe">
                 ✓ ハルシネーション低リスク
               </span>
@@ -445,29 +568,110 @@ export function EbmTab({ settings }: Props) {
               <strong>特徴：</strong>
               このバージョンではAIに最終回答を作らせず、
               <strong>改善された検索式（一文）</strong>のみを出させます。
-              抽出した検索式をStep 4に戻してPubMedで再実行することで、PubMed側が最終的な文献リストを返します。
+              抽出した検索式でPubMed再検索 → 結果を文献タイプ別に分類、まで
+              <strong>このページ内で完結</strong>します（Step 4に戻る必要はありません）。
               AIによる文献捏造のリスクが構造的に低くなります。
             </div>
             {pubmedEndingPromptText && (
               <PromptDisplay
                 prompt={pubmedEndingPromptText}
-                title="PubMed終了版プロンプト"
+                title="5-B-1. PubMed終了版プロンプト"
               />
             )}
-            <div className="next-step-hint">
-              <h4>このプロンプトの次にすること</h4>
-              <ol>
-                <li>上のプロンプトをコピー → ChatGPT / Claude / Geminiに貼り付け</li>
-                <li>AIから改善された検索式（一文）を取得</li>
-                <li>
-                  Step 4の検索式欄に貼り付けて、PubMedで再検索（reload Step 4）
-                </li>
-                <li>必要なら本ページのStep 5を再度実行（iteration）</li>
-                <li>
-                  最終的に得られたPubMedヒットリストを次のEBM Step 3（批判的吟味）に渡す
-                </li>
-              </ol>
-            </div>
+
+            {/* 5-B-2: AI回答貼付＋抽出 */}
+            <h4 style={{ marginTop: 16 }}>
+              5-B-2. AI回答を貼り付け → 改善検索式を抽出
+            </h4>
+            <p className="hint">
+              5-B-1のプロンプトを外部AIに貼り付けて得た回答を、ここに貼り戻してください。
+              ボタン1つで最終推奨検索式（コードブロック内の一文）を抽出します。
+            </p>
+            <textarea
+              value={pubmedEndingAiResponse}
+              onChange={(e) => setPubmedEndingAiResponse(e.target.value)}
+              rows={10}
+              placeholder="AIから返ってきた改善回答全体をここに貼り付け..."
+              style={{ width: "100%" }}
+            />
+            {pubmedEndingAiResponse && (
+              <div className="step3-action">
+                <button
+                  className="btn btn-primary"
+                  onClick={extractRevisedSearchFromAi}
+                >
+                  改善検索式を抽出
+                </button>
+              </div>
+            )}
+
+            {extractedRevisedSearch && (
+              <>
+                <div className="extracted-revised">
+                  <h4>抽出された改善検索式</h4>
+                  <pre className="search-preview">{extractedRevisedSearch}</pre>
+                </div>
+
+                {/* 5-B-3: 抽出検索式でPubMed再検索 */}
+                <h4 style={{ marginTop: 16 }}>
+                  5-B-3. この検索式でPubMed再検索（最大100件）
+                </h4>
+                <p className="hint">
+                  抽出された検索式で、このページ内のPubMed APIで再検索します。
+                  分類プロンプトに使うため、最大100件まで取得します。
+                </p>
+                <PubMedSearchBox
+                  settings={settings}
+                  searchString={extractedRevisedSearch}
+                  onResult={(r) => setPubmedResultRound2(r)}
+                  retmax={100}
+                  buttonLabel="PubMed APIで再検索（最大100件）"
+                />
+                {pubmedResultRound2 && (
+                  <PubMedResultTable
+                    result={pubmedResultRound2}
+                    selectedPmids={[]}
+                    onToggle={() => {}}
+                  />
+                )}
+              </>
+            )}
+
+            {/* 5-B-4: 分類プロンプト */}
+            {pubmedResultRound2 && (
+              <>
+                <h4 style={{ marginTop: 16 }}>
+                  5-B-4. 取得結果（最大100件）を文献タイプ別に分類するプロンプト
+                </h4>
+                <p className="hint">
+                  PubMed再検索で取得した{" "}
+                  <strong>
+                    {Math.min(pubmedResultRound2.articles.length, 100)}
+                  </strong>{" "}
+                  件（PubMed側ヒット {pubmedResultRound2.count.toLocaleString()} 件中の上位）を、
+                  AIに「ガイドライン / SR・メタ解析 / RCT / 観察研究 / 基礎研究 / その他 / 不明」で分類させるプロンプトを生成します。
+                  分類はPubMedから取得したPub Type / MeSHのみに基づくため、捏造リスクは構造的にありません。
+                </p>
+                <PromptDisplay
+                  prompt={buildClassificationPromptText()}
+                  title="文献タイプ分類プロンプト（コピー用）"
+                />
+                <div className="next-step-hint">
+                  <h4>このプロンプトの次にすること</h4>
+                  <ol>
+                    <li>上のプロンプトをコピー → ChatGPT / Claude / Geminiに貼り付け</li>
+                    <li>AIから文献タイプ別の分類結果を取得</li>
+                    <li>
+                      EBM Step 2ヒエラルキーの上位（ガイドライン / SR /
+                      RCT）から優先的に読む文献を選定
+                    </li>
+                    <li>
+                      選定した文献を次のEBM Step 3（批判的吟味）に渡す
+                    </li>
+                  </ol>
+                </div>
+              </>
+            )}
           </div>
         </section>
       )}

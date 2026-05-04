@@ -9,9 +9,17 @@ interface Props {
   settings: AppSettings;
   searchString: string;
   onResult: (result: PubMedSearchResult) => void;
+  retmax?: number;
+  buttonLabel?: string;
 }
 
-export function PubMedSearchBox({ settings, searchString, onResult }: Props) {
+export function PubMedSearchBox({
+  settings,
+  searchString,
+  onResult,
+  retmax = 20,
+  buttonLabel,
+}: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,7 +30,7 @@ export function PubMedSearchBox({ settings, searchString, onResult }: Props) {
     try {
       const limiter = createNcbiRateLimiter(settings);
 
-      const search = await esearchPubMed(searchString, settings, limiter, 20);
+      const search = await esearchPubMed(searchString, settings, limiter, retmax);
 
       const summaries = await esummaryPubMed(
         search.idList,
@@ -87,7 +95,7 @@ export function PubMedSearchBox({ settings, searchString, onResult }: Props) {
         onClick={runSearch}
         disabled={!searchString || loading}
       >
-        {loading ? "検索中..." : "PubMed APIで検索"}
+        {loading ? "検索中..." : (buttonLabel ?? "PubMed APIで検索")}
       </button>
 
       {error && (
