@@ -412,8 +412,36 @@ AI記憶確度ラベルを必ず付ける：
 // 英語版・詳細プロンプト（新Prompt B）：上の topicPlainEnhancedPrompt を英語に翻訳。
 // AI モデルが英語をネイティブ処理することで、英語論文の連想記憶アクセスが強化される。
 // 最後に「英語で内部思考した上で、最終出力は日本語で」という指示を入れる。
-export const topicEnglishDetailedPrompt = `# User's Question
-{{question}}
+export const topicEnglishDetailedPrompt = `# User's Question (in Japanese)
+
+「{{question}}」
+
+---
+
+# 🌐 Step -1: Translate the Japanese Question to English (do this FIRST, before anything else)
+
+The user's question above is written in Japanese. **Before doing ANYTHING else (before question-type identification, before viewpoint shifts, before any reasoning)**, you MUST:
+
+1. **Translate the user's Japanese question into precise medical English**, preserving:
+   - Technical medical terminology (use proper MeSH-style English terms)
+   - Named entities (drug names, classification names, scoring systems, anatomical structures, author names if any)
+   - The original scope, nuance, and intent of the question (do not narrow or broaden it arbitrarily)
+2. **Display your English translation explicitly at the top of your output**, in this exact format:
+   \`\`\`
+   [English Translation of User's Question]
+   <your English-translated question here>
+   \`\`\`
+3. **From Step 0 onwards, treat the English-translated question as THE working question.** Do all internal reasoning, recall, association, and candidate enumeration in English using the translated version. Do NOT reason directly from the Japanese.
+
+Why this translation step matters:
+- The richest medical literature is indexed in English; PubMed itself is English-first
+- AI's training-knowledge associations for international authors, journals, and MeSH terms are densest when the query is in English
+- A faithful English translation is the gateway to those associations
+- Mixing Japanese and English in internal reasoning dilutes recall precision
+
+If the original Japanese question contains domestic-specific elements (Japanese society names, Japanese guideline names, Japan-only terminology), include them in the English translation with both a romanized form and an English gloss in parentheses, e.g., "the Japanese Society for the Temporomandibular Joint (Nihon Gaku-Kansetsu Gakkai)" or "the Japanese clinical practice guideline for low back pain (Yotsu-shou Shinryou Guideline)".
+
+If the question is ambiguous in Japanese, pick the most likely clinical/research interpretation and note your interpretation choice in one short line under the translation.
 
 ---
 
