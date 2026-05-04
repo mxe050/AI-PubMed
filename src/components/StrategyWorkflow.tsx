@@ -4,6 +4,7 @@ import { buildPrompt } from "../utils/buildPrompt";
 import { buildApiFeedbackBlock } from "../utils/buildApiFeedbackBlock";
 import { buildAbstractsBlock } from "../utils/buildAbstractsBlock";
 import { extractSearchString } from "../utils/extractSearchString";
+import { extractSrExplanation } from "../utils/extractSrExplanation";
 import { srRevisionPrompt } from "../prompts/revision";
 import {
   topicPlainEnhancedPrompt,
@@ -29,6 +30,7 @@ interface FieldDef {
   type?: "select";
   options?: { value: string; label: string }[];
   placeholder?: string;
+  quickFillOptions?: string[];
 }
 
 export type WorkflowMode = "topic-synthesis" | "sr-revision";
@@ -44,6 +46,8 @@ interface Props {
 interface SrIteration {
   id: string;
   searchString: string;
+  /** AI回答全文（構造解説含む）— 検索式と同時に保存し、別枠で表示する */
+  searchExplanation: string;
   pubmedResult: PubMedSearchResult | null;
   revisionInputs: {
     relevantCount: string;
@@ -64,10 +68,14 @@ const emptyRevisionInputs = {
   userGoal: "",
 };
 
-function makeIteration(searchString = ""): SrIteration {
+function makeIteration(
+  searchString = "",
+  searchExplanation = ""
+): SrIteration {
   return {
     id: crypto.randomUUID(),
     searchString,
+    searchExplanation,
     pubmedResult: null,
     revisionInputs: { ...emptyRevisionInputs },
     revisionPrompt: "",
@@ -108,7 +116,11 @@ export function StrategyWorkflow({
   function extractSearchStringFromInitialAi() {
     const extracted = extractSearchString(aiResponse);
     if (extracted) {
-      updateIteration(0, { searchString: extracted });
+      const explanation = extractSrExplanation(aiResponse);
+      updateIteration(0, {
+        searchString: extracted,
+        searchExplanation: explanation,
+      });
       setTimeout(() => {
         document
           .getElementById(`step-pubmed-0`)
@@ -129,11 +141,15 @@ export function StrategyWorkflow({
     });
   }
 
-  function spawnNextIteration(fromIndex: number, searchString: string) {
+  function spawnNextIteration(
+    fromIndex: number,
+    searchString: string,
+    explanation: string = ""
+  ) {
     setIterations((prev) => {
       // truncate to fromIndex+1, then append new iteration
       const trimmed = prev.slice(0, fromIndex + 1);
-      return [...trimmed, makeIteration(searchString)];
+      return [...trimmed, makeIteration(searchString, explanation)];
     });
     setTimeout(() => {
       document
@@ -409,13 +425,41 @@ function SrFinalDesignFilter({
       <h4>最終検索式（フィルター適用後）</h4>
       <pre className="search-preview">{finalQuery}</pre>
 
-      <PubMedSearchBox
-        settings={settings}
-        searchString={finalQuery}
-        onResult={(r) => setPubmedResult(r)}
-        retmax={20}
-        buttonLabel="フィルター適用版でPubMed検索"
-      />
+      <div className="button-group">
+        <PubMedSearchBox
+          settings={settings}
+          searchString={finalQuery}
+          onResult={(r) => setPubmedResult(r)}
+          retmax={20}
+          buttonLabel="フィルター適用版でPubMed検索（このアプリ内）"
+        />
+        <button
+          className="btn btn-secondary"
+          onClick={() => {
+            if (!finalQuery) return;
+            const url = `https://pubmed.ncbi.nlm.nih.gov/advanced/?term=${encodeURIComponent(finalQuery)}`;
+            window.open(url, "_blank", "noopener,noreferrer");
+          }}
+          disabled={!finalQuery}
+        >
+          PubMed Advanced Search で開く（外部）
+        </button>
+        <button
+          className="btn btn-secondary"
+          onClick={() => {
+            if (!finalQuery) return;
+            const url = `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(finalQuery)}`;
+            window.open(url, "_blank", "noopener,noreferrer");
+          }}
+          disabled={!finalQuery}
+        >
+          PubMed 通常検索で開く（外部）
+        </button>
+      </div>
+      <p className="hint">
+        「PubMed Advanced Search で開く」を押すと、PubMed の高度検索画面のクエリボックスに最終検索式が入った状態で開きます。
+        履歴管理・括弧展開・検索式の編集が必要な場合に便利です。
+      </p>
 
       {pubmedResult && (
         <PubMedResultTable
@@ -446,7 +490,7 @@ function SrIterationBlock({
   iterationIndex: number;
   stepBase: number;
   onUpdate: (p: Partial<SrIteration>) => void;
-  onSpawnNext: (searchString: string) => void;
+  onSpawnNext: (searchString: string, explanation?: string) => void;
   hasNext: boolean;
 }) {
   const iterationLabel = iterationIndex === 0 ? "初回" : `${iterationIndex + 1}回目`;
@@ -471,7 +515,8 @@ function SrIterationBlock({
   function handleExtractAndProceed() {
     const extracted = extractSearchString(iteration.revisedAiResponse);
     if (extracted) {
-      onSpawnNext(extracted);
+      const explanation = extractSrExplanation(iteration.revisedAiResponse);
+      onSpawnNext(extracted, explanation);
     } else {
       alert(
         "改善された検索式を自動抽出できませんでした。AI回答からコピーして手動で次の検索式欄に貼り付けてください。"
@@ -494,6 +539,20 @@ function SrIterationBlock({
           value={iteration.searchString}
           onChange={(v) => onUpdate({ searchString: v })}
         />
+
+        {iteration.searchExplanation && (
+          <details className="search-explanation-panel" open>
+            <summary>
+              📖 検索式の構造解説（AI回答から自動抽出 — クリックで折りたたみ）
+            </summary>
+            <p className="hint">
+              AI が出力した「PIC 要素ごとの関連語リスト」「論理構造」「構造解説」「MeSH/同義語の選定理由」などをそのまま転記しています。
+              検索式の中身を即座に理解するための補助です。
+            </p>
+            <pre className="explanation-text">{iteration.searchExplanation}</pre>
+          </details>
+        )}
+
         {iteration.searchString && (
           <PubMedSearchBox
             settings={settings}

@@ -6,6 +6,8 @@ interface FieldDef {
   type?: "select";
   options?: { value: string; label: string }[];
   placeholder?: string;
+  /** Quick-fill chips that append (or set) the value when clicked. */
+  quickFillOptions?: string[];
 }
 
 interface Props {
@@ -38,13 +40,27 @@ export function FormFields({ fields, values, onChange }: Props) {
               ))}
             </select>
           ) : field.multiline ? (
-            <textarea
-              id={`field-${field.key}`}
-              value={values[field.key] ?? ""}
-              onChange={(e) => onChange(field.key, e.target.value)}
-              rows={4}
-              placeholder={field.placeholder}
-            />
+            <>
+              {field.quickFillOptions && field.quickFillOptions.length > 0 && (
+                <QuickFillChips
+                  options={field.quickFillOptions}
+                  currentValue={values[field.key] ?? ""}
+                  onAppend={(text) => {
+                    const cur = values[field.key] ?? "";
+                    const next = cur.trim() ? `${cur.trim()} / ${text}` : text;
+                    onChange(field.key, next);
+                  }}
+                  onReplace={(text) => onChange(field.key, text)}
+                />
+              )}
+              <textarea
+                id={`field-${field.key}`}
+                value={values[field.key] ?? ""}
+                onChange={(e) => onChange(field.key, e.target.value)}
+                rows={4}
+                placeholder={field.placeholder}
+              />
+            </>
           ) : (
             <input
               id={`field-${field.key}`}
@@ -55,6 +71,40 @@ export function FormFields({ fields, values, onChange }: Props) {
             />
           )}
         </div>
+      ))}
+    </div>
+  );
+}
+
+function QuickFillChips({
+  options,
+  currentValue,
+  onAppend,
+  onReplace,
+}: {
+  options: string[];
+  currentValue: string;
+  onAppend: (text: string) => void;
+  onReplace: (text: string) => void;
+}) {
+  return (
+    <div className="quick-fill-chips">
+      <span className="quick-fill-label">クイック入力：</span>
+      {options.map((opt) => (
+        <button
+          key={opt}
+          type="button"
+          className="chip-btn"
+          onClick={() => {
+            if (!currentValue.trim()) {
+              onReplace(opt);
+            } else {
+              onAppend(opt);
+            }
+          }}
+        >
+          + {opt}
+        </button>
       ))}
     </div>
   );

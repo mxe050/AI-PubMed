@@ -30,10 +30,20 @@ export const srFields = [
   },
   {
     key: "c",
-    label: "C（比較）— 通常は必須（不要なら明示）",
+    label: "C（比較）— 必須ではない（CQによっては不要）",
     required: false,
     multiline: true,
-    placeholder: "例：標準治療（ACE-I/ARB/β遮断薬/MRA）のみ。SGLT2阻害薬を追加しない群。",
+    placeholder: "例：標準治療（ACE-I/ARB/β遮断薬/MRA）のみ。SGLT2阻害薬を追加しない群。Cが不要なCQでは空欄でOK。",
+    quickFillOptions: [
+      "標準治療（usual care / standard of care）",
+      "プラセボ（placebo）",
+      "偽治療・sham（sham procedure）",
+      "対照なし（no comparator）",
+      "他剤（active comparator）",
+      "用量比較（dose-response）",
+      "無治療（no treatment / untreated）",
+      "前後比較（before-after）",
+    ],
   },
   {
     key: "o",
