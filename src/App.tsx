@@ -6,6 +6,7 @@ import { FactCheckTab } from "./components/FactCheckTab";
 import { StrategyWorkflow } from "./components/StrategyWorkflow";
 import { EbmTab } from "./components/EbmTab";
 import { GradeExplainerTab } from "./components/GradeExplainerTab";
+import { PubMedToolTab } from "./components/PubMedToolTab";
 import { topicInitialPrompt, topicFields } from "./prompts/topicExploration";
 import { srInitialPrompt, srFields } from "./prompts/systematicReview";
 import "./App.css";
@@ -16,6 +17,7 @@ type TabType =
   | "topic_exploration"
   | "ebm_search"
   | "systematic_review"
+  | "pubmed_tool"
   | "grade_explainer";
 
 type TabKind = "main" | "supp" | "meta";
@@ -26,6 +28,7 @@ const tabs: { key: TabType; label: string; kind: TabKind }[] = [
   { key: "topic_exploration", label: "PubMedで見逃しやすい論文検索", kind: "main" },
   { key: "ebm_search", label: "EBMのための検索", kind: "supp" },
   { key: "systematic_review", label: "システマティックレビュー", kind: "supp" },
+  { key: "pubmed_tool", label: "PubMed Tool", kind: "supp" },
   { key: "grade_explainer", label: "GRADE-ADOLOPMENT解説", kind: "supp" },
 ];
 
@@ -142,6 +145,8 @@ export default function App() {
             mode="sr-revision"
           />
         )}
+
+        {activeTab === "pubmed_tool" && <PubMedToolTab />}
 
         {activeTab === "grade_explainer" && <GradeExplainerTab />}
       </main>

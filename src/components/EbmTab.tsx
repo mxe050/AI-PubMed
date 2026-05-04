@@ -14,6 +14,11 @@ import {
 } from "../prompts/ebmStep2";
 import { buildArticleListForClassification } from "../utils/buildArticleListForClassification";
 import { evaluatePicoCompleteness } from "../utils/evaluatePicoCompleteness";
+import {
+  studyDesignFilters,
+  applyStudyDesignFilter,
+} from "../utils/cochraneFilters";
+import type { StudyDesignFilterKey } from "../utils/cochraneFilters";
 import { PromptDisplay } from "./PromptDisplay";
 import { SearchStringInput } from "./SearchStringInput";
 import { PubMedSearchBox } from "./PubMedSearchBox";
@@ -68,6 +73,9 @@ export function EbmTab({ settings }: Props) {
   // 5-B sub-flow state
   const [pubmedEndingAiResponse, setPubmedEndingAiResponse] = useState("");
   const [extractedRevisedSearch, setExtractedRevisedSearch] = useState("");
+  const [revisedSearchFilterKey, setRevisedSearchFilterKey] =
+    useState<StudyDesignFilterKey>("none");
+  const [revisedSearchCopyMsg, setRevisedSearchCopyMsg] = useState("");
   const [pubmedResultRound2, setPubmedResultRound2] =
     useState<PubMedSearchResult | null>(null);
 
@@ -162,7 +170,7 @@ export function EbmTab({ settings }: Props) {
   function buildClassificationPromptText(): string {
     if (!pubmedResultRound2) return "";
     return buildPrompt(ebmClassificationPrompt, {
-      searchString: extractedRevisedSearch,
+      searchString: finalRevisedSearch,
       totalCount: String(pubmedResultRound2.count),
       count: String(
         Math.min(pubmedResultRound2.articles.length, 100)
@@ -192,8 +200,26 @@ export function EbmTab({ settings }: Props) {
     setPubmedResult(null);
     setPubmedEndingAiResponse("");
     setExtractedRevisedSearch("");
+    setRevisedSearchFilterKey("none");
+    setRevisedSearchCopyMsg("");
     setPubmedResultRound2(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  const revisedSearchFilter = studyDesignFilters.find(
+    (f) => f.key === revisedSearchFilterKey
+  )!;
+  const finalRevisedSearch = applyStudyDesignFilter(
+    extractedRevisedSearch,
+    revisedSearchFilter
+  );
+
+  function copyFinalRevisedSearch() {
+    if (!finalRevisedSearch) return;
+    navigator.clipboard.writeText(finalRevisedSearch).then(() => {
+      setRevisedSearchCopyMsg("コピーしました");
+      setTimeout(() => setRevisedSearchCopyMsg(""), 1800);
+    });
   }
 
   const aiEndingPromptText =
@@ -696,8 +722,62 @@ export function EbmTab({ settings }: Props) {
             {extractedRevisedSearch && (
               <>
                 <div className="extracted-revised">
-                  <h4>抽出された改善検索式</h4>
-                  <pre className="search-preview">{extractedRevisedSearch}</pre>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: 6,
+                    }}
+                  >
+                    <h4 style={{ margin: 0 }}>抽出された改善検索式（編集可）</h4>
+                  </div>
+                  <textarea
+                    value={extractedRevisedSearch}
+                    onChange={(e) => setExtractedRevisedSearch(e.target.value)}
+                    rows={5}
+                    style={{
+                      width: "100%",
+                      fontFamily:
+                        "'SF Mono', 'Fira Code', Consolas, 'Courier New', monospace",
+                      fontSize: "0.9rem",
+                      whiteSpace: "pre-wrap",
+                    }}
+                  />
+
+                  <div className="form-group" style={{ marginTop: 12 }}>
+                    <label>研究デザインフィルター（任意）</label>
+                    <select
+                      value={revisedSearchFilterKey}
+                      onChange={(e) =>
+                        setRevisedSearchFilterKey(
+                          e.target.value as StudyDesignFilterKey
+                        )
+                      }
+                    >
+                      {studyDesignFilters.map((f) => (
+                        <option key={f.key} value={f.key}>
+                          {f.label}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="hint">{revisedSearchFilter.description}</p>
+                    {revisedSearchFilter.source && (
+                      <p
+                        className="hint"
+                        style={{ fontSize: "0.78rem", fontStyle: "italic" }}
+                      >
+                        出典：{revisedSearchFilter.source}
+                      </p>
+                    )}
+                  </div>
+
+                  {revisedSearchFilterKey !== "none" && (
+                    <div className="form-group">
+                      <label>フィルター適用後の最終検索式（プレビュー）</label>
+                      <pre className="search-preview">{finalRevisedSearch}</pre>
+                    </div>
+                  )}
                 </div>
 
                 {/* 5-B-3: 抽出検索式でPubMed再検索 */}
@@ -705,15 +785,51 @@ export function EbmTab({ settings }: Props) {
                   5-B-3. この検索式でPubMed再検索（最大100件）
                 </h4>
                 <p className="hint">
-                  抽出された検索式で、このページ内のPubMed APIで再検索します。
+                  抽出された検索式（フィルター適用済み）で、このページ内のPubMed APIで再検索します。
                   分類プロンプトに使うため、最大100件まで取得します。
                 </p>
+
+                <div className="button-group">
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    onClick={copyFinalRevisedSearch}
+                    disabled={!finalRevisedSearch}
+                  >
+                    {revisedSearchCopyMsg || "検索式をコピー"}
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    onClick={() => {
+                      if (!finalRevisedSearch) return;
+                      const url = `https://pubmed.ncbi.nlm.nih.gov/advanced/?term=${encodeURIComponent(finalRevisedSearch)}`;
+                      window.open(url, "_blank", "noopener,noreferrer");
+                    }}
+                    disabled={!finalRevisedSearch}
+                  >
+                    PubMed Advanced Search で開く（外部）
+                  </button>
+                  <button
+                    className="btn btn-secondary"
+                    type="button"
+                    onClick={() => {
+                      if (!finalRevisedSearch) return;
+                      const url = `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(finalRevisedSearch)}`;
+                      window.open(url, "_blank", "noopener,noreferrer");
+                    }}
+                    disabled={!finalRevisedSearch}
+                  >
+                    PubMed 検索結果で開く（外部）
+                  </button>
+                </div>
+
                 <PubMedSearchBox
                   settings={settings}
-                  searchString={extractedRevisedSearch}
+                  searchString={finalRevisedSearch}
                   onResult={(r) => setPubmedResultRound2(r)}
                   retmax={100}
-                  buttonLabel="PubMed APIで再検索（最大100件）"
+                  buttonLabel="PubMed APIで再検索（最大100件・このアプリ内）"
                 />
                 {pubmedResultRound2 && (
                   <PubMedResultTable

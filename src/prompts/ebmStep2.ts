@@ -328,6 +328,14 @@ export const ebmAiEndingPrompt = `あなたはEBM Step 2、つまり文献検索
 
 PMIDを提示する場合、PubMed結果に存在しないものは必ず【AI記憶・要PubMedで実在確認】と明記してください。
 
+# PMID出力フォーマット（重要）
+PMIDを記載する箇所では、必ず Markdown のリンク記法で出力してください。
+形式：\`[PMID:12345678](https://pubmed.ncbi.nlm.nih.gov/12345678/)\`
+（<code>12345678</code> の部分には実際のPMIDの数字を入れる）
+
+これによりMarkdownレンダラ上でPMIDをクリックすると、PubMedの該当ページが別ウィンドウで開きます。
+表内のPMID欄も同様に上記のリンク形式で出力してください。
+
 ---
 
 【原質問】
@@ -506,6 +514,14 @@ export const ebmClassificationPrompt = `あなたはEBM Step 2の文献検索支
 - 分類が判定不能な場合は「不明・要原文確認」カテゴリに入れてください。
 - **件数が0でも、各階層の項目（テーブル）は必ず出してください**（0件と明示）。
 
+# PMID出力フォーマット（重要）
+PMIDを記載する箇所では、必ず Markdown のリンク記法で出力してください。
+形式：\`[PMID:12345678](https://pubmed.ncbi.nlm.nih.gov/12345678/)\`
+（<code>12345678</code> の部分には実際のPMIDの数字を入れる）
+
+これによりMarkdownレンダラ上でPMIDをクリックすると、PubMedの該当ページが別ウィンドウで開きます。
+カテゴリ別テーブルのPMID欄、上位10論文の見出しのPMID部分も、すべてこのリンク形式で出力してください。
+
 # EBMヒエラルキー（上位→下位）
 
 1. **診療ガイドライン**（Guideline / Practice Guideline / Consensus Statement等）
@@ -613,15 +629,17 @@ EBMヒエラルキー上位（診療ガイドライン → SR/メタ解析 → R
 
 形式（番号 1〜10）：
 
-### 1. PMID xxxxxxx — 【日本語タイトル訳】
+### 1. [PMID:xxxxxxx](https://pubmed.ncbi.nlm.nih.gov/xxxxxxx/) — 【日本語タイトル訳】
 - **原タイトル**：（英語原文）
 - **雑誌・年**：xxxxxx (yyyy)
 - **文献タイプ**：診療ガイドライン / SR / RCT / 非RCT / 観察研究 / その他
 - **抄録の日本語訳**：
   （抄録全文を日本語で。BACKGROUND/METHODS/RESULTS/CONCLUSIONS の構造があれば保持。原文の数値・固有名詞は正確に転記）
 
-### 2. PMID xxxxxxx — 【日本語タイトル訳】
+### 2. [PMID:xxxxxxx](https://pubmed.ncbi.nlm.nih.gov/xxxxxxx/) — 【日本語タイトル訳】
 （同上）
+
+※ 上記の <code>xxxxxxx</code> は実際のPMIDの数字に置き換えてください。Markdownリンク形式は必ず維持し、レンダリング時に PubMed が別ウィンドウで開くようにしてください。
 
 …（最大10件まで）
 

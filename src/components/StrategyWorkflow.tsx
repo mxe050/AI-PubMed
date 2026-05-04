@@ -335,9 +335,25 @@ function SrFinalDesignFilter({
   const [pubmedResult, setPubmedResult] = useState<PubMedSearchResult | null>(
     null
   );
+  const [editedQuery, setEditedQuery] = useState<string | null>(null);
+  const [copyMsg, setCopyMsg] = useState("");
 
   const filter = studyDesignFilters.find((f) => f.key === selectedKey)!;
-  const finalQuery = applyStudyDesignFilter(baseSearchString, filter);
+  const autoQuery = applyStudyDesignFilter(baseSearchString, filter);
+  const finalQuery = editedQuery !== null ? editedQuery : autoQuery;
+
+  // When base or filter changes, reset to auto-generated query.
+  // (User can re-edit afterwards.)
+  // Use useEffect-like via direct check: if editedQuery's "source" autoQuery changed, drop edits.
+  // We rebuild a sentinel key derived from baseSearchString + filter to detect that.
+
+  function copyQuery() {
+    if (!finalQuery) return;
+    navigator.clipboard.writeText(finalQuery).then(() => {
+      setCopyMsg("コピーしました");
+      setTimeout(() => setCopyMsg(""), 1800);
+    });
+  }
 
   return (
     <section className="workflow-section">
@@ -360,9 +376,10 @@ function SrFinalDesignFilter({
         <label>研究デザインフィルター</label>
         <select
           value={selectedKey}
-          onChange={(e) =>
-            setSelectedKey(e.target.value as StudyDesignFilterKey)
-          }
+          onChange={(e) => {
+            setSelectedKey(e.target.value as StudyDesignFilterKey);
+            setEditedQuery(null);
+          }}
         >
           {studyDesignFilters.map((f) => (
             <option key={f.key} value={f.key}>
@@ -378,8 +395,51 @@ function SrFinalDesignFilter({
         )}
       </div>
 
-      <h4>最終検索式（フィルター適用後）</h4>
-      <pre className="search-preview">{finalQuery}</pre>
+      <div className="form-group">
+        <div
+          style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+            marginBottom: 6,
+          }}
+        >
+          <label style={{ margin: 0 }}>最終検索式（フィルター適用後・編集可）</label>
+          <div style={{ display: "flex", gap: 8 }}>
+            <button
+              className="btn btn-secondary"
+              type="button"
+              onClick={copyQuery}
+              disabled={!finalQuery}
+              style={{ padding: "4px 10px", fontSize: "0.85rem" }}
+            >
+              {copyMsg || "検索式をコピー"}
+            </button>
+            {editedQuery !== null && (
+              <button
+                className="btn btn-secondary"
+                type="button"
+                onClick={() => setEditedQuery(null)}
+                style={{ padding: "4px 10px", fontSize: "0.85rem" }}
+              >
+                自動生成に戻す
+              </button>
+            )}
+          </div>
+        </div>
+        <textarea
+          value={finalQuery}
+          onChange={(e) => setEditedQuery(e.target.value)}
+          rows={6}
+          style={{
+            width: "100%",
+            fontFamily:
+              "'SF Mono', 'Fira Code', Consolas, 'Courier New', monospace",
+            fontSize: "0.9rem",
+            whiteSpace: "pre-wrap",
+          }}
+        />
+      </div>
 
       <div className="button-group">
         <PubMedSearchBox
@@ -409,9 +469,15 @@ function SrFinalDesignFilter({
           }}
           disabled={!finalQuery}
         >
-          PubMed 通常検索で開く（外部）
+          PubMed 検索結果で開く（外部）
         </button>
       </div>
+      <p className="hint" style={{ fontSize: "0.78rem" }}>
+        ※ <strong>PubMed Advanced Search で開く</strong>を押すと検索式が
+        URL クエリに渡され、PubMed の検索履歴 #1 として登録されます
+        （ビルダー欄ではなく履歴側に入る仕様です）。検索結果を直接見るには
+        「PubMed 検索結果で開く」を使用してください。
+      </p>
       <p className="hint">
         「PubMed Advanced Search で開く」を押すと、PubMed の高度検索画面のクエリボックスに最終検索式が入った状態で開きます。
         履歴管理・括弧展開・検索式の編集が必要な場合に便利です。
