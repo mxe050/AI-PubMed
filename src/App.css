@@ -342,6 +342,42 @@ body {
   background: #b71c1c;
 }
 
+.topic-example-box {
+  margin-top: 12px;
+  padding: 10px 14px;
+  background: #f3f8ff;
+  border-left: 3px solid #1565c0;
+  border-radius: 4px;
+  font-size: 0.88rem;
+  line-height: 1.6;
+}
+
+.topic-example-box summary {
+  cursor: pointer;
+  color: #0d47a1;
+  margin-bottom: 4px;
+}
+
+.topic-example-box p,
+.topic-example-box ol {
+  margin: 6px 0;
+}
+
+.topic-example-box ol {
+  padding-left: 22px;
+}
+
+.topic-example-box li {
+  margin: 6px 0;
+}
+
+.topic-example-box em {
+  background: #fff3cd;
+  padding: 0 4px;
+  border-radius: 3px;
+  font-style: normal;
+}
+
 .btn-copy {
   background: var(--color-bg);
   color: var(--color-text);

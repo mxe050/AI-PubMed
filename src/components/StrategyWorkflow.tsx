@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import type { AppSettings, PubMedSearchResult } from "../types";
 import { buildPrompt } from "../utils/buildPrompt";
 import { buildApiFeedbackBlock } from "../utils/buildApiFeedbackBlock";
@@ -35,7 +35,7 @@ interface Props {
   settings: AppSettings;
   fields: FieldDef[];
   promptTemplate: string;
-  description: string;
+  description: ReactNode;
   mode: WorkflowMode;
   /** Tab title shown as a header (matches other tabs' header style). */
   title?: string;
@@ -171,7 +171,7 @@ export function StrategyWorkflow({
           </h2>
         </header>
       )}
-      <p className="strategy-description">{description}</p>
+      <div className="strategy-description">{description}</div>
 
       <section className="workflow-section">
         <h2>Step 1: 入力</h2>

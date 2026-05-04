@@ -60,10 +60,6 @@ export default function App() {
           </button>
         ))}
       </nav>
-      <p className="tab-legend">
-        <span className="tab-main-dot" aria-hidden="true">●</span>
-        がメイン機能（AI出力ファクトチェック・PubMedで見逃しやすい論文検索）。EBM検索・SR・GRADEは補助です。
-      </p>
 
       <main className="app-main">
         {activeTab === "how_to_use" && (
@@ -81,7 +77,58 @@ export default function App() {
             settings={settings}
             fields={topicFields}
             promptTemplate={topicInitialPrompt}
-            description="PubMedのタイトル・抄録検索では見落とされる、本文内証拠（Discussion / Methods / Results / Limitations / Table / Figure / 参考文献にある批判・比較・改変・限界・代替分類への言及）を持つ論文を探します。地域名タイトル・地域誌・非英語圏著者・低被引用などを除外せず、見落としリスクの高い論文を意図的に拾い上げます。"
+            description={
+              <>
+                <p>
+                  PubMedのタイトル・抄録検索では見落とされる、本文内証拠（Discussion
+                  / Methods / Results / Limitations / Table / Figure /
+                  参考文献にある批判・比較・改変・限界・代替分類への言及）を持つ論文を探します。
+                  地域名タイトル・地域誌・非英語圏著者・低被引用などを除外せず、見落としリスクの高い論文を意図的に拾い上げます。
+                </p>
+                <details className="topic-example-box">
+                  <summary>
+                    <strong>たとえばどんな場面で使う？（クリックで詳細）</strong>
+                  </summary>
+                  <p>
+                    「そういえば最近、Winter / Pell &amp; Gregory
+                    を間違って引用しているサイトが多いな。原文読んでないんだろうな〜。そのようなことが記載されている論文ってあるのかな。
+                    『Winter / Pell &amp; Gregory の下顎第三大臼歯分類が
+                    “誤って使われている” と指摘している論文を探して』で
+                    AIで聞いてみるか？」
+                  </p>
+                  <p>→ 問題点が2つあります：</p>
+                  <ol>
+                    <li>
+                      <strong>（1）</strong>
+                      この回答の論文は <em>Jaroń 2021</em>{" "}
+                      ですが、その記載は <strong>考察（Discussion）</strong>{" "}
+                      のところに書かれており、PubMed
+                      のタイトル・抄録検索では拾えません。
+                    </li>
+                    <li>
+                      <strong>（2）</strong>
+                      このプロンプトでは Opus 4.7
+                      でもヒットせず、「Winter / Pell &amp; Gregory
+                      の下顎第三大臼歯分類を、<strong>分類そのものを誤解</strong>
+                      して使っている論文があることが記載されている、英語の論文を探して。
+                      例えば、ある別の基準として、
+                      <em>イロハニが原文なのに、誤解してイロニと思い込んで使っている</em>
+                      例が記載されている論文を探して。」とすると
+                      <strong>ヒットします</strong>。
+                      このプロンプトの変換は、このような
+                      <strong>揺らぎを網羅した検索</strong>
+                      ができるように調整しています。
+                    </li>
+                    <li>
+                      <strong>（3）</strong>
+                      このような疑問は臨床疑問として PICO
+                      形式にできないため、PubMed より <strong>AIで直接検索</strong>
+                      する方が便利です。
+                    </li>
+                  </ol>
+                </details>
+              </>
+            }
             mode="topic-synthesis"
           />
         )}
