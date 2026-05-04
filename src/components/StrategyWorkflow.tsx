@@ -172,7 +172,6 @@ export function StrategyWorkflow({
               <p className="warning-text">
                 ⚠ このプロンプトで一度AIに検索（質問）すると、自分の知りたい結果が出る場合があります。
                 ただし、それは網羅的な検索ではないので、それだけで判断しないこと。
-                必ず後段のPubMed検索＋統合プロンプト（プロンプト3）と合わせて利用してください。
               </p>
             </div>
           )}

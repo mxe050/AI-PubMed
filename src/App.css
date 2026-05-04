@@ -1457,6 +1457,132 @@ tr.unverified {
   margin: 2px 0;
 }
 
+/* === EBM Tab === */
+.ebm-header {
+  text-align: center;
+  padding: 16px 0;
+  border-bottom: 2px solid var(--color-primary);
+  margin-bottom: 16px;
+}
+
+.ebm-header h2 {
+  margin: 0 0 8px;
+  color: var(--color-primary);
+}
+
+.ebm-sticky-bar {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: white;
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius);
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.ebm-sticky-bar > div {
+  margin: 2px 0;
+}
+
+.ebm-hierarchy-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 10px 0;
+  padding: 10px;
+  background: #f8fafc;
+  border-radius: var(--radius);
+}
+
+.ebm-two-endings-explainer {
+  background: var(--color-info-bg);
+  border: 1px solid var(--color-primary);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 16px;
+}
+
+.ebm-two-endings-explainer h3 {
+  margin: 0 0 8px;
+  color: var(--color-primary);
+  font-size: 1rem;
+}
+
+.ebm-two-endings-explainer p {
+  font-size: 0.9rem;
+  margin: 6px 0;
+}
+
+.ebm-comparison {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 8px;
+  font-size: 0.82rem;
+}
+
+.ebm-comparison th,
+.ebm-comparison td {
+  border: 1px solid var(--color-border);
+  padding: 8px 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+.ebm-comparison thead th {
+  background: white;
+  text-align: center;
+}
+
+.ebm-comparison tbody th {
+  background: #f8fafc;
+  width: 25%;
+}
+
+.prompt-card-ai-ending {
+  border-left-color: #d97706;
+  background: #fffbeb;
+}
+
+.prompt-card-pubmed-ending {
+  border-left-color: #16a34a;
+  background: #f0fdf4;
+}
+
+.prompt-tag-warn {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+  border: 1px solid var(--color-warning);
+}
+
+.prompt-tag-safe {
+  background: #dcfce7;
+  color: var(--color-success);
+  border: 1px solid var(--color-success);
+}
+
+.ai-ending-warning {
+  background: var(--color-warning-bg);
+  border-left: 4px solid var(--color-warning);
+  padding: 10px 14px;
+  border-radius: 4px;
+  margin: 8px 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
+.pubmed-ending-note {
+  background: #dcfce7;
+  border-left: 4px solid var(--color-success);
+  padding: 10px 14px;
+  border-radius: 4px;
+  margin: 8px 0;
+  font-size: 0.85rem;
+  line-height: 1.6;
+}
+
 /* === Fact Check Tab === */
 .fact-check-tab {
   max-width: 100%;
