@@ -12,7 +12,6 @@ import { AiResponseInput } from "./AiResponseInput";
 import { SearchStringInput } from "./SearchStringInput";
 import { PubMedSearchBox } from "./PubMedSearchBox";
 import { PubMedResultTable } from "./PubMedResultTable";
-import { TopicSynthesisGenerator } from "./TopicSynthesisGenerator";
 
 interface FieldDef {
   key: string;
@@ -153,36 +152,42 @@ export function StrategyWorkflow({
         </button>
       </section>
 
-      {generatedPrompt && (
+      {generatedPrompt && mode === "sr-revision" && (
         <section className="workflow-section">
           <h2>Step 2: AI用プロンプト</h2>
           <PromptDisplay prompt={generatedPrompt} />
           <p className="hint">
             このプロンプトをコピーしてChatGPT / Claude / Geminiなどに貼り付けてください。
           </p>
-
-          {mode === "topic-synthesis" && values.question && (
-            <div className="step2-secondary-prompt">
-              <PromptDisplay
-                prompt={buildPrompt(topicPlainEnhancedPrompt, {
-                  question: values.question,
-                })}
-                title="プレーン多角分解版（任意・先に試せる版）"
-              />
-              <p className="hint">
-                ※ このプロンプトの内容は、最後のStep（Step 5「3本のAIプロンプト」内のプロンプト2）と同じものです。
-                Step 4のPubMed検索を待たずに先に試せるよう、ここにも表示しています。
-              </p>
-              <p className="warning-text">
-                ⚠ このプロンプトで一度AIに検索（質問）すると、自分の知りたい結果が出る場合があります。
-                ただし、それは網羅的な検索ではないので、それだけで判断しないこと。
-              </p>
-            </div>
-          )}
         </section>
       )}
 
-      {generatedPrompt && (
+      {generatedPrompt && mode === "topic-synthesis" && values.question && (
+        <section className="workflow-section">
+          <h2>Step 2: プレーン多角分解版プロンプト（このアプリの本体）</h2>
+          <p className="hint">
+            <strong>トピック探索の本体プロンプトです。</strong>
+            このプロンプトを外部AI（ChatGPT / Claude / Geminiなど）に貼り付けて回答を得たら、
+            必要に応じて<strong>「AI出力ファクトチェック」タブ</strong>で PMID 実在確認・抄録取得・URL確認を行ってください。
+          </p>
+          <p className="hint">
+            <strong>このアプリのトピック探索はここで完結します。</strong>
+            PubMed検索式は出さず、AIの訓練知識から「タイトル・抄録には出てこない Discussion 埋没型情報」を引き出すことに集中する設計です。
+          </p>
+          <PromptDisplay
+            prompt={buildPrompt(topicPlainEnhancedPrompt, {
+              question: values.question,
+            })}
+            title="プレーン多角分解版プロンプト"
+          />
+          <p className="warning-text">
+            ⚠ このプロンプトで一度AIに検索（質問）すると、自分の知りたい結果が出る場合があります。
+            ただし、それは網羅的な検索ではないので、それだけで判断しないこと。
+          </p>
+        </section>
+      )}
+
+      {generatedPrompt && mode === "sr-revision" && (
         <section className="workflow-section">
           <h2>Step 3: AI回答の貼り付け</h2>
           <AiResponseInput value={aiResponse} onChange={setAiResponse} />
@@ -203,97 +208,25 @@ export function StrategyWorkflow({
         </section>
       )}
 
-      {/* Iteration steps: each iteration has 3 explicit numbered steps for SR,
-          or just 2 (PubMed + synthesis) for topic */}
+      {/* Iteration steps: SR mode only (each iteration = PubMed search +
+          revision prompt + AI response paste with extract). Topic mode
+          completes at Step 2 (plain multi-angle prompt). */}
       {aiResponse &&
-        iterations.map((iter, idx) =>
-          mode === "topic-synthesis" ? (
-            <TopicIterationBlock
-              key={iter.id}
-              settings={settings}
-              question={question}
-              iteration={iter}
-              stepBase={4 + idx * 2}
-              onUpdate={(p) => updateIteration(idx, p)}
-            />
-          ) : (
-            <SrIterationBlock
-              key={iter.id}
-              settings={settings}
-              question={question}
-              iteration={iter}
-              iterationIndex={idx}
-              stepBase={4 + idx * 3}
-              onUpdate={(p) => updateIteration(idx, p)}
-              onSpawnNext={(s) => spawnNextIteration(idx, s)}
-              hasNext={idx < iterations.length - 1}
-            />
-          )
-        )}
-    </div>
-  );
-}
-
-/* ========== Topic Iteration (PubMed + Synthesis) ========== */
-
-function TopicIterationBlock({
-  settings,
-  question,
-  iteration,
-  stepBase,
-  onUpdate,
-}: {
-  settings: AppSettings;
-  question: string;
-  iteration: SrIteration;
-  stepBase: number;
-  onUpdate: (p: Partial<SrIteration>) => void;
-}) {
-  return (
-    <>
-      <section
-        id={`step-pubmed-0`}
-        className="workflow-section"
-      >
-        <h2>Step {stepBase}: PubMed検索</h2>
-        <SearchStringInput
-          value={iteration.searchString}
-          onChange={(v) => onUpdate({ searchString: v })}
-        />
-        {iteration.searchString && (
-          <PubMedSearchBox
+        mode === "sr-revision" &&
+        iterations.map((iter, idx) => (
+          <SrIterationBlock
+            key={iter.id}
             settings={settings}
-            searchString={iteration.searchString}
-            onResult={(result) => onUpdate({ pubmedResult: result })}
-          />
-        )}
-        {iteration.pubmedResult && (
-          <>
-            <PubMedResultTable
-              result={iteration.pubmedResult}
-              selectedPmids={[]}
-              onToggle={() => {}}
-            />
-            <MeshObservationGuide pubmedResult={iteration.pubmedResult} />
-          </>
-        )}
-      </section>
-
-      {iteration.pubmedResult && (
-        <section className="workflow-section">
-          <h2>Step {stepBase + 1}: 3本のAIプロンプト</h2>
-          <p className="hint">
-            元の疑問の「本質」を保ったまま、複数の視点でAIから回答を得ます。
-            プレーン版、プレーン強化版、PubMed統合版の3本を提示します。
-          </p>
-          <TopicSynthesisGenerator
             question={question}
-            executedSearchString={iteration.searchString}
-            pubmedResult={iteration.pubmedResult}
+            iteration={iter}
+            iterationIndex={idx}
+            stepBase={4 + idx * 3}
+            onUpdate={(p) => updateIteration(idx, p)}
+            onSpawnNext={(s) => spawnNextIteration(idx, s)}
+            hasNext={idx < iterations.length - 1}
           />
-        </section>
-      )}
-    </>
+        ))}
+    </div>
   );
 }
 
