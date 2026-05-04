@@ -34,6 +34,7 @@ export async function esummaryPubMed(
 
       return {
         pmid: uid,
+        pmcid: extractPmcid(item?.articleids),
         title: item?.title,
         journal: item?.fulljournalname || item?.source,
         pubDate: item?.pubdate,
@@ -41,7 +42,7 @@ export async function esummaryPubMed(
         authors: Array.isArray(item?.authors)
           ? item.authors.map((a: { name: string }) => a.name)
           : [],
-        doi: extractDoi(item?.elocationid),
+        doi: extractDoi(item?.elocationid) ?? extractDoiFromArticleIds(item?.articleids),
         verified: true,
         source: "esummary",
       } satisfies PubMedArticle;
@@ -59,4 +60,25 @@ function extractDoi(text?: string): string | undefined {
   if (!text) return undefined;
   const match = text.match(/10\.\S+/);
   return match?.[0];
+}
+
+interface ArticleIdEntry {
+  idtype?: string;
+  value?: string;
+}
+
+function extractPmcid(ids?: ArticleIdEntry[]): string | undefined {
+  if (!Array.isArray(ids)) return undefined;
+  const entry = ids.find((a) => a?.idtype?.toLowerCase() === "pmc");
+  if (!entry?.value) return undefined;
+  // ESummary returns "PMC8228797" form; normalize.
+  return entry.value.toUpperCase().startsWith("PMC")
+    ? entry.value
+    : `PMC${entry.value}`;
+}
+
+function extractDoiFromArticleIds(ids?: ArticleIdEntry[]): string | undefined {
+  if (!Array.isArray(ids)) return undefined;
+  const entry = ids.find((a) => a?.idtype?.toLowerCase() === "doi");
+  return entry?.value;
 }

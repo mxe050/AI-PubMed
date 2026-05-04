@@ -715,6 +715,20 @@ function CitationResultCard({ result }: { result: CitationVerifyResult }) {
                     >
                       {h.pmid}
                     </a>
+                    {h.pmcid && (
+                      <>
+                        <br />
+                        <a
+                          href={`https://www.ncbi.nlm.nih.gov/pmc/articles/${h.pmcid}/`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="pmc-mini-link"
+                          title="PMCで全文を読む"
+                        >
+                          🔓 {h.pmcid}
+                        </a>
+                      </>
+                    )}
                   </td>
                   <td>{h.title ?? "(タイトル未取得)"}</td>
                   <td>
@@ -773,7 +787,10 @@ function FactCheckArticleCard({
 }) {
   const [showSummaryPrompt, setShowSummaryPrompt] = useState(false);
   const [showClaimCheckPrompt, setShowClaimCheckPrompt] = useState(false);
-  const [copied, setCopied] = useState<"summary" | "claim" | null>(null);
+  const [showFullTextPrompt, setShowFullTextPrompt] = useState(false);
+  const [copied, setCopied] = useState<"summary" | "claim" | "fulltext" | null>(
+    null
+  );
 
   const badge = getEvidenceBadge(article.publicationTypes);
   const retraction = getRetractionStatus(article);
@@ -838,8 +855,62 @@ ${article.abstractText ?? "(抄録は取得できませんでした — 本文�
 5. 結論
 `;
 
-  async function handleCopy(kind: "summary" | "claim") {
-    const text = kind === "summary" ? summaryPrompt : claimCheckPrompt;
+  const fullTextPrompt = `あなたは医学論文ファクトチェック専門AIです。以下の AI 回答中の主張は、論文の **本文（特に Discussion / Introduction / Methods / Limitations）** にしか書かれていない可能性があります。抄録だけでは判定できません。
+
+# 目的
+- AI 回答の主張（特に Discussion 内容、名指し批判、本文中の具体的記述、節構成、引用された他論文名、数値詳細）が、この論文の本文に実際に書かれているかを **本文を読んで** 判定する
+- 4 段階で判定：本文で確認できた / 一部確認 / 本文に記載なし / 本文未取得のため判定不能
+
+# 必須手順
+1. **以下の URL から論文本文を取得してください**：
+${article.pmcid ? `   - PMC 全文（無料・推奨）: https://www.ncbi.nlm.nih.gov/pmc/articles/${article.pmcid}/` : "   - PMC 全文: 該当なし（PMCID 未登録）"}
+${article.doi ? `   - 出版社サイト: https://doi.org/${article.doi}` : ""}
+   - PubMed: https://pubmed.ncbi.nlm.nih.gov/${article.pmid}/
+
+2. 取得できなかった場合は **「本文未取得のため判定不能」と明記** してください（推測で判定しないこと）。
+
+3. 取得できた場合、AI 回答の主張箇所を本文中の **具体的な節（Discussion / Introduction / Methods / Limitations / Results）と段落** に照らし合わせ、以下を出力してください：
+   - 主張が本文で確認できた部分（節名と該当箇所の短い引用、20 語以内）
+   - 主張のうち本文に記載が見つからない部分
+   - 主張と本文の矛盾点
+   - 名指し批判が含まれる場合：本文中で実際に名指しされている著者名・年を列挙
+
+# 重要ルール
+- 本文を取得できなかった主張については推測しないでください
+- 「抄録には書かれていないが本文の Discussion で言及」のような細部は **必ず本文ページで実物を確認** してください
+- 抄録だけで判断したものは「抄録のみで本文未確認」と必ず明記してください
+
+# AI 回答中の該当箇所（PMID 周辺の文脈）
+${extracted.context}
+
+# 論文の書誌情報
+PMID: ${article.pmid}
+${article.pmcid ? `PMCID: ${article.pmcid}` : ""}
+Title: ${article.title ?? "(no title)"}
+Journal: ${article.journal ?? ""}${article.year ? " (" + article.year + ")" : ""}
+${article.authors?.length ? "Authors: " + article.authors.join(", ") : ""}
+${article.doi ? "DOI: " + article.doi : ""}
+${article.publicationTypes?.length ? "Publication Types: " + article.publicationTypes.join(", ") : ""}
+
+# 抄録（参考。本文の代用にはならない）
+${article.abstractText ?? "(抄録は取得できませんでした)"}
+
+# 出力形式
+1. 本文取得の可否（PMC / 出版社 / 取得失敗）
+2. 判定（本文で確認 / 一部確認 / 本文に記載なし / 本文未取得のため判定不能）
+3. 本文で確認できた主張（節名 + 短い引用 20 語以内）
+4. 本文に見つからなかった主張
+5. 名指し批判の検証結果（該当する場合）
+6. 結論
+`;
+
+  async function handleCopy(kind: "summary" | "claim" | "fulltext") {
+    const text =
+      kind === "summary"
+        ? summaryPrompt
+        : kind === "claim"
+          ? claimCheckPrompt
+          : fullTextPrompt;
     try {
       await navigator.clipboard.writeText(text);
     } catch {
@@ -890,6 +961,44 @@ ${article.abstractText ?? "(抄録は取得できませんでした — 本文�
           {article.year && <span>{article.year}</span>}
           {article.journal && <span>{article.journal}</span>}
         </span>
+      </div>
+
+      <div className="vac-fulltext-bar">
+        {article.pmcid ? (
+          <a
+            href={`https://www.ncbi.nlm.nih.gov/pmc/articles/${article.pmcid}/`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="fulltext-link fulltext-pmc"
+            title="PMCで全文を無料で読む（Discussion等の本文を確認できます）"
+          >
+            🔓 PMCで全文を読む（{article.pmcid}）
+          </a>
+        ) : (
+          <span className="fulltext-link fulltext-pmc-disabled" title="PMCには登録されていません">
+            🔒 PMC全文なし
+          </span>
+        )}
+        {article.doi && (
+          <a
+            href={`https://doi.org/${article.doi}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="fulltext-link fulltext-doi"
+            title="出版社サイトで本文を開く（購読が必要な場合あり）"
+          >
+            📄 出版社サイト（DOI）
+          </a>
+        )}
+        <a
+          href={`https://scholar.google.com/scholar?q=${encodeURIComponent((article.title ?? "") + " " + (article.authors?.[0] ?? ""))}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="fulltext-link fulltext-scholar"
+          title="Google Scholarで全文や引用を探す"
+        >
+          🔍 Google Scholar
+        </a>
       </div>
 
       <div className="vac-title">{article.title ?? "(タイトル未取得)"}</div>
@@ -1022,7 +1131,16 @@ ${article.abstractText ?? "(抄録は取得できませんでした — 本文�
         >
           {showClaimCheckPrompt
             ? "主張検証プロンプトを隠す"
-            : "主張検証プロンプト（Step 3）"}
+            : "主張検証プロンプト（抄録ベース）"}
+        </button>
+        <button
+          className="btn btn-primary btn-small"
+          onClick={() => setShowFullTextPrompt((v) => !v)}
+          title="Discussion 等の本文に依存する主張（名指し批判・節構成・本文の議論内容）を本文から検証するプロンプト"
+        >
+          {showFullTextPrompt
+            ? "本文ベース検証プロンプトを隠す"
+            : "本文ベース検証プロンプト（Discussion等）"}
         </button>
       </div>
 
@@ -1042,7 +1160,7 @@ ${article.abstractText ?? "(抄録は取得できませんでした — 本文�
         <div className="prompt-box">
           <p className="hint">
             このプロンプトは、AI回答中の<strong>このPMID周辺の主張</strong>
-            と、PubMed抄録の内容が一致するかを外部AIに検証させます。
+            と、PubMed<strong>抄録</strong>の内容が一致するかを外部AIに検証させます。抄録に書かれていない（Discussion 等の本文にしかない）主張は判定不能になります。
           </p>
           <pre className="summary-prompt">{claimCheckPrompt}</pre>
           <button
@@ -1050,6 +1168,31 @@ ${article.abstractText ?? "(抄録は取得できませんでした — 本文�
             onClick={() => handleCopy("claim")}
           >
             {copied === "claim" ? "コピーしました" : "プロンプトをコピー"}
+          </button>
+        </div>
+      )}
+
+      {showFullTextPrompt && (
+        <div className="prompt-box">
+          <p className="hint">
+            このプロンプトは <strong>Web 検索・全文取得が可能な外部 AI</strong>{" "}
+            （ChatGPT with browsing, Claude with web, Gemini, Perplexity 等）に貼り付けてください。
+            AI が PMC{article.pmcid ? `（${article.pmcid}）` : ""}や出版社サイトから本文を実際に取得し、
+            「Discussion で著者名列挙」「本文中の節構成」「名指し批判の対象著者」のような
+            <strong>抄録には載らない主張</strong>を本文に照らして検証します。
+          </p>
+          {!article.pmcid && (
+            <p className="warning-text">
+              ⚠ この論文は PMC に登録されていないため、外部 AI が本文を直接取得できない可能性があります。
+              出版社サイト（DOI）が Open Access かを確認してください。
+            </p>
+          )}
+          <pre className="summary-prompt">{fullTextPrompt}</pre>
+          <button
+            className="btn btn-primary btn-small"
+            onClick={() => handleCopy("fulltext")}
+          >
+            {copied === "fulltext" ? "コピーしました" : "プロンプトをコピー"}
           </button>
         </div>
       )}

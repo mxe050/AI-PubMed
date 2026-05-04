@@ -1362,6 +1362,70 @@ tr.unverified {
   gap: 8px;
 }
 
+.vac-fulltext-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 6px 0 8px 0;
+  padding: 6px 8px;
+  background: var(--color-info-bg, #eef6ff);
+  border-radius: 6px;
+}
+
+.fulltext-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 4px;
+  text-decoration: none;
+  border: 1px solid transparent;
+  transition: filter 0.15s;
+}
+
+.fulltext-link:hover {
+  filter: brightness(0.92);
+}
+
+.fulltext-pmc {
+  background: #2e7d32;
+  color: white;
+  border-color: #1b5e20;
+}
+
+.fulltext-pmc-disabled {
+  background: #f5f5f5;
+  color: #888;
+  cursor: not-allowed;
+}
+
+.fulltext-doi {
+  background: #1565c0;
+  color: white;
+  border-color: #0d47a1;
+}
+
+.fulltext-scholar {
+  background: white;
+  color: var(--color-primary, #1565c0);
+  border-color: var(--color-primary, #1565c0);
+}
+
+.pmc-mini-link {
+  display: inline-block;
+  font-size: 0.7rem;
+  color: #2e7d32;
+  font-weight: 600;
+  text-decoration: none;
+  margin-top: 2px;
+}
+
+.pmc-mini-link:hover {
+  text-decoration: underline;
+}
+
 .vac-title {
   font-weight: 600;
   margin: 4px 0;

@@ -32,6 +32,8 @@ export async function verifyPmidsWithAbstracts(
     const detail = detailMap.get(s.pmid);
     return {
       ...s,
+      pmcid: s.pmcid ?? detail?.pmcid,
+      doi: s.doi ?? detail?.doi,
       abstractText: detail?.abstractText,
       abstractSections: detail?.abstractSections,
       meshTerms: detail?.meshTerms,

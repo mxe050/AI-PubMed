@@ -44,6 +44,7 @@ export interface CommentsCorrection {
 
 export interface PubMedArticle {
   pmid: string;
+  pmcid?: string;
   title?: string;
   authors?: string[];
   journal?: string;

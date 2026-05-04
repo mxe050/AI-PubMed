@@ -46,6 +46,20 @@ export function parsePubMedXml(xmlText: string): PubMedArticle[] {
   return articles.map((node) => {
     const pmid = node.querySelector("PMID")?.textContent ?? "";
 
+    const pmcid = (() => {
+      const el = Array.from(node.querySelectorAll("ArticleIdList > ArticleId"))
+        .find((e) => e.getAttribute("IdType")?.toLowerCase() === "pmc");
+      const raw = el?.textContent?.trim();
+      if (!raw) return undefined;
+      return raw.toUpperCase().startsWith("PMC") ? raw : `PMC${raw}`;
+    })();
+
+    const doi = (() => {
+      const el = Array.from(node.querySelectorAll("ArticleIdList > ArticleId"))
+        .find((e) => e.getAttribute("IdType")?.toLowerCase() === "doi");
+      return el?.textContent?.trim();
+    })();
+
     const title =
       node.querySelector("ArticleTitle")?.textContent?.trim() ?? undefined;
 
@@ -98,6 +112,8 @@ export function parsePubMedXml(xmlText: string): PubMedArticle[] {
 
     return {
       pmid,
+      pmcid,
+      doi,
       title,
       journal,
       year,
