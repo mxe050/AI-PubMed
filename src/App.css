@@ -694,6 +694,27 @@ tr.unverified {
   margin: 8px 0;
 }
 
+/* Topic Step 2 prompt recommendation banner */
+.prompt-recommendation-banner {
+  background: var(--color-info-bg);
+  border: 2px solid var(--color-primary);
+  border-radius: var(--radius);
+  padding: 12px 16px;
+  margin-bottom: 16px;
+}
+
+.prompt-recommendation-banner h4 {
+  margin: 0 0 6px;
+  color: var(--color-primary);
+  font-size: 0.95rem;
+}
+
+.prompt-recommendation-banner p {
+  font-size: 0.85rem;
+  margin: 4px 0;
+  line-height: 1.6;
+}
+
 /* Step 3 action area */
 .step3-action {
   margin-top: 16px;

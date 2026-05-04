@@ -408,3 +408,232 @@ AI記憶確度ラベルを必ず付ける：
 > 本アプリの「AI出力ファクトチェック」タブで必ず実在確認してください。
 > 抄録だけでは Discussion 内の具体内容は確認できないため、PMC 全文または出版社サイトの原文に必ず当たってください。
 `;
+
+// 英語版・詳細プロンプト（新Prompt B）：上の topicPlainEnhancedPrompt を英語に翻訳。
+// AI モデルが英語をネイティブ処理することで、英語論文の連想記憶アクセスが強化される。
+// 最後に「英語で内部思考した上で、最終出力は日本語で」という指示を入れる。
+export const topicEnglishDetailedPrompt = `# User's Question
+{{question}}
+
+---
+
+You specialize in retrieving "in-text-buried information that PubMed's structured search cannot find" from medical literature, using AI training knowledge through intuitive, associative recall.
+
+# Core Thesis (CRITICAL)
+
+PubMed only searches Title / Abstract / MeSH. But for topic exploration, the information you actually want is usually buried in paper bodies — especially in Discussion / Introduction / Methods / Limitations / footnotes. Examples:
+
+- The real reasons why "treatment A fell out of favor" are scattered across follow-up paper introductions, editorials, guideline updates, meta-analysis Discussions, and historical reviews
+- Pointed criticism that "term B is being used in a non-original sense" appears in Discussions that name specific authors
+- The observation that "the definition of C drifts between studies" lives only in SR Discussions / heterogeneity sub-analyses
+- The arc of "how D's clinical significance has changed" is laid out in perspective / viewpoint / historical review pieces
+- Regional retrospective studies often have body-level critique of operational drift even when their abstracts are dry distribution data (common in Open Access journals)
+
+These are NOT retrievable by PubMed's structured search. **This prompt makes ZERO use of search expressions and instead leans entirely on intuitive, associative use of AI training knowledge.**
+
+# Absolute Do-NOTs
+
+- Do NOT make PICO-style structured search expression construction the main act
+- Do NOT use a "strong / medium / weak criticism vocabulary matrix" framework as the main act
+- Do NOT produce long lists of \`[tiab]\` \`AND\` \`OR\` queries
+- Do NOT give staged operational guidance like "try System 1 first, then System 2, then leak-check"
+- Do NOT throw the search work back to the user — list specific papers from AI's recall
+
+These are PubMed's territory. AI's added value lies elsewhere.
+
+---
+
+# What to Do
+
+## Step 0: Question-Type Identification (mandatory; declare at top of output)
+
+Identify which of the following patterns the question best matches (multiple OK).
+
+| Pattern | Question example | Where the answer lives |
+|---|---|---|
+| **Decline-reason** | "Why did A fall out of use" / "Why was B downgraded" | follow-up paper intros / editorials / guideline updates / meta-analysis Discussions |
+| **Misuse-pointed-out** | "Papers that say C is misused" / "D circulating in non-original form" | named criticism in Discussions / new-classification proposal intros |
+| **Term-drift** | "E's definition varies between studies" / "F means different things in different eras" | SR Discussions / meta-analysis heterogeneity / Methods redefinitions |
+| **Evaluation-shift** | "How G's evaluation changed over the last 10 years" / "H's clinical significance arc" | perspective / viewpoint / historical review |
+| **Standard-deviation** | "Real-world use of I vs guideline" / "J's implementation gap" | implementation studies / real-world data study Discussions |
+| **Implicit-criticism** | "Papers pointing out K's limitations" / "Papers rebutting L" | Limitations / letters / commentaries / footnotes |
+| **Reliability-rejection** | "Papers showing M has poor reproducibility" | kappa-validation studies / reliability studies |
+| **Predictive-validity-rejection** | "Papers showing O is invalid as a predictor" | validation studies / predictor model comparisons |
+| **Operational-drift detection** | "Papers reporting P's criteria differ between studies" | SR Discussions / meta-analysis heterogeneity |
+| **Promotion / endorsement** | "How Q became standard treatment" | guideline revision papers / consensus statements |
+| **Other** | Doesn't match above but hard to retrieve via PubMed abstract search | — |
+
+State at top of output:
+\`\`\`
+[Question type: <pattern>] (or combined like [Misuse-pointed-out + Operational-drift detection])
+Reason: 1-2 lines
+\`\`\`
+
+## Step 1: Viewpoint-Shift Expansion (mandatory; 5-10 patterns)
+
+Expand the user's one-sentence question into multiple **viewpoint-shifted reformulations**. Not surface-level paraphrases — viewpoint changes that pull out different kinds of papers. A wording shift opens a different drawer of AI's associative memory.
+
+### Decline-reason type — example viewpoints
+| Viewpoint | Reformulation example | Likely paper type |
+|---|---|---|
+| Guideline angle | "Evidence for A's downgrade or removal in guideline revisions" | guideline update / consensus statement |
+| Successor comparison | "Direct comparisons showing B is better than A" | head-to-head trial / network meta-analysis |
+| Safety | "Serious adverse events of A leading to avoidance" | post-marketing surveillance / large case series |
+| Evidence reversal | "Papers where re-examination overturned A's evidence base" | replication failure / re-analysis / large RCT |
+| Implementation difficulty | "Papers reporting A is hard to operate in real practice" | implementation study / qualitative study |
+| Editor / society angle | "Editorials and perspectives on the move away from A" | editorial / perspective / viewpoint |
+| Historical retrospective | "Reviews retrospectively narrating A's rise and fall" | historical review / narrative review |
+| Economic | "Papers showing A is not cost-effective" | cost-effectiveness analysis |
+| Indication shrinkage | "Papers on A's indication being narrowed" | indication restriction / subgroup analysis |
+| Prescription trend | "Papers showing A's prescribing rate decreasing over time" | drug utilization / trend analysis |
+
+### Misuse-pointed-out type — example viewpoints
+| Viewpoint | Reformulation example | Likely paper type |
+|---|---|---|
+| General criticism | "Reviews stating C is generally misused" | review / editorial |
+| **Named criticism** | **"Papers naming specific authors and criticizing them for misuse"** | retrospective study Discussions naming names |
+| Empirical | "Papers measuring inter-observer kappa showing the same case classified differently" | reliability study |
+| Methods modified-adoption | "Papers writing 'we used a modified version' in Methods" | large retrospective radiographic study |
+| New classification | "Papers proposing new criteria while critiquing existing ones" | new classification proposal review |
+| Predictive validity rejection | "Papers statistically showing C is not a valid predictor" | validation study |
+| Mix-up identification | "Papers explicitly identifying notation reversals or divergence from origin" | source-text examination paper |
+| Diagram confusion | "Papers pointing out C's diagram is confused with another concept" | textbook critique / footnotes |
+| Regional research Discussion | "Regional retrospective studies whose Discussion debates predecessor operational drift" | Open Access regional research |
+| Limitations self-acknowledgment | "Papers acknowledging in their own Limitations 'criteria differ from prior work'" | SR / retrospective study |
+
+### Other types
+
+For other question types, **the AI must generate 5-10 viewpoints itself**, not bound by the examples above.
+
+## Step 2: Activating Association Paths (mandatory; 5+ paths)
+
+For each path, list specific proper nouns from memory.
+
+**(a) Author-name associations** — first-movers, regular contributors, dissenters, new-school people. For misuse-pointed-out type, list the criticized authors' names too.
+
+**(b) Journal associations** — generalist (NEJM / Lancet / JAMA / BMJ) / specialty / editorial-friendly journals / **Open Access** (MDPI: IJERPH, Medicina, Healthcare, J Clin Med, Diagnostics; BMC: BMC Oral Health, BMC Med) / Cochrane Reviews
+
+**(c) Region / country associations** — regional retrospective studies are PubMed-abstract-search blind spots. Recall deliberately (Polish, East Baltic, Turkish, Iranian, Saudi, Brazilian, Korean, Chinese, Indian, etc.).
+
+**(d) Study-type associations** — RCT / meta-analysis / SR / cohort / case-control / cross-sectional / case series / **editorial / letter / commentary / perspective / viewpoint / guideline / historical review** (the last 4 are weakly tagged in PubMed but strongly recalled by AI).
+
+**(e) Era / decade associations** — recall the **emergence / heyday / turning point / decline period** plus representative papers from each era.
+
+**(f) Related-term / successor-concept associations** — successor treatment / alternative classification / revised version / similar score / alias / former name / competing concept.
+
+**(g) Opposing-views / critic associations** — researchers who have criticized the topic / typical points of contention / opposing schools.
+
+## Step 3: Free-Association Candidate Paper Enumeration (≥ 15)
+
+For each viewpoint, enumerate papers AI training knowledge can recall, by **author / year / journal / partial title**.
+
+- Add PMID if recallable; leave blank if not
+- A paper qualifies if any 3 of author / year / journal are recallable
+- **Do NOT discard candidates because PMID is uncertain**
+
+Add an AI-recall confidence label:
+- **【AI memory: high confidence】**
+- **【AI memory: medium confidence】**
+- **【AI memory: title may be inaccurate】**
+
+## Step 4: Sub-Classification (A / B1-B7 / C / D)
+
+| Class | Definition |
+|---|---|
+| **A** | Abstract-level match (easily found in PubMed) |
+| **B1: Direct-criticism / named** | Discussion names specific other papers / authors and criticizes them |
+| **B2: Empirical-data** | Demonstrates the problem with kappa / statistics / measured values |
+| **B3: New-proposal / alternative** | Critiques the existing while proposing something new |
+| **B4: Operational-drift / modified-adoption** | Methods describes adopting a modified version or independent criteria |
+| **B5: Validity rejection** | Statistically rejects predictive ability / efficacy / reproducibility |
+| **B6: Historical / retrospective / editorial** | Perspective / historical review / editorial laying out the arc |
+| **B7: Implementation / reality-gap** | Shows divergence between real-world use and guidelines |
+| **C** | Background / origin |
+| **D** | Plain usage examples (exclusion candidates) |
+
+**Goal**: at least 7 B-class total. **At least 2 from the B sub-class most relevant to the question type.**
+
+## Step 5: Body-Content Detail Extraction for Key B Candidates (MOST IMPORTANT)
+
+For B sub-class candidates most relevant to the question type, **specifically extract from AI memory: "what is written WHERE in the body."** **This is the maximum value of this prompt.**
+
+| Question type | What to extract |
+|---|---|
+| Decline-reason | The order and rationale that the paper's Discussion gives for why A declined |
+| Misuse-pointed-out | **Specific authors / years that the Discussion names and criticizes** |
+| Term-drift | Specific examples the SR points out for "definition variation between studies" |
+| Evaluation-shift | How the perspective lays out evaluation changes over time (section structure) |
+| Standard-deviation | Specific numerical implementation gaps |
+| Reliability-rejection | kappa values / discordance rates / specific failure patterns |
+| Predictive-validity rejection | AUC / OR / p-values, the rejected predictor names |
+| Operational-drift detection | Specific divergence points like "A used threshold X, B used threshold Y" |
+
+If memory is fuzzy, mark **【AI memory: body-content identification fuzzy — verify with original】**.
+
+## Step 6: Candidate List Table
+
+| Column | Content |
+|---|---|
+| Author / year | with AI-recall confidence label |
+| Journal |  |
+| Title | note if possibly inaccurate |
+| PMID / DOI / PMCID | "Search PubMed" if not recalled |
+| Content summary | 2-3 lines |
+| Relation to question | which sub-class, what it states |
+| Where in body the info lives | Abstract / Intro / Methods / Discussion / Limitations / Footnotes |
+| Detail extraction | for key B candidates only: body-content specifics from Step 5 |
+| Class | A / B1-B7 / C / D |
+
+## Step 7: Integrated Summary (direct answer to the question)
+
+Write a **direct integrated answer to the question**. State that this is AI-recall-based inference and requires verification.
+
+## Step 8: User Next-Step Guidance
+
+- Candidates are AI-recalled; PMID, title details, and body-content extraction may be inaccurate
+- ALWAYS verify with this app's "AI Output Fact Check" tab
+- Don't judge by abstract alone — read the **PMC full text** or publisher site directly
+
+---
+
+# Output Structure
+
+\`\`\`
+[Question type: XXX]
+Reason: 1-2 lines
+
+## 1. Viewpoint shifts (5-10 patterns)
+## 2. Association paths
+## 3. Candidate paper list table (≥15, B total ≥7)
+## 4. Body-content detail extraction for key B candidates (MOST IMPORTANT)
+## 5. Integrated summary (direct answer to the question)
+## 6. User next-step guidance
+## 7. Closing notes
+\`\`\`
+
+# Self-Check (mandatory)
+
+- [ ] Identified question type? (multiple OK)
+- [ ] Viewpoints expanded into 5-10 patterns?
+- [ ] Used 5+ association paths?
+- [ ] At least 15 candidates, total B ≥ 7?
+- [ ] At least 2 from the B sub-class most relevant to the question type?
+- [ ] Body-content detail extraction done?
+- [ ] AI-recall confidence label on each candidate?
+
+---
+
+# 🌐 Final Language Instruction (CRITICAL — read carefully)
+
+**First, follow ALL of the above instructions in English.** Perform the question-type detection, viewpoint shifts, association paths, candidate enumeration, sub-classification, body-content extraction, and integrated summary entirely in English in your internal reasoning. This maximizes recall precision because most medical literature is indexed in English and AI training is densest in English-language scientific text.
+
+**Then, render the FINAL output entirely in Japanese.** All section headings, table headers, candidate descriptions, content summaries, integrated summary, user guidance, and closing notes must be written in Japanese in the answer that the user reads. The user is a Japanese clinician.
+
+In short: **think and recall in English (for precision); deliver the final answer in Japanese (for the user).**
+
+# Closing notes (must restate at end of answer in Japanese)
+
+> 本回答は AI の訓練知識からの想起であり、PMID やタイトルの細部、本文内容の詳細抽出は不正確な可能性があります。
+> 本アプリの「AI出力ファクトチェック」タブで必ず実在確認してください。
+> 抄録だけでは Discussion 内の具体内容は確認できないため、PMC 全文または出版社サイトの原文に必ず当たってください。
+`;
