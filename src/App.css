@@ -85,6 +85,46 @@ body {
   font-weight: 600;
 }
 
+/* Tab kind variations: subtle differentiation between main features
+   (Fact Check, Topic) and supplementary features (EBM, SR, GRADE).
+   "All are important — only slightly differentiated, not loud." */
+.tab-button.tab-kind-main {
+  font-size: 0.95rem;
+  font-weight: 600;
+  padding: 10px 22px;
+}
+
+.tab-button.tab-kind-supp {
+  font-size: 0.85rem;
+  padding: 10px 16px;
+  opacity: 0.92;
+}
+
+.tab-button.tab-kind-meta {
+  font-size: 0.85rem;
+  padding: 10px 16px;
+  opacity: 0.85;
+}
+
+.tab-main-dot {
+  display: inline-block;
+  color: var(--color-primary);
+  font-size: 0.6rem;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
+.tab-legend {
+  font-size: 0.75rem;
+  color: var(--color-text-secondary);
+  margin: 6px 0 0;
+  padding: 0 4px;
+}
+
+.tab-legend .tab-main-dot {
+  margin-right: 3px;
+}
+
 /* Main */
 .app-main {
   padding: 24px 0;

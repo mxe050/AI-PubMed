@@ -18,13 +18,15 @@ type TabType =
   | "systematic_review"
   | "grade_explainer";
 
-const tabs: { key: TabType; label: string }[] = [
-  { key: "how_to_use", label: "使い方・設定" },
-  { key: "fact_check", label: "AI出力ファクトチェック" },
-  { key: "topic_exploration", label: "トピック探索" },
-  { key: "ebm_search", label: "EBMのための検索" },
-  { key: "systematic_review", label: "システマティックレビュー" },
-  { key: "grade_explainer", label: "GRADE-ADOLOPMENT解説" },
+type TabKind = "main" | "supp" | "meta";
+
+const tabs: { key: TabType; label: string; kind: TabKind }[] = [
+  { key: "how_to_use", label: "使い方・設定", kind: "meta" },
+  { key: "fact_check", label: "AI出力ファクトチェック", kind: "main" },
+  { key: "topic_exploration", label: "トピック探索", kind: "main" },
+  { key: "ebm_search", label: "EBMのための検索", kind: "supp" },
+  { key: "systematic_review", label: "システマティックレビュー", kind: "supp" },
+  { key: "grade_explainer", label: "GRADE-ADOLOPMENT解説", kind: "supp" },
 ];
 
 export default function App() {
@@ -44,13 +46,18 @@ export default function App() {
         {tabs.map((tab) => (
           <button
             key={tab.key}
-            className={`tab-button ${activeTab === tab.key ? "active" : ""}`}
+            className={`tab-button tab-kind-${tab.kind} ${activeTab === tab.key ? "active" : ""}`}
             onClick={() => setActiveTab(tab.key)}
           >
+            {tab.kind === "main" && <span className="tab-main-dot" aria-hidden="true">●</span>}
             {tab.label}
           </button>
         ))}
       </nav>
+      <p className="tab-legend">
+        <span className="tab-main-dot" aria-hidden="true">●</span>
+        がメイン機能（AI出力ファクトチェック・トピック探索）。EBM検索・SR・GRADEは補助です。
+      </p>
 
       <main className="app-main">
         {activeTab === "how_to_use" && (
