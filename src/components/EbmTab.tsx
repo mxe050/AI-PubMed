@@ -10,6 +10,7 @@ import {
   ebmPubmedEndingPrompt,
   ebmClassificationPrompt,
   ebmPicoRefinementPrompt,
+  ebmPicoBrainstormPrompt,
 } from "../prompts/ebmStep2";
 import { buildArticleListForClassification } from "../utils/buildArticleListForClassification";
 import { evaluatePicoCompleteness } from "../utils/evaluatePicoCompleteness";
@@ -35,9 +36,27 @@ const purposeOptions = [
 export function EbmTab({ settings }: Props) {
   const [rawQuestion, setRawQuestion] = useState("");
   const [specialty, setSpecialty] = useState("");
-  const [context, setContext] = useState("");
   const [purpose, setPurpose] = useState("treatment");
-  const [pico, setPico] = useState("");
+
+  // PICO fields (EBM Step 1 — required, but app falls back silently if blank)
+  const [picoP, setPicoP] = useState("");
+  const [picoI, setPicoI] = useState("");
+  const [picoC, setPicoC] = useState("");
+  const [picoO, setPicoO] = useState("");
+  const [showPicoBrainstorm, setShowPicoBrainstorm] = useState(false);
+  const [picoBrainstormPrompt, setPicoBrainstormPrompt] = useState("");
+  const [picoBrainstormResponse, setPicoBrainstormResponse] = useState("");
+
+  const combinedPico = [
+    picoP && `P: ${picoP}`,
+    picoI && `I: ${picoI}`,
+    picoC && `C: ${picoC}`,
+    picoO && `O: ${picoO}`,
+  ]
+    .filter(Boolean)
+    .join(" / ");
+  const pico = combinedPico;
+  const context = combinedPico; // Use PICO as the patient context block in prompts
 
   const [initialPrompt, setInitialPrompt] = useState("");
   const [aiResponse, setAiResponse] = useState("");
@@ -95,6 +114,22 @@ export function EbmTab({ settings }: Props) {
       purpose: purposeLabel,
     });
     setPicoRefinementPrompt(prompt);
+  }
+
+  function generatePicoBrainstormPrompt() {
+    if (!rawQuestion.trim()) {
+      alert("先に原質問を入力してください。");
+      return;
+    }
+    const purposeLabel =
+      purposeOptions.find((p) => p.value === purpose)?.label ?? purpose;
+    const prompt = buildPrompt(ebmPicoBrainstormPrompt, {
+      question: rawQuestion,
+      specialty: specialty || "未入力",
+      purpose: purposeLabel,
+    });
+    setPicoBrainstormPrompt(prompt);
+    setShowPicoBrainstorm(true);
   }
 
   function extractSearchFromAi() {
@@ -234,15 +269,98 @@ export function EbmTab({ settings }: Props) {
           />
         </div>
 
+        <div className="ebm-pico-imperative">
+          <h4>⚠ EBM Step 1（臨床疑問の定式化）— 検索の質を決める最重要ステップ</h4>
+          <p>
+            EBMの第1ステップ「臨床疑問の定式化」は、検索の質を根本から決める最重要のステップです。
+            原質問のままではなく、必ず以下のPICOに分解して入力してください。
+          </p>
+          <p>
+            <strong>
+              AIが便利だからといって、このステップをないがしろにする癖をつけてはいけません。
+            </strong>{" "}
+            面倒でも、PICOを必ず入力してください。
+            EBMには必ずステップがあり、ステップを飛ばすと根拠の薄い検索になります。
+          </p>
+          <p>
+            自分でPICOが想定できない場合は、下の「PICO案をAIに考えてもらうプロンプトを生成」を使ってください。
+            AIで案を出してから、その案を本欄に転記して進めてください。
+          </p>
+        </div>
+
+        <h4>PICO（必須）</h4>
         <div className="form-group">
-          <label>患者背景・状況</label>
+          <label>P（対象患者・状況）</label>
           <textarea
             rows={2}
-            value={context}
-            onChange={(e) => setContext(e.target.value)}
+            value={picoP}
+            onChange={(e) => setPicoP(e.target.value)}
             placeholder="例：80歳代の女性、HFrEF、eGFR 45、糖尿病あり、外来"
           />
         </div>
+        <div className="form-group">
+          <label>I（介入・曝露）</label>
+          <textarea
+            rows={2}
+            value={picoI}
+            onChange={(e) => setPicoI(e.target.value)}
+            placeholder="例：SGLT2阻害薬（ダパグリフロジン10mg/日）"
+          />
+        </div>
+        <div className="form-group">
+          <label>C（比較）</label>
+          <textarea
+            rows={2}
+            value={picoC}
+            onChange={(e) => setPicoC(e.target.value)}
+            placeholder="例：標準治療（ACE-I/ARB/β遮断薬）のみ"
+          />
+        </div>
+        <div className="form-group">
+          <label>O（アウトカム）</label>
+          <textarea
+            rows={2}
+            value={picoO}
+            onChange={(e) => setPicoO(e.target.value)}
+            placeholder="例：心不全入院、全死亡、QOL"
+          />
+        </div>
+
+        <details className="pico-brainstorm-section">
+          <summary>
+            <strong>
+              PICOが思いつかない場合：AIに案を考えてもらうプロンプトを生成
+            </strong>
+          </summary>
+          <p className="hint">
+            原質問・診療科・検索目的だけを使って、AIにPICO案を3パターン考えてもらうプロンプトを生成します。
+            AIで案を出してから、上のP/I/C/Oフィールドに転記してください。
+          </p>
+          <button
+            className="btn btn-secondary"
+            onClick={generatePicoBrainstormPrompt}
+          >
+            PICO案ブレストプロンプトを生成
+          </button>
+          {showPicoBrainstorm && picoBrainstormPrompt && (
+            <>
+              <PromptDisplay
+                prompt={picoBrainstormPrompt}
+                title="PICO案ブレストプロンプト"
+              />
+              <p className="hint">
+                上のプロンプトを外部AIに貼り付け、返ってきた回答を下に貼り付けて参照しながら、上のP/I/C/Oに記入してください。
+              </p>
+              <textarea
+                value={picoBrainstormResponse}
+                onChange={(e) => setPicoBrainstormResponse(e.target.value)}
+                rows={10}
+                placeholder="AIから返ってきたPICO案回答全体を参照用に貼り付け..."
+                style={{ width: "100%" }}
+              />
+            </>
+          )}
+        </details>
 
         <div className="form-group">
           <label>検索目的</label>
@@ -345,15 +463,12 @@ export function EbmTab({ settings }: Props) {
             placeholder="AIから返ってきた回答全体をここに貼り付け..."
             style={{ width: "100%" }}
           />
-          <div className="form-group" style={{ marginTop: 12 }}>
-            <label>PICOをここに転記（任意・後段プロンプトに使用）</label>
-            <textarea
-              rows={2}
-              value={pico}
-              onChange={(e) => setPico(e.target.value)}
-              placeholder="例：P 高齢心不全患者 / I SGLT2阻害薬 / C 標準治療 / O 心不全入院・全死亡"
-            />
-          </div>
+          {pico && (
+            <div className="form-group" style={{ marginTop: 12 }}>
+              <label>Step 1で入力されたPICO（後段プロンプトに自動投入）</label>
+              <div className="pico-preview">{pico}</div>
+            </div>
+          )}
           {aiResponse && (
             <div className="step3-action">
               <p className="hint">

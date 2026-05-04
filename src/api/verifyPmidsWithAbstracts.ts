@@ -33,8 +33,10 @@ export async function verifyPmidsWithAbstracts(
     return {
       ...s,
       abstractText: detail?.abstractText,
+      abstractSections: detail?.abstractSections,
       meshTerms: detail?.meshTerms,
       publicationTypes: detail?.publicationTypes,
+      commentsCorrections: detail?.commentsCorrections,
     };
   });
 

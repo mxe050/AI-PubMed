@@ -1,4 +1,9 @@
-import type { AppSettings, PubMedArticle } from "../types";
+import type {
+  AppSettings,
+  PubMedArticle,
+  AbstractSection,
+  CommentsCorrection,
+} from "../types";
 import { buildNcbiUrl } from "../utils/buildNcbiUrl";
 import type { NcbiRateLimiter } from "../utils/ncbiRateLimiter";
 
@@ -44,12 +49,32 @@ export function parsePubMedXml(xmlText: string): PubMedArticle[] {
     const title =
       node.querySelector("ArticleTitle")?.textContent?.trim() ?? undefined;
 
-    const abstractParts = Array.from(node.querySelectorAll("AbstractText"))
-      .map((el) => el.textContent?.trim())
-      .filter(Boolean);
+    const abstractSections: AbstractSection[] = Array.from(
+      node.querySelectorAll("AbstractText")
+    )
+      .map((el) => ({
+        label: el.getAttribute("Label") ?? undefined,
+        nlmCategory: el.getAttribute("NlmCategory") ?? undefined,
+        text: el.textContent?.trim() ?? "",
+      }))
+      .filter((s) => s.text.length > 0);
 
     const abstractText =
-      abstractParts.length > 0 ? abstractParts.join("\n") : undefined;
+      abstractSections.length > 0
+        ? abstractSections
+            .map((s) => (s.label ? `${s.label}: ${s.text}` : s.text))
+            .join("\n\n")
+        : undefined;
+
+    const commentsCorrections: CommentsCorrection[] = Array.from(
+      node.querySelectorAll(
+        "CommentsCorrectionsList > CommentsCorrections"
+      )
+    ).map((el) => ({
+      refType: el.getAttribute("RefType") ?? "Unknown",
+      pmid: el.querySelector("PMID")?.textContent ?? undefined,
+      note: el.querySelector("RefSource")?.textContent ?? undefined,
+    }));
 
     const meshTerms = Array.from(node.querySelectorAll("MeshHeading"))
       .map((heading) => heading.querySelector("DescriptorName")?.textContent)
@@ -77,8 +102,11 @@ export function parsePubMedXml(xmlText: string): PubMedArticle[] {
       journal,
       year,
       abstractText,
+      abstractSections: abstractSections.length > 0 ? abstractSections : undefined,
       meshTerms,
       publicationTypes,
+      commentsCorrections:
+        commentsCorrections.length > 0 ? commentsCorrections : undefined,
       verified: Boolean(pmid),
       source: "efetch",
     } satisfies PubMedArticle;

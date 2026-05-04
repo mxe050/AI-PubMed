@@ -30,6 +30,18 @@ export interface AppSettings {
   requestIntervalWithKeyMs: number;
 }
 
+export interface AbstractSection {
+  label?: string;
+  nlmCategory?: string;
+  text: string;
+}
+
+export interface CommentsCorrection {
+  refType: string;
+  pmid?: string;
+  note?: string;
+}
+
 export interface PubMedArticle {
   pmid: string;
   title?: string;
@@ -39,8 +51,10 @@ export interface PubMedArticle {
   pubDate?: string;
   doi?: string;
   abstractText?: string;
+  abstractSections?: AbstractSection[];
   meshTerms?: string[];
   publicationTypes?: string[];
+  commentsCorrections?: CommentsCorrection[];
   verified: boolean;
   source: "esummary" | "efetch" | "manual";
 }
