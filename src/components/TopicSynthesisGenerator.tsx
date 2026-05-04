@@ -109,6 +109,7 @@ export function TopicSynthesisGenerator({
         prompt={plainEnhanced}
         copyLabel="プレーン多角分解プロンプトをコピー"
         terminal
+        sameAsNote="※ このプロンプトの内容は、Step 2（AI用プロンプト）の下に表示される「プレーン多角分解版（任意・先に試せる版）」と同じものです。"
       >
         <details>
           <summary>
@@ -191,6 +192,7 @@ function PromptCard({
   copyLabel,
   terminal,
   children,
+  sameAsNote,
 }: {
   title: string;
   kind: "plain" | "plain-enhanced" | "synthesis";
@@ -198,6 +200,7 @@ function PromptCard({
   copyLabel: string;
   terminal: boolean;
   children?: React.ReactNode;
+  sameAsNote?: string;
 }) {
   const [copied, setCopied] = useState(false);
 
@@ -226,6 +229,8 @@ function PromptCard({
           {terminal ? "→ ここで終了（必要に応じて検証）" : "→ ファクトチェックタブへ続く"}
         </span>
       </div>
+
+      {sameAsNote && <p className="hint">{sameAsNote}</p>}
 
       {children}
 

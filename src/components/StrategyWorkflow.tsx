@@ -169,6 +169,10 @@ export function StrategyWorkflow({
                 })}
                 title="プレーン多角分解版（任意・先に試せる版）"
               />
+              <p className="hint">
+                ※ このプロンプトの内容は、最後のStep（Step 5「3本のAIプロンプト」内のプロンプト2）と同じものです。
+                Step 4のPubMed検索を待たずに先に試せるよう、ここにも表示しています。
+              </p>
               <p className="warning-text">
                 ⚠ このプロンプトで一度AIに検索（質問）すると、自分の知りたい結果が出る場合があります。
                 ただし、それは網羅的な検索ではないので、それだけで判断しないこと。
