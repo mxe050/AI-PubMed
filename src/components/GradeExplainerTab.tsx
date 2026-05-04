@@ -9,22 +9,68 @@ export function GradeExplainerTab() {
       </header>
 
       <section className="grade-section">
-        <h3>GRADE-ADOLOPMENTとは</h3>
+        <h3>GRADE-ADOLOPMENT とは</h3>
         <p>
-          <strong>GRADE-ADOLOPMENT</strong>は、Schünemannら（2017）が提唱した診療ガイドライン作成のフレームワークです。
+          <strong>GRADE-ADOLOPMENT</strong> は、Schünemann ら（2017）が提唱した診療ガイドライン作成のフレームワークです。
           名称は <strong>ADO</strong>ption（採択）+ <strong>ADAP</strong>tation（適応）+
           de novo deve<strong>LOPMENT</strong>（新規開発）の合成語で、
-          GRADE Evidence to Decision (EtD) frameworkを共通基盤として、
+          GRADE Evidence to Decision (EtD) framework を共通基盤として、
           疑問ごとに最適な手段（採択 / 適応 / 新規開発）を選択する手法です。
+        </p>
+        <p>
+          ガイドライン作成は伝統的に「ゼロから作る（de novo）」のが原則とされてきましたが、
+          実際には世界中で同じテーマのガイドラインが何度も独立に作られ、
+          時間・人的資源・コストが重複して費やされてきました。
+          GRADE-ADOLOPMENT は、この重複を避けつつ、各組織の文脈に合った推奨を作るための実装可能な手法として登場しました。
+        </p>
+        <p>
+          Saudi Arabia 保健省の国家ガイドラインプログラムで、22 ガイドライン・226 推奨を約 4〜6 か月で作成した実証研究（Schünemann et al., J Clin Epidemiol 2017;81:101-110）で有効性が示されています。
+          通常 1 ガイドラインあたり 2〜3 年かかる作業を大幅に短縮しました。
         </p>
 
         <div className="callout">
-          <h4>本手法の利点</h4>
+          <h4>本手法の利点（5点）</h4>
           <ul>
-            <li>すべてをde novoで作成する場合に比べ、人的・金銭的資源を大幅に削減できる</li>
-            <li>EtD frameworkにより推奨の根拠と判断過程が透明化される</li>
-            <li>各国・各組織が自分たちの文脈に合わせて推奨を「ローカライズ」できる</li>
-            <li>パネル合意形成が構造化され、討議が効率化する</li>
+            <li>
+              <strong>資源効率</strong>：すべてを de novo で作成する場合と比べ、人的・金銭的資源を大幅に削減できる。
+              既存の信頼できる SR・GL を起点にすることで、検索・評価・抽出の重複作業を回避。
+            </li>
+            <li>
+              <strong>透明性</strong>：EtD framework により推奨の根拠と判断過程が構造化され、
+              「なぜこの推奨になったか」が他者に明示できる。
+            </li>
+            <li>
+              <strong>ローカライズ可能性</strong>：各国・各組織が自分たちの文脈
+              （baseline risk、医療体制、患者の価値観、医療資源、文化的受容性）に合わせて推奨を修正できる。
+            </li>
+            <li>
+              <strong>パネル合意形成</strong>：EtD の 8 基準で討議が構造化され、
+              「何を判断するのか」がパネルメンバー間で明確になる。
+              意見の対立点も基準ごとに分離できるため、合意形成が効率化する。
+            </li>
+            <li>
+              <strong>更新容易性</strong>：原典 GL/SR の更新があった場合、
+              EtD のどの基準が変わるかを評価するだけで部分的な更新が可能。
+            </li>
+          </ul>
+        </div>
+
+        <div className="callout">
+          <h4>本手法の限界・注意点</h4>
+          <ul>
+            <li>
+              原典 GL に EtD framework が含まれない場合、原典の判断根拠を再構築する必要があり、想定より労力がかかる。
+            </li>
+            <li>
+              原典の信頼性評価（AGREE II 等）が必要で、信頼性が低い原典に依存すると派生 GL の質も低下する。
+            </li>
+            <li>
+              Adoption だけで進めると「単なる翻訳」になりやすく、ローカル文脈での適切性検証が形骸化する危険がある。
+            </li>
+            <li>
+              特に医療資源・薬剤承認状況・保険償還が原典国と大きく異なる場合、
+              Adaptation または De novo を選ぶべき場面で誤って Adoption を選んでしまうリスクがある。
+            </li>
           </ul>
         </div>
 
@@ -305,6 +351,149 @@ export function GradeExplainerTab() {
           <p className="hint">
             原典が推奨を出していなかったため、新規にエビデンス統合を実施。ローカルなベースラインリスクと実行可能性も考慮。
           </p>
+        </div>
+      </section>
+
+      <section className="grade-section">
+        <h3>EtD 8 基準の詳細（実例ベース）</h3>
+        <p>
+          各基準について、具体的な評価方法・データ源・パネル討議でよく出る論点を解説します。
+        </p>
+
+        <div className="example-box">
+          <h4>1. Problem（問題の重要性）</h4>
+          <p>
+            <strong>評価項目</strong>：疾患の有病率、罹患率、死亡率、QOL影響、医療資源消費、地域・人口差
+          </p>
+          <p>
+            <strong>データ源</strong>：疫学研究、レジストリ、保険請求データ、Global Burden of Disease (GBD)、地域人口動態統計
+          </p>
+          <p>
+            <strong>判断のポイント</strong>：問題が「個人レベルで重大」「社会レベルで頻度が高い」「医療者間で重要性が共有されている」場合、強い推奨に向かう。
+            稀少疾患でも個人への影響が甚大なら問題は大きいと判断する。
+          </p>
+          <p>
+            <strong>パネル討議の典型論点</strong>：地域差・年齢層差をどう扱うか、エビデンスの量と臨床現場の実感の乖離。
+          </p>
+        </div>
+
+        <div className="example-box">
+          <h4>2. Values and preferences（価値観と選好）</h4>
+          <p>
+            <strong>評価項目</strong>：患者がアウトカムにどう重みを付けるか、選好のばらつき、選好の確実性
+          </p>
+          <p>
+            <strong>データ源</strong>：質的研究、選好調査（discrete choice experiment）、患者代表意見、共有意思決定（SDM）研究
+          </p>
+          <p>
+            <strong>判断のポイント</strong>：選好のばらつきが小さく重要性に合意があれば強い推奨へ。ばらつきが大きい場合は条件付き推奨。
+          </p>
+          <p>
+            <strong>パネル討議の典型論点</strong>：地域・文化的価値観の違い、患者の年齢・健康リテラシーによる差、宗教的・倫理的考慮。
+          </p>
+        </div>
+
+        <div className="example-box">
+          <h4>3. Certainty in the evidence（エビデンスの確実性）</h4>
+          <p>
+            <strong>評価項目</strong>：GRADE による 4 段階評価（高 / 中 / 低 / 非常に低）。
+            出発点は研究デザイン（RCT=高、観察研究=低）。
+          </p>
+          <p>
+            <strong>格下げ要因</strong>：Risk of bias / 非一貫性 (inconsistency) / 非直接性 (indirectness) / 不精確さ (imprecision) / 出版バイアス
+          </p>
+          <p>
+            <strong>格上げ要因</strong>：大きな効果量 / 用量反応関係 / 残余交絡が結果を弱める方向にある
+          </p>
+          <p>
+            <strong>判断のポイント</strong>：確実性が高いほど強い推奨。低・非常に低の場合は条件付きが多い。
+          </p>
+        </div>
+
+        <div className="example-box">
+          <h4>4. Benefits and harms（利益と害）</h4>
+          <p>
+            <strong>評価項目</strong>：絶対効果（NNT, NNH）、相対リスク、利益と害のバランス、副次アウトカムへの影響
+          </p>
+          <p>
+            <strong>データ源</strong>：SR/MA、ベースラインリスクから絶対効果を計算
+          </p>
+          <p>
+            <strong>判断のポイント</strong>：「正味利益が大きい」または「正味害が大きい」場合は強い推奨。
+            「不確実」「微差」「個人差大」の場合は条件付き推奨。
+          </p>
+          <p>
+            <strong>パネル討議の典型論点</strong>：稀な重篤副作用と頻度の高い軽症副作用の重み付け、長期と短期のバランス。
+          </p>
+        </div>
+
+        <div className="example-box">
+          <h4>5. Resource use（資源使用）</h4>
+          <p>
+            <strong>評価項目</strong>：直接費用、間接費用、医療資源（人員・設備）、費用対効果（ICER）、機会費用
+          </p>
+          <p>
+            <strong>データ源</strong>：経済評価研究、保険償還データ、診療報酬、地域の医療費水準
+          </p>
+          <p>
+            <strong>判断のポイント</strong>：費用対効果が明確に良好なら強い推奨へ。逆に著しく不利なら強い非推奨へ。
+          </p>
+          <p>
+            <strong>地域差の扱い</strong>：所得水準、保険制度、薬価が国により異なるため、Adoption か Adaptation かの判断材料となる。
+          </p>
+        </div>
+
+        <div className="example-box">
+          <h4>6. Equity（公平性）</h4>
+          <p>
+            <strong>評価項目</strong>：医療アクセスの公平性、社会経済的・人種的・地理的格差への影響
+          </p>
+          <p>
+            <strong>データ源</strong>：地域別実装データ、社会疫学研究、health equity 研究
+          </p>
+          <p>
+            <strong>判断のポイント</strong>：推奨の実装が格差を縮小するか拡大するか。
+            縮小なら強い推奨方向、拡大なら慎重な検討が必要。
+          </p>
+        </div>
+
+        <div className="example-box">
+          <h4>7. Acceptability（受容性）</h4>
+          <p>
+            <strong>評価項目</strong>：患者・医療者・政策決定者にとっての受容性、文化的・倫理的・宗教的適合性
+          </p>
+          <p>
+            <strong>データ源</strong>：質的研究、ステークホルダーインタビュー、現場の医療者調査
+          </p>
+          <p>
+            <strong>判断のポイント</strong>：主要関係者の大多数が受け入れる場合は強い推奨へ。
+            重要なステークホルダーが拒否的なら実装が困難になる。
+          </p>
+        </div>
+
+        <div className="example-box">
+          <h4>8. Feasibility（実行可能性）</h4>
+          <p>
+            <strong>評価項目</strong>：医療体制（人材・設備）、保険制度、規制、トレーニング要件
+          </p>
+          <p>
+            <strong>データ源</strong>：実装研究、医療体制データ、現場医療者ヒアリング
+          </p>
+          <p>
+            <strong>判断のポイント</strong>：技術的・制度的に実装可能なら強い推奨へ。
+            「理論上は良いが現場で実装困難」なら条件付き推奨や留保となる。
+          </p>
+        </div>
+
+        <div className="callout">
+          <h4>EtD で「強い推奨」になりやすい組み合わせ</h4>
+          <ul>
+            <li>問題が重要 + 利益が害を明確に上回る + エビデンスの確実性が高い + 資源効率が良い + 公平性に有利 + 受容性・実行可能性に問題なし</li>
+          </ul>
+          <h4>EtD で「条件付き推奨」になりやすい組み合わせ</h4>
+          <ul>
+            <li>エビデンスの確実性が低い、利益と害がほぼ同等、選好のばらつきが大きい、費用対効果が患者・地域により変動、実装に重要な障壁</li>
+          </ul>
         </div>
       </section>
 

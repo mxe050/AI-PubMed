@@ -9,6 +9,11 @@ import {
   topicPlainEnhancedPrompt,
   topicSimplePrompt,
 } from "../prompts/topicExploration";
+import {
+  studyDesignFilters,
+  applyStudyDesignFilter,
+} from "../utils/cochraneFilters";
+import type { StudyDesignFilterKey } from "../utils/cochraneFilters";
 import { FormFields } from "./FormFields";
 import { PromptDisplay } from "./PromptDisplay";
 import { AiResponseInput } from "./AiResponseInput";
@@ -145,6 +150,37 @@ export function StrategyWorkflow({
 
       <section className="workflow-section">
         <h2>Step 1: 入力</h2>
+
+        {mode === "sr-revision" && (
+          <div className="sr-pico-imperative">
+            <h4>📋 SR の PICO は EBM の PICO とは違います（必読）</h4>
+            <p>
+              システマティックレビューにおける PICO は、<strong>EBM の臨床判断用 PICO とは目的が異なります</strong>。
+              SR の PICO は <strong>適格基準（eligibility criteria）と検索戦略の中核</strong>を成し、後の研究選定・抽出・合成のすべての基盤になります。
+              一度決めた PICO は、プロトコル登録（PROSPERO 等）後は変更が困難で、
+              レビュー全体の妥当性に直接影響します。
+            </p>
+            <p>
+              <strong>Cochrane Handbook v6.5（2024）Chapter 2「Determining the scope of the review and the questions it will address」</strong>
+              および <strong>PRISMA 2020（Page MJ et al., BMJ 2021;372:n71）／PRISMA-S（Rethlefsen ML et al., Syst Rev 2021;10:39）</strong>
+              は、SR における PICO の明確化が、検索の感度・透明性・再現性を担保する最重要要件であることを示しています。
+            </p>
+            <p>
+              <strong>O（アウトカム）は検索式には含めません</strong>。
+              Cochrane Handbook は、O を検索式に含めると感度が著しく落ちる（重要文献を取りこぼす）ため、検索結果から後段で抽出する方針を推奨しています。
+              本アプリでもこの方針に従い、O は事前に明確化しつつ、検索式の構築には用いません。
+            </p>
+            <p>
+              <strong>研究デザインフィルター（S）も検索の途中段階では含めません</strong>。
+              最終段階で Cochrane Handbook 由来の高感度フィルター（診療ガイドライン / SR / RCT / 非RCT）を別途適用します。
+            </p>
+            <p className="warning-text">
+              ⚠ 面倒でも、P・I・C は必ず明示的に分解して入力してください。
+              SR は「PICO が曖昧なまま検索を始めると、後戻りが極めて困難」になる作業です。
+            </p>
+          </div>
+        )}
+
         <FormFields
           fields={fields}
           values={values}
@@ -285,7 +321,103 @@ export function StrategyWorkflow({
             hasNext={idx < iterations.length - 1}
           />
         ))}
+
+      {/* Final stage: study design filter selection (SR only).
+          Available once at least one iteration has produced a search
+          string. Applies a Cochrane Handbook-derived high-sensitivity
+          filter to the latest search string. */}
+      {mode === "sr-revision" &&
+        iterations.length > 0 &&
+        iterations[iterations.length - 1].searchString && (
+          <SrFinalDesignFilter
+            settings={settings}
+            baseSearchString={
+              iterations[iterations.length - 1].searchString
+            }
+            stepNumber={4 + iterations.length * 3}
+          />
+        )}
     </div>
+  );
+}
+
+/* ========== Final design filter step (SR mode only) ========== */
+
+function SrFinalDesignFilter({
+  settings,
+  baseSearchString,
+  stepNumber,
+}: {
+  settings: AppSettings;
+  baseSearchString: string;
+  stepNumber: number;
+}) {
+  const [selectedKey, setSelectedKey] = useState<StudyDesignFilterKey>("none");
+  const [pubmedResult, setPubmedResult] = useState<PubMedSearchResult | null>(
+    null
+  );
+
+  const filter = studyDesignFilters.find((f) => f.key === selectedKey)!;
+  const finalQuery = applyStudyDesignFilter(baseSearchString, filter);
+
+  return (
+    <section className="workflow-section">
+      <h2>Step {stepNumber}: 研究デザインフィルターの最終適用</h2>
+      <p className="hint">
+        ここまで作成した検索式（最新イテレーションの検索式）に、
+        <strong>Cochrane Handbook 由来の高感度フィルター</strong>
+        を最終段階で適用します。
+        SR の方針として、研究デザインフィルターは検索式構築の途中段階では適用せず、
+        感度を最大化した検索式を完成させてから最後に適用します。
+      </p>
+      <p className="hint">
+        フィルターの出典は <strong>Cochrane Handbook for Systematic Reviews of
+        Interventions, Version 6.5 (updated August 2024), Chapter 4
+        "Searching for and selecting studies"</strong> です。
+        プロンプト本文には出典情報を含めず、本フィルターのコードに出典を記録しています。
+      </p>
+
+      <div className="form-group">
+        <label>研究デザインフィルター</label>
+        <select
+          value={selectedKey}
+          onChange={(e) =>
+            setSelectedKey(e.target.value as StudyDesignFilterKey)
+          }
+        >
+          {studyDesignFilters.map((f) => (
+            <option key={f.key} value={f.key}>
+              {f.label}
+            </option>
+          ))}
+        </select>
+        <p className="hint">{filter.description}</p>
+        {filter.source && (
+          <p className="hint" style={{ fontSize: "0.78rem", fontStyle: "italic" }}>
+            出典：{filter.source}
+          </p>
+        )}
+      </div>
+
+      <h4>最終検索式（フィルター適用後）</h4>
+      <pre className="search-preview">{finalQuery}</pre>
+
+      <PubMedSearchBox
+        settings={settings}
+        searchString={finalQuery}
+        onResult={(r) => setPubmedResult(r)}
+        retmax={20}
+        buttonLabel="フィルター適用版でPubMed検索"
+      />
+
+      {pubmedResult && (
+        <PubMedResultTable
+          result={pubmedResult}
+          selectedPmids={[]}
+          onToggle={() => {}}
+        />
+      )}
+    </section>
   );
 }
 
