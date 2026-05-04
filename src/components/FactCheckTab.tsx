@@ -52,6 +52,127 @@ export function FactCheckTab({ settings }: Props) {
     (e) => e.confidence === "bare_number"
   ).length;
 
+  function handleClear() {
+    if (!aiResponse && items.length === 0 && citationResults.length === 0) {
+      return;
+    }
+    if (
+      !confirm("貼り付けた内容と検証結果をすべてクリアして最初からやり直しますか？")
+    ) {
+      return;
+    }
+    setAiResponse("");
+    setHasRun(false);
+    setItems([]);
+    setError(null);
+    setCitationResults([]);
+    setCitationError(null);
+    setLoading(false);
+    setCitationLoading(false);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  const [aiCheckPromptCopied, setAiCheckPromptCopied] = useState(false);
+
+  function buildAiFactCheckPrompt(): string {
+    return `あなたは医学・学術文献のファクトチェック専門家です。
+以下の AI 回答に含まれる**すべての引用情報**（PMID、DOI、論文タイトル、著者名、雑誌名、年、URL など）について、**実際にウェブを検索・PubMed を検索・URL にアクセス**して、実在を確認してください。
+
+# 絶対ルール（厳守）
+
+1. **「ありそう」「おそらく実在」「記憶では存在する」と書くのは禁止**です。実際に検索して確認してください。
+2. **PubMed で検索した結果を必ず明示**してください。
+   - PMID が示されている場合：\`pubmed.ncbi.nlm.nih.gov/<PMID>/\` にアクセスして実在を確認
+   - PMID がない場合：タイトル全文または「著者名+年」で PubMed 検索
+3. **URL は実際にアクセス**して、200 OK で開けるか、内容が引用と一致するかを確認してください。
+4. **見つからなかった引用は必ず「なかった」「未確認」「捏造の可能性」と明記**してください。
+   - 「もしかしたら別の検索式で見つかるかも」のような曖昧表現は禁止
+5. **PubMed の通常検索で見つからなければ、Google Scholar / Crossref / 出版社サイト**でも追加検索してください。
+6. ファクトチェックの結果として、**元の AI 回答テキストをそのまま再掲**し、**各引用箇所にインライン注釈**（[✓ PMID実在] / [✗ 存在しない] / [⚠ メタデータ不一致] 等）を付けてください。
+
+---
+
+# ファクトチェック対象（元のAI回答）
+
+\`\`\`
+${aiResponse}
+\`\`\`
+
+---
+
+# 出力フォーマット
+
+## 1. 元のAI回答（インライン注釈付き）
+元の回答テキストをそのまま再掲し、引用部分の直後に \`[✓...]\` / \`[✗...]\` / \`[⚠...]\` 形式で注釈を入れてください。
+
+例：
+> 「Smith et al. (2020) は〜と報告した [✓ PubMed実在: PMID 12345678 — Smith JH et al. 'Title here.' NEJM 2020]」
+> 「Tanaka et al. (2019) の研究では〜 [✗ なかった: PubMed・Google Scholar 共に該当論文なし。捏造の可能性が高い]」
+> 「https://example.com/paper.pdf [⚠ URLは存在するが、内容は引用と一致しない（タイトル不一致）]」
+
+## 2. 引用ごとの詳細表
+
+| 元の引用テキスト | 種類 | 確認結果 | 確認URL/PMID | 備考 |
+|---|---|---|---|---|
+
+種類欄：PMID / DOI / タイトル / 著者+年 / URL / その他
+
+確認結果欄：
+- ✓ 実在確認済み
+- ✗ なかった（PubMed・Google Scholar・Web で確認できず）
+- ⚠ 一部一致（PMID は実在するがメタデータが一致しない 等）
+
+## 3. 「なかった」リスト（最重要）
+
+以下の引用は確認できませんでした：
+
+| 元の引用テキスト | 検索した方法 | 結果 |
+|---|---|---|
+
+ここでは推測を入れず、**「PubMed で X を検索 → 該当なし」「Google Scholar で Y を検索 → 該当なし」**のように事実だけを書いてください。
+
+## 4. 「URL なかった」リスト
+
+| URL | アクセス結果 | 内容一致 |
+|---|---|---|
+
+## 5. ファクトチェック総合判定
+
+- 実在確認できた引用：N 件
+- なかった（捏造の可能性）：N 件
+- メタデータ不一致：N 件
+- 確認できなかった URL：N 件
+
+**結論**：本AI回答の信頼性に関するあなたの判断（捏造が多い / 概ね正確 / 部分的にハルシネーションあり 等）を率直に書いてください。
+
+---
+
+# 重要な再確認
+
+- 「なかった」と判定した引用は、本当に実際に PubMed・Google Scholar・Web で検索して見つからなかったものだけにしてください。
+- 検索していないのに「なかった」と書くことは禁止です。
+- 検索したが見つからなかったものは「**なかった**」と必ず明記してください。「不明」や「曖昧」では不十分です。
+`;
+  }
+
+  async function handleCopyAiCheckPrompt() {
+    const text = buildAiFactCheckPrompt();
+    try {
+      await navigator.clipboard.writeText(text);
+      setAiCheckPromptCopied(true);
+      setTimeout(() => setAiCheckPromptCopied(false), 2000);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      setAiCheckPromptCopied(true);
+      setTimeout(() => setAiCheckPromptCopied(false), 2000);
+    }
+  }
+
   async function handleStart() {
     setHasRun(true);
     setItems([]);
@@ -190,13 +311,45 @@ export function FactCheckTab({ settings }: Props) {
           </div>
         )}
 
-        <button
-          className="btn btn-primary"
-          onClick={handleStart}
-          disabled={!aiResponse.trim() || loading}
-        >
-          {loading ? "ファクトチェック中..." : "ファクトチェックを実行"}
-        </button>
+        <div className="button-group">
+          <button
+            className="btn btn-primary"
+            onClick={handleStart}
+            disabled={!aiResponse.trim() || loading || citationLoading}
+          >
+            {loading || citationLoading
+              ? "ファクトチェック中..."
+              : "ファクトチェックを実行（PubMed照合）"}
+          </button>
+
+          <button
+            className="btn btn-secondary"
+            onClick={handleCopyAiCheckPrompt}
+            disabled={!aiResponse.trim()}
+            title="AI（ChatGPT/Claude/Gemini等のWeb検索可能なモデル）に渡してファクトチェックさせるためのプロンプトをコピー"
+          >
+            {aiCheckPromptCopied
+              ? "コピーしました"
+              : "AIに渡すファクトチェック用プロンプトをコピー"}
+          </button>
+
+          <button
+            className="btn btn-secondary"
+            onClick={handleClear}
+            disabled={
+              !aiResponse && items.length === 0 && citationResults.length === 0
+            }
+          >
+            🗑 すべてクリア
+          </button>
+        </div>
+
+        <p className="hint">
+          <strong>「AIに渡すファクトチェック用プロンプトをコピー」</strong>を押すと、
+          上に貼り付けた内容をそのまま含み、外部AI（Web検索可能なモデル：ChatGPT with browsing、Claude with web、Gemini、Perplexity 等）に渡すためのファクトチェックプロンプトが生成されてクリップボードにコピーされます。
+          AI が PubMed や Google Scholar や URL を実際に検索・アクセスしてファクトチェックを行います。
+          見つからない引用は「なかった」と明示するよう指示しています。
+        </p>
       </section>
 
       {hasRun && (
