@@ -141,7 +141,18 @@ export default function App() {
             settings={settings}
             fields={srFields}
             promptTemplate={srInitialPrompt}
-            description="PICOに基づくSR、メタ解析、診療ガイドライン用の効果検索に使います。最終的に必ずPubMedで完結し、査読（PRESS / PRISMA-S）通過品質の検索式と、その構築理由の解説を作ります。"
+            description={
+              <>
+                <p>
+                  PICOに基づくSR、メタ解析、診療ガイドライン用の効果検索に使います。最終的に必ずPubMedで完結し、査読（PRESS
+                  / PRISMA-S）通過品質の検索式と、その構築理由の解説を作ります。
+                </p>
+                <p className="sr-brushup-note">
+                  EBMのための検索と異なり、一度PubMedで検索した結果を加えてAIで検索式をブラッシュアップ（Brush
+                  up）してから、再度PubMedで検索をします。
+                </p>
+              </>
+            }
             mode="sr-revision"
           />
         )}

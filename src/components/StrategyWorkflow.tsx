@@ -11,6 +11,7 @@ import {
   applyStudyDesignFilter,
 } from "../utils/cochraneFilters";
 import type { StudyDesignFilterKey } from "../utils/cochraneFilters";
+import { openPubMedWithQuery } from "../utils/pubmedUrl";
 import { FormFields } from "./FormFields";
 import { PromptDisplay } from "./PromptDisplay";
 import { AiResponseInput } from "./AiResponseInput";
@@ -453,8 +454,7 @@ function SrFinalDesignFilter({
           className="btn btn-secondary"
           onClick={() => {
             if (!finalQuery) return;
-            const url = `https://pubmed.ncbi.nlm.nih.gov/advanced/?term=${encodeURIComponent(finalQuery)}`;
-            window.open(url, "_blank", "noopener,noreferrer");
+            void openPubMedWithQuery(finalQuery, "advanced");
           }}
           disabled={!finalQuery}
         >
@@ -464,8 +464,7 @@ function SrFinalDesignFilter({
           className="btn btn-secondary"
           onClick={() => {
             if (!finalQuery) return;
-            const url = `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(finalQuery)}`;
-            window.open(url, "_blank", "noopener,noreferrer");
+            void openPubMedWithQuery(finalQuery, "regular");
           }}
           disabled={!finalQuery}
         >
@@ -477,6 +476,12 @@ function SrFinalDesignFilter({
         URL クエリに渡され、PubMed の検索履歴 #1 として登録されます
         （ビルダー欄ではなく履歴側に入る仕様です）。検索結果を直接見るには
         「PubMed 検索結果で開く」を使用してください。
+        <br />
+        <strong>※ SR の最終検索式は長くなりやすく、URL の長さ制限（約 2 KB）を超えると PubMed が
+        <code>?term=</code> を無視します。</strong>
+        その場合は本アプリが自動的に検索式をクリップボードにコピーし、
+        PubMed の Advanced Search 画面（クエリ欄が空の状態）を開きますので、
+        そのまま貼り付けて検索してください。
       </p>
       <p className="hint">
         「PubMed Advanced Search で開く」を押すと、PubMed の高度検索画面のクエリボックスに最終検索式が入った状態で開きます。
