@@ -342,6 +342,14 @@ body {
   background: #b71c1c;
 }
 
+.hallucination-low-model-note {
+  margin-top: 6px;
+  color: #c62828;
+  font-weight: 600;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
 .topic-example-box {
   margin-top: 12px;
   padding: 10px 14px;

@@ -263,6 +263,9 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
           <ul>
             <li>
               <strong>ハルシネーション対策</strong>：いずれのAIも、PMIDや論文タイトルを誤って提示することがあります。本アプリのファクトチェック機能（PMID実在確認＋抄録取得）を必ず利用してください。
+              <div className="hallucination-low-model-note">
+                ⚠ 無料の低モデルでは、ハルシネーションのチェックができない場合もあります。
+              </div>
             </li>
             <li>
               <strong>機密情報</strong>：患者個人情報、機関名で特定できる症例情報などは、AIに貼り付けないでください。
