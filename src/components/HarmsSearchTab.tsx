@@ -44,35 +44,7 @@ export function HarmsSearchTab() {
         <p className="harms-header-subtitle">
           RCT だけでは不十分である理由と、実務的検索戦略
         </p>
-        <p className="harms-header-source">
-          再ファクトチェック後の最終レポート
-        </p>
       </header>
-
-      {/* 0. 再ファクトチェックの結論 */}
-      <section className="harms-section">
-        <h3>0. 再ファクトチェックの結論</h3>
-        <p>
-          他AIによるファクトチェック結果を再確認しました。結論として、前回のレポートの主要な主張はおおむね正確でしたが、いくつか修正・補足すべき点があります。
-        </p>
-        <p>
-          特に重要なのは、「MEDLINE単独では66%を見逃し、MEDLINE＋Embase＋CENTRALでも57%を見逃した」という記述の扱いです。他AIは「これはチアゾリジン薬の研究ではない」と指摘していますが、再確認すると、Cochrane Handbook Chapter 19 および Golder &amp; Loke 2012 の PubMed 抄録では、チアゾリジン薬関連骨折を扱ったケーススタディであることが確認できます［1,2］。ただし、注意点として、これは
-          {" "}
-          <em>Golder &amp; Loke 2012 のフィルター性能論文 Health Information and Libraries Journal 2012;29:28–38</em>
-          {" "}
-          ではなく、
-          {" "}
-          <em>Golder &amp; Loke 2012 “The contribution of different information sources for adverse effects data” Int J Technol Assess Health Care 2012;28:133–137</em>
-          {" "}
-          に基づくケーススタディです［2,3］。したがって、前回の記述は「チアゾリジン薬のケーススタディ」としては正しい一方、引用先を明確にする必要があります。
-        </p>
-        <p>
-          また、公表・未公表データの比較については、前回の「43% vs 83%」は Golder らの PLoS Medicine 2016 に基づく数値として誤りではありませんが、同一研究の公表版・未公表版を比較した文脈では「46% vs 95%」がより中心的です［4］。最終レポートでは、両方を区別して記載します。
-        </p>
-        <p>
-          参考文献の重複も整理し、PRISMA Harms、CONSORT Harms、Cochrane Handbook、GRADE 関連文献を明確に分けて提示します。
-        </p>
-      </section>
 
       {/* 1. 害の検索が不可欠な理由 */}
       <section className="harms-section">
