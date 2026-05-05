@@ -127,6 +127,14 @@ export default function App() {
               </p>
             )}
 
+            {topicMode === "normal" && (
+              <p className="topic-mode-normal-intro">
+                <strong>
+                  💡 Geminiの高速モードなどでは、「開始します・そのままお待ちください。」で止まるため、「続けて」と入力してください。
+                </strong>
+              </p>
+            )}
+
             <StrategyWorkflow
               key="topic-shared"
               title={
