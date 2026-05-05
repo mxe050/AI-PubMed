@@ -3320,6 +3320,100 @@ tr.unverified {
   line-height: 1.5;
 }
 
+/* ================================
+   害の検索タブ（HarmsSearchTab）
+   ================================ */
+.harms-search-tab {
+  max-width: 100%;
+}
+.harms-header {
+  text-align: center;
+  padding: 16px 0;
+  border-bottom: 2px solid var(--color-primary);
+  margin-bottom: 18px;
+}
+.harms-header h2 {
+  margin: 0 0 4px;
+  color: var(--color-primary);
+  font-size: 1.35rem;
+}
+.harms-header-subtitle {
+  margin: 0;
+  color: var(--color-text);
+  font-size: 0.95rem;
+}
+.harms-header-source {
+  margin: 6px 0 0;
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  font-style: italic;
+}
+.harms-section {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow);
+}
+.harms-section h3 {
+  margin: 0 0 10px;
+  color: var(--color-primary);
+  font-size: 1.05rem;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 6px;
+}
+.harms-section h4 {
+  margin: 14px 0 6px;
+  color: var(--color-text);
+  font-size: 0.95rem;
+}
+.harms-section p {
+  margin: 8px 0;
+  font-size: 0.9rem;
+  line-height: 1.75;
+}
+.harms-section ol,
+.harms-section ul {
+  font-size: 0.9rem;
+  line-height: 1.75;
+  padding-left: 24px;
+}
+.harms-section li {
+  margin: 4px 0;
+}
+.harms-code {
+  background: #0f172a;
+  color: #e2e8f0;
+  padding: 12px 14px;
+  border-radius: 6px;
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Courier New', monospace;
+  font-size: 0.82rem;
+  line-height: 1.55;
+  overflow-x: auto;
+  margin: 10px 0;
+  white-space: pre;
+}
+.harms-references {
+  background: var(--color-info-bg);
+}
+.harms-reference-list {
+  font-size: 0.82rem;
+  line-height: 1.65;
+  padding-left: 28px;
+}
+.harms-reference-list li {
+  margin: 6px 0;
+}
+.harms-reference-list a {
+  color: var(--color-primary);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--color-primary);
+}
+.harms-reference-list a:hover {
+  text-decoration: underline;
+}
+
 /* ハルシネーションチェック必須バナー（quick モード生成後） */
 .hallucination-check-imperative {
   margin: 16px 0 0;
