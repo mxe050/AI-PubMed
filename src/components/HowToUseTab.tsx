@@ -19,13 +19,6 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
           PubMedに記載してあるから、信頼できる情報とは言えないことを理解し、<br />
           EBMを学びましょう。
         </p>
-        <p className="hint hint-warning">
-          ⚠ AIモデルは常に進化・変化しています。本アプリでプロンプトを生成して外部AIに渡すより、
-          外部AI（ChatGPT・Claude・Geminiなど）で直接ファクトチェックやトピック検索を行った方が、
-          より正確な回答になる場合があります。また、AIモデルの仕様変更により、
-          出力の形式・品質・精度が時期によって変わることがあります。
-          本アプリの結果を鵜呑みにせず、最終判断は必ず人間が行ってください。
-        </p>
         <a
           className="youtube-link-btn"
           href="https://www.youtube.com/watch?v=youE7KY09Y4&t=129s"
