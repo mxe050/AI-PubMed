@@ -3107,6 +3107,61 @@ tr.unverified {
   margin-bottom: 6px;
 }
 
+/* PRISMA 短文ノート（SR Step 1） */
+.sr-prisma-note {
+  background: var(--color-info-bg);
+  border-left: 4px solid var(--color-primary);
+  border-radius: var(--radius);
+  padding: 10px 14px;
+  margin: 8px 0 12px;
+}
+.sr-prisma-note h4 {
+  margin: 0 0 6px;
+  color: var(--color-primary);
+  font-size: 0.95rem;
+}
+.sr-prisma-note ul {
+  margin: 4px 0;
+  padding-left: 22px;
+  font-size: 0.88rem;
+  line-height: 1.55;
+}
+.sr-prisma-note li {
+  margin: 3px 0;
+}
+.sr-prisma-note a {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
+/* 検索式直下の警告＋MeSHボタン */
+.sr-search-string-tools {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+.sr-search-string-warning {
+  margin: 0;
+  color: var(--color-error);
+  font-size: 0.86rem;
+  line-height: 1.5;
+  flex: 1 1 320px;
+}
+
+/* MeSH リンクボタン（共通） */
+.sr-mesh-link-btn {
+  text-decoration: none;
+  display: inline-block;
+  white-space: nowrap;
+}
+.sr-mesh-link-btn.disabled {
+  opacity: 0.45;
+  pointer-events: none;
+  cursor: not-allowed;
+}
+
 .sr-term-grid {
   width: 100%;
   border-collapse: collapse;

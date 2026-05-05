@@ -125,6 +125,7 @@ export function SrTermTable({ table, onChange }: Props) {
                   <th>日本語訳</th>
                   <th style={{ width: 110 }}>フィールド</th>
                   <th>選定理由</th>
+                  <th style={{ width: 70 }}>MeSH</th>
                   <th style={{ width: 40 }}></th>
                 </tr>
               </thead>
@@ -185,6 +186,27 @@ export function SrTermTable({ table, onChange }: Props) {
                         }
                         placeholder="任意"
                       />
+                    </td>
+                    <td>
+                      {row.term.trim() ? (
+                        <a
+                          className="btn btn-secondary btn-xs sr-mesh-link-btn"
+                          href={`https://www.ncbi.nlm.nih.gov/mesh/?term=${encodeURIComponent(row.term.trim())}`}
+                          target="_blank"
+                          rel="noreferrer"
+                          title={`MeSH で「${row.term.trim()}」を検索（隣のタブで開きます）`}
+                        >
+                          MeSH確認
+                        </a>
+                      ) : (
+                        <span
+                          className="btn btn-secondary btn-xs sr-mesh-link-btn disabled"
+                          aria-disabled="true"
+                          title="検索語が空のため無効"
+                        >
+                          MeSH確認
+                        </span>
+                      )}
                     </td>
                     <td>
                       <button

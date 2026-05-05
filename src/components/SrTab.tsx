@@ -216,6 +216,31 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
       <section className="workflow-section">
         <h2>Step 1: PICO入力</h2>
 
+        <div className="sr-prisma-note">
+          <h4>📋 PRISMA より：SR における PICO の重要性</h4>
+          <ul>
+            <li>
+              <strong>PRISMA 2020</strong> は SR の報告ガイドラインで、検索の<strong>透明性・再現性</strong>のために PICO 定義を必須としています。
+            </li>
+            <li>
+              <strong>PICO は適格基準・検索戦略・データ抽出すべての基盤</strong>です。曖昧なまま検索を始めると後戻りが極めて困難になります。
+            </li>
+            <li>
+              <strong>PRISMA-S（検索版）</strong>は検索式・データベース・検索日を全て記録することを求めており、PICO の明確化はその前提です。
+            </li>
+          </ul>
+          <p className="hint" style={{ margin: "4px 0 0" }}>
+            参考：
+            <a
+              href="https://www.prisma-statement.org/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              PRISMA Statement (prisma-statement.org)
+            </a>
+          </p>
+        </div>
+
         <div className="sr-pico-imperative">
           <p style={{ margin: "4px 0" }}>
             <strong>PICO作成に不安がある方は、</strong>
@@ -431,6 +456,20 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
               background: "#f8fafc",
             }}
           />
+          <div className="sr-search-string-tools">
+            <p className="sr-search-string-warning">
+              ⚠ <strong>PubMed Advanced Search Builder の Details を確認して、検索式を修正してください。</strong>{" "}
+              各検索語が想定通り MeSH／フリーテキストに展開されているかを必ず確認してください。
+            </p>
+            <a
+              className="btn btn-secondary btn-xs sr-mesh-link-btn"
+              href="https://www.ncbi.nlm.nih.gov/mesh/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              MeSHの確認（NCBI MeSH）
+            </a>
+          </div>
         </div>
 
         {/* 検索ボタン群 */}
