@@ -15,6 +15,15 @@ export function PubMedToolTab() {
           PubMed 由来データを扱うための補助変換ツール集です。すべてブラウザ内で完結し、
           外部 API には一切送信しません。
         </p>
+        <a
+          className="youtube-link-btn"
+          href="https://www.youtube.com/watch?v=XuK3xJo-PH0"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span className="youtube-link-btn-icon" aria-hidden="true">▶</span>
+          <span>🎬 AI時代だからこそ：「専門家と学ぶPubMed検索マスター講座」</span>
+        </a>
       </header>
 
       <nav className="pubmed-tool-subnav">

@@ -21,6 +21,15 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
           出力の形式・品質・精度が時期によって変わることがあります。
           本アプリの結果を鵜呑みにせず、最終判断は必ず人間が行ってください。
         </p>
+        <a
+          className="youtube-link-btn"
+          href="https://www.youtube.com/watch?v=youE7KY09Y4&t=129s"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <span className="youtube-link-btn-icon" aria-hidden="true">▶</span>
+          <span>🎬 AI・LLMとEBM実践・システマテックレビュー作成支援・医学情報系について</span>
+        </a>
       </header>
 
       <section className="how-to-use-section">
