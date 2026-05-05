@@ -1,23 +1,18 @@
+// topic_exploration（PubMedで見逃しやすい論文検索）専用ワークフロー。
+// SR タブ（旧 mode="sr-revision"）は SrTab.tsx に分離されたため、
+// このコンポーネントは "topic-synthesis" 1モードのみを扱う。
+//
+// フロー:
+//   Step 1: PICO/質問入力（fields は呼び出し側から topicFields / counterEvidenceFields）
+//   Step 2: プロンプト表示（コピーして外部AIへ）
+// それ以降のステップは無し（topic は AI による論文探索結果をユーザーが
+// ファクトチェックタブで検証する設計）。
+
 import { useState, type ReactNode } from "react";
-import type { AppSettings, PubMedSearchResult } from "../types";
+import type { AppSettings } from "../types";
 import { buildPrompt } from "../utils/buildPrompt";
-import { buildApiFeedbackBlock } from "../utils/buildApiFeedbackBlock";
-import { buildAbstractsBlock } from "../utils/buildAbstractsBlock";
-import { extractSearchString } from "../utils/extractSearchString";
-import { extractSrExplanation } from "../utils/extractSrExplanation";
-import { srRevisionPrompt } from "../prompts/revision";
-import {
-  studyDesignFilters,
-  applyStudyDesignFilter,
-} from "../utils/cochraneFilters";
-import type { StudyDesignFilterKey } from "../utils/cochraneFilters";
-import { openPubMedWithQuery } from "../utils/pubmedUrl";
 import { FormFields } from "./FormFields";
 import { PromptDisplay } from "./PromptDisplay";
-import { AiResponseInput } from "./AiResponseInput";
-import { SearchStringInput } from "./SearchStringInput";
-import { PubMedSearchBox } from "./PubMedSearchBox";
-import { PubMedResultTable } from "./PubMedResultTable";
 
 interface FieldDef {
   key: string;
@@ -30,7 +25,7 @@ interface FieldDef {
   quickFillOptions?: string[];
 }
 
-export type WorkflowMode = "topic-synthesis" | "sr-revision";
+export type WorkflowMode = "topic-synthesis";
 
 interface Props {
   settings: AppSettings;
@@ -42,60 +37,14 @@ interface Props {
   title?: string;
 }
 
-interface SrIteration {
-  id: string;
-  searchString: string;
-  /** AI回答全文（構造解説含む）— 検索式と同時に保存し、別枠で表示する */
-  searchExplanation: string;
-  pubmedResult: PubMedSearchResult | null;
-  revisionInputs: {
-    relevantCount: string;
-    noiseDescription: string;
-    additionalKeywords: string;
-    termsToRemove: string;
-    userGoal: string;
-  };
-  revisionPrompt: string;
-  revisedAiResponse: string;
-}
-
-const emptyRevisionInputs = {
-  relevantCount: "",
-  noiseDescription: "",
-  additionalKeywords: "",
-  termsToRemove: "",
-  userGoal: "",
-};
-
-function makeIteration(
-  searchString = "",
-  searchExplanation = ""
-): SrIteration {
-  return {
-    id: crypto.randomUUID(),
-    searchString,
-    searchExplanation,
-    pubmedResult: null,
-    revisionInputs: { ...emptyRevisionInputs },
-    revisionPrompt: "",
-    revisedAiResponse: "",
-  };
-}
-
 export function StrategyWorkflow({
-  settings,
   fields,
   promptTemplate,
   description,
-  mode,
   title,
 }: Props) {
   const [values, setValues] = useState<Record<string, string>>({});
   const [generatedPrompt, setGeneratedPrompt] = useState("");
-  const [aiResponse, setAiResponse] = useState("");
-  const [iterations, setIterations] = useState<SrIteration[]>([
-    makeIteration(),
-  ]);
 
   function handleFieldChange(key: string, value: string) {
     setValues((prev) => ({ ...prev, [key]: value }));
@@ -113,61 +62,14 @@ export function StrategyWorkflow({
     setGeneratedPrompt(buildPrompt(promptTemplate, values));
   }
 
-  function extractSearchStringFromInitialAi() {
-    const extracted = extractSearchString(aiResponse);
-    if (extracted) {
-      const explanation = extractSrExplanation(aiResponse);
-      updateIteration(0, {
-        searchString: extracted,
-        searchExplanation: explanation,
-      });
-      setTimeout(() => {
-        document
-          .getElementById(`step-pubmed-0`)
-          ?.scrollIntoView({ behavior: "smooth" });
-      }, 100);
-    } else {
-      alert(
-        "検索式を自動抽出できませんでした。AI回答からコピーして検索式欄に直接貼り付けてください。"
-      );
-    }
-  }
-
-  function updateIteration(index: number, partial: Partial<SrIteration>) {
-    setIterations((prev) => {
-      const next = [...prev];
-      next[index] = { ...next[index], ...partial };
-      return next;
-    });
-  }
-
-  function spawnNextIteration(
-    fromIndex: number,
-    searchString: string,
-    explanation: string = ""
-  ) {
-    setIterations((prev) => {
-      // truncate to fromIndex+1, then append new iteration
-      const trimmed = prev.slice(0, fromIndex + 1);
-      return [...trimmed, makeIteration(searchString, explanation)];
-    });
-    setTimeout(() => {
-      document
-        .getElementById(`step-pubmed-${fromIndex + 1}`)
-        ?.scrollIntoView({ behavior: "smooth" });
-    }, 200);
-  }
-
-  const question = values.question || "";
-
   return (
     <div className="strategy-workflow">
       {title && (
         <header className="strategy-header">
           <h2>
-            {mode === "topic-synthesis" && (
-              <span className="tab-main-dot" aria-hidden="true">●</span>
-            )}
+            <span className="tab-main-dot" aria-hidden="true">
+              ●
+            </span>
             {title}
           </h2>
         </header>
@@ -176,37 +78,6 @@ export function StrategyWorkflow({
 
       <section className="workflow-section">
         <h2>Step 1: 入力</h2>
-
-        {mode === "sr-revision" && (
-          <div className="sr-pico-imperative">
-            <h4>📋 SR の PICO は EBM の PICO とは違います（必読）</h4>
-            <p>
-              システマティックレビューにおける PICO は、<strong>EBM の臨床判断用 PICO とは目的が異なります</strong>。
-              SR の PICO は <strong>適格基準（eligibility criteria）と検索戦略の中核</strong>を成し、後の研究選定・抽出・合成のすべての基盤になります。
-              一度決めた PICO は、プロトコル登録（PROSPERO 等）後は変更が困難で、
-              レビュー全体の妥当性に直接影響します。
-            </p>
-            <p>
-              <strong>Cochrane Handbook v6.5（2024）Chapter 2「Determining the scope of the review and the questions it will address」</strong>
-              および <strong>PRISMA 2020（Page MJ et al., BMJ 2021;372:n71）／PRISMA-S（Rethlefsen ML et al., Syst Rev 2021;10:39）</strong>
-              は、SR における PICO の明確化が、検索の感度・透明性・再現性を担保する最重要要件であることを示しています。
-            </p>
-            <p>
-              <strong>O（アウトカム）は検索式には含めません</strong>。
-              Cochrane Handbook は、O を検索式に含めると感度が著しく落ちる（重要文献を取りこぼす）ため、検索結果から後段で抽出する方針を推奨しています。
-              本アプリでもこの方針に従い、O は事前に明確化しつつ、検索式の構築には用いません。
-            </p>
-            <p>
-              <strong>研究デザインフィルター（S）も検索の途中段階では含めません</strong>。
-              最終段階で Cochrane Handbook 由来の高感度フィルター（診療ガイドライン / SR / RCT / 非RCT）を別途適用します。
-            </p>
-            <p className="warning-text">
-              ⚠ 面倒でも、P・I・C は必ず明示的に分解して入力してください。
-              SR は「PICO が曖昧なまま検索を始めると、後戻りが極めて困難」になる作業です。
-            </p>
-          </div>
-        )}
-
         <FormFields
           fields={fields}
           values={values}
@@ -217,17 +88,7 @@ export function StrategyWorkflow({
         </button>
       </section>
 
-      {generatedPrompt && mode === "sr-revision" && (
-        <section className="workflow-section">
-          <h2>Step 2: AI用プロンプト</h2>
-          <PromptDisplay prompt={generatedPrompt} />
-          <p className="hint">
-            このプロンプトをコピーしてChatGPT / Claude / Geminiなどに貼り付けてください。
-          </p>
-        </section>
-      )}
-
-      {generatedPrompt && mode === "topic-synthesis" && values.question && (
+      {generatedPrompt && values.question && (
         <section className="workflow-section">
           <h2>Step 2: プロンプトを外部AIに渡す</h2>
 
@@ -235,12 +96,16 @@ export function StrategyWorkflow({
             <h4>📌 PubMedで見逃しやすい論文検索プロンプト</h4>
             <p>
               PubMedのタイトル・抄録検索では届かない、
-              <strong>本文内証拠（Discussion / Methods / Results / Limitations / Table / Figure / 参考文献）</strong>
+              <strong>
+                本文内証拠（Discussion / Methods / Results / Limitations / Table /
+                Figure / 参考文献）
+              </strong>
               に批判・比較・改変・限界・代替分類への言及を持つ論文を意図的に拾い上げるためのプロンプトです。
               地域名タイトル・地域誌・非英語圏著者・低被引用などを除外せず、複合バイアス3要因以上を最優先で全文取得します。
             </p>
             <p className="hint">
-              回答は必ず <strong>「AI出力ファクトチェック」タブ</strong>{" "}
+              回答は必ず{" "}
+              <strong>「AI出力ファクトチェック」タブ</strong>{" "}
               でPMID実在確認・抄録取得・URL確認をしてください。
             </p>
           </div>
@@ -248,7 +113,9 @@ export function StrategyWorkflow({
           <div className="prompt-card prompt-card-synthesis">
             <div className="prompt-card-header">
               <h3>PubMedで見逃しやすい論文検索プロンプト</h3>
-              <span className="prompt-tag prompt-tag-continues">本文内証拠重視</span>
+              <span className="prompt-tag prompt-tag-continues">
+                本文内証拠重視
+              </span>
             </div>
             <PromptDisplay
               prompt={generatedPrompt}
@@ -257,536 +124,10 @@ export function StrategyWorkflow({
           </div>
 
           <p className="warning-text">
-            ⚠ 結果はAI訓練知識からの想起と外部AIによる検索を含みますが、網羅的検索ではありません。重要な判断にはPubMedや原文での確認を併用してください。
+            ⚠
+            結果はAI訓練知識からの想起と外部AIによる検索を含みますが、網羅的検索ではありません。重要な判断にはPubMedや原文での確認を併用してください。
           </p>
         </section>
-      )}
-
-      {generatedPrompt && mode === "sr-revision" && (
-        <section className="workflow-section">
-          <h2>Step 3: AI回答の貼り付け</h2>
-          <AiResponseInput value={aiResponse} onChange={setAiResponse} />
-
-          {aiResponse && (
-            <div className="step3-action">
-              <p className="hint">
-                AI回答に検索式（コードブロック）が含まれていれば、ボタン1つで次のStepの検索式欄に流し込みます。
-              </p>
-              <button
-                className="btn btn-primary"
-                onClick={extractSearchStringFromInitialAi}
-              >
-                AI回答から検索式を抽出して次のStepへ
-              </button>
-            </div>
-          )}
-        </section>
-      )}
-
-      {/* Iteration steps: SR mode only (each iteration = PubMed search +
-          revision prompt + AI response paste with extract). Topic mode
-          completes at Step 2 (plain multi-angle prompt). */}
-      {aiResponse &&
-        mode === "sr-revision" &&
-        iterations.map((iter, idx) => (
-          <SrIterationBlock
-            key={iter.id}
-            settings={settings}
-            question={question}
-            iteration={iter}
-            iterationIndex={idx}
-            stepBase={4 + idx * 3}
-            onUpdate={(p) => updateIteration(idx, p)}
-            onSpawnNext={(s) => spawnNextIteration(idx, s)}
-            hasNext={idx < iterations.length - 1}
-          />
-        ))}
-
-      {/* Final stage: study design filter selection (SR only).
-          Available once at least one iteration has produced a search
-          string. Applies a Cochrane Handbook-derived high-sensitivity
-          filter to the latest search string. */}
-      {mode === "sr-revision" &&
-        iterations.length > 0 &&
-        iterations[iterations.length - 1].searchString && (
-          <SrFinalDesignFilter
-            settings={settings}
-            baseSearchString={
-              iterations[iterations.length - 1].searchString
-            }
-            stepNumber={4 + iterations.length * 3}
-          />
-        )}
-    </div>
-  );
-}
-
-/* ========== Final design filter step (SR mode only) ========== */
-
-function SrFinalDesignFilter({
-  settings,
-  baseSearchString,
-  stepNumber,
-}: {
-  settings: AppSettings;
-  baseSearchString: string;
-  stepNumber: number;
-}) {
-  const [selectedKey, setSelectedKey] = useState<StudyDesignFilterKey>("none");
-  const [pubmedResult, setPubmedResult] = useState<PubMedSearchResult | null>(
-    null
-  );
-  const [editedQuery, setEditedQuery] = useState<string | null>(null);
-  const [copyMsg, setCopyMsg] = useState("");
-
-  const filter = studyDesignFilters.find((f) => f.key === selectedKey)!;
-  const autoQuery = applyStudyDesignFilter(baseSearchString, filter);
-  const finalQuery = editedQuery !== null ? editedQuery : autoQuery;
-
-  // When base or filter changes, reset to auto-generated query.
-  // (User can re-edit afterwards.)
-  // Use useEffect-like via direct check: if editedQuery's "source" autoQuery changed, drop edits.
-  // We rebuild a sentinel key derived from baseSearchString + filter to detect that.
-
-  function copyQuery() {
-    if (!finalQuery) return;
-    navigator.clipboard.writeText(finalQuery).then(() => {
-      setCopyMsg("コピーしました");
-      setTimeout(() => setCopyMsg(""), 1800);
-    });
-  }
-
-  return (
-    <section className="workflow-section">
-      <h2>Step {stepNumber}: 研究デザインフィルターの最終適用</h2>
-      <p className="hint">
-        ここまで作成した検索式（最新イテレーションの検索式）に、
-        <strong>Cochrane Handbook 由来の高感度フィルター</strong>
-        を最終段階で適用します。
-        SR の方針として、研究デザインフィルターは検索式構築の途中段階では適用せず、
-        感度を最大化した検索式を完成させてから最後に適用します。
-      </p>
-      <p className="hint">
-        フィルターの出典は <strong>Cochrane Handbook for Systematic Reviews of
-        Interventions, Version 6.5 (updated August 2024), Chapter 4
-        "Searching for and selecting studies"</strong> です。
-        プロンプト本文には出典情報を含めず、本フィルターのコードに出典を記録しています。
-      </p>
-
-      <div className="form-group">
-        <label>研究デザインフィルター</label>
-        <select
-          value={selectedKey}
-          onChange={(e) => {
-            setSelectedKey(e.target.value as StudyDesignFilterKey);
-            setEditedQuery(null);
-          }}
-        >
-          {studyDesignFilters.map((f) => (
-            <option key={f.key} value={f.key}>
-              {f.label}
-            </option>
-          ))}
-        </select>
-        <p className="hint">{filter.description}</p>
-        {filter.source && (
-          <p className="hint" style={{ fontSize: "0.78rem", fontStyle: "italic" }}>
-            出典：{filter.source}
-          </p>
-        )}
-      </div>
-
-      <div className="form-group">
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: 6,
-          }}
-        >
-          <label style={{ margin: 0 }}>最終検索式（フィルター適用後・編集可）</label>
-          <div style={{ display: "flex", gap: 8 }}>
-            <button
-              className="btn btn-secondary"
-              type="button"
-              onClick={copyQuery}
-              disabled={!finalQuery}
-              style={{ padding: "4px 10px", fontSize: "0.85rem" }}
-            >
-              {copyMsg || "検索式をコピー"}
-            </button>
-            {editedQuery !== null && (
-              <button
-                className="btn btn-secondary"
-                type="button"
-                onClick={() => setEditedQuery(null)}
-                style={{ padding: "4px 10px", fontSize: "0.85rem" }}
-              >
-                自動生成に戻す
-              </button>
-            )}
-          </div>
-        </div>
-        <textarea
-          value={finalQuery}
-          onChange={(e) => setEditedQuery(e.target.value)}
-          rows={6}
-          style={{
-            width: "100%",
-            fontFamily:
-              "'SF Mono', 'Fira Code', Consolas, 'Courier New', monospace",
-            fontSize: "0.9rem",
-            whiteSpace: "pre-wrap",
-          }}
-        />
-      </div>
-
-      <div className="button-group">
-        <PubMedSearchBox
-          settings={settings}
-          searchString={finalQuery}
-          onResult={(r) => setPubmedResult(r)}
-          retmax={20}
-          buttonLabel="フィルター適用版でPubMed検索（このアプリ内）"
-        />
-        <button
-          className="btn btn-secondary"
-          onClick={() => {
-            if (!finalQuery) return;
-            void openPubMedWithQuery(finalQuery, "advanced");
-          }}
-          disabled={!finalQuery}
-        >
-          PubMed Advanced Search で開く（外部）
-        </button>
-        <button
-          className="btn btn-secondary"
-          onClick={() => {
-            if (!finalQuery) return;
-            void openPubMedWithQuery(finalQuery, "regular");
-          }}
-          disabled={!finalQuery}
-        >
-          PubMed 検索結果で開く（外部）
-        </button>
-      </div>
-      <p className="hint" style={{ fontSize: "0.78rem" }}>
-        ※ <strong>PubMed Advanced Search で開く</strong>を押すと検索式が
-        URL クエリに渡され、PubMed の検索履歴 #1 として登録されます
-        （ビルダー欄ではなく履歴側に入る仕様です）。検索結果を直接見るには
-        「PubMed 検索結果で開く」を使用してください。
-        <br />
-        <strong>※ SR の最終検索式は長くなりやすく、URL の長さ制限（約 2 KB）を超えると PubMed が
-        <code>?term=</code> を無視します。</strong>
-        その場合は本アプリが自動的に検索式をクリップボードにコピーし、
-        PubMed の Advanced Search 画面（クエリ欄が空の状態）を開きますので、
-        そのまま貼り付けて検索してください。
-      </p>
-      <p className="hint">
-        「PubMed Advanced Search で開く」を押すと、PubMed の高度検索画面のクエリボックスに最終検索式が入った状態で開きます。
-        履歴管理・括弧展開・検索式の編集が必要な場合に便利です。
-      </p>
-
-      {pubmedResult && (
-        <PubMedResultTable
-          result={pubmedResult}
-          selectedPmids={[]}
-          onToggle={() => {}}
-        />
-      )}
-    </section>
-  );
-}
-
-/* ========== SR Iteration (PubMed + Revision Prompt + AI Response Extract) ========== */
-
-function SrIterationBlock({
-  settings,
-  question,
-  iteration,
-  iterationIndex,
-  stepBase,
-  onUpdate,
-  onSpawnNext,
-  hasNext,
-}: {
-  settings: AppSettings;
-  question: string;
-  iteration: SrIteration;
-  iterationIndex: number;
-  stepBase: number;
-  onUpdate: (p: Partial<SrIteration>) => void;
-  onSpawnNext: (searchString: string, explanation?: string) => void;
-  hasNext: boolean;
-}) {
-  const iterationLabel = iterationIndex === 0 ? "初回" : `${iterationIndex + 1}回目`;
-
-  function handleGenerateRevisionPrompt() {
-    if (!iteration.pubmedResult) return;
-    const prompt = buildPrompt(srRevisionPrompt, {
-      question,
-      executedSearchString: iteration.searchString,
-      apiFeedbackBlock: buildApiFeedbackBlock(iteration.pubmedResult),
-      abstractsBlock: buildAbstractsBlock(iteration.pubmedResult),
-      resultCount: String(iteration.pubmedResult.count),
-      relevantCountTop20: iteration.revisionInputs.relevantCount || "未入力",
-      noiseDescription: iteration.revisionInputs.noiseDescription || "未入力",
-      additionalKeywords: iteration.revisionInputs.additionalKeywords || "未入力",
-      termsToRemove: iteration.revisionInputs.termsToRemove || "未入力",
-      userGoal: iteration.revisionInputs.userGoal || "未入力",
-    });
-    onUpdate({ revisionPrompt: prompt });
-  }
-
-  function handleExtractAndProceed() {
-    const extracted = extractSearchString(iteration.revisedAiResponse);
-    if (extracted) {
-      const explanation = extractSrExplanation(iteration.revisedAiResponse);
-      onSpawnNext(extracted, explanation);
-    } else {
-      alert(
-        "改善された検索式を自動抽出できませんでした。AI回答からコピーして手動で次の検索式欄に貼り付けてください。"
-      );
-    }
-  }
-
-  return (
-    <>
-      {/* Step (4 + 3N): PubMed検索 */}
-      <section
-        id={`step-pubmed-${iterationIndex}`}
-        className="workflow-section"
-      >
-        <h2>
-          Step {stepBase}: PubMed検索
-          <span className="iteration-badge">{iterationLabel}</span>
-        </h2>
-        <SearchStringInput
-          value={iteration.searchString}
-          onChange={(v) => onUpdate({ searchString: v })}
-        />
-
-        {iteration.searchExplanation && (
-          <details className="search-explanation-panel" open>
-            <summary>
-              📖 検索式の構造解説（AI回答から自動抽出 — クリックで折りたたみ）
-            </summary>
-            <p className="hint">
-              AI が出力した「PIC 要素ごとの関連語リスト」「論理構造」「構造解説」「MeSH/同義語の選定理由」などをそのまま転記しています。
-              検索式の中身を即座に理解するための補助です。
-            </p>
-            <pre className="explanation-text">{iteration.searchExplanation}</pre>
-          </details>
-        )}
-
-        {iteration.searchString && (
-          <PubMedSearchBox
-            settings={settings}
-            searchString={iteration.searchString}
-            onResult={(result) => onUpdate({ pubmedResult: result })}
-          />
-        )}
-        {iteration.pubmedResult && (
-          <>
-            <PubMedResultTable
-              result={iteration.pubmedResult}
-              selectedPmids={[]}
-              onToggle={() => {}}
-            />
-            <MeshObservationGuide pubmedResult={iteration.pubmedResult} />
-          </>
-        )}
-      </section>
-
-      {/* Step (5 + 3N): 改善プロンプト */}
-      {iteration.pubmedResult && (
-        <section className="workflow-section">
-          <h2>
-            Step {stepBase + 1}: 改善プロンプト生成
-            <span className="iteration-badge">{iterationLabel}</span>
-          </h2>
-          <p className="hint">
-            上位文献のタイトル・抄録・付与MeSH・Publication
-            Types・Query Translationが改善プロンプトに自動挿入されます。
-            AIは付与MeSHから同義語を発見し、抄録から漏れている自由語を補い、
-            <strong>査読（PRESS / PRISMA-S）通過品質</strong>の検索式を作成します。
-          </p>
-
-          <h4>改善プロンプトに含める評価（任意）</h4>
-          <div className="form-group">
-            <label>上位20件中、関連が高そうな件数</label>
-            <input
-              type="text"
-              value={iteration.revisionInputs.relevantCount}
-              onChange={(e) =>
-                onUpdate({
-                  revisionInputs: {
-                    ...iteration.revisionInputs,
-                    relevantCount: e.target.value,
-                  },
-                })
-              }
-              placeholder="例：8件"
-            />
-          </div>
-          <div className="form-group">
-            <label>ノイズとして多かった内容</label>
-            <textarea
-              rows={2}
-              value={iteration.revisionInputs.noiseDescription}
-              onChange={(e) =>
-                onUpdate({
-                  revisionInputs: {
-                    ...iteration.revisionInputs,
-                    noiseDescription: e.target.value,
-                  },
-                })
-              }
-              placeholder="例：動物実験が多い、小児の論文が混入している"
-            />
-          </div>
-          <div className="form-group">
-            <label>追加したい検索語</label>
-            <textarea
-              rows={2}
-              value={iteration.revisionInputs.additionalKeywords}
-              onChange={(e) =>
-                onUpdate({
-                  revisionInputs: {
-                    ...iteration.revisionInputs,
-                    additionalKeywords: e.target.value,
-                  },
-                })
-              }
-            />
-          </div>
-          <div className="form-group">
-            <label>除外したい検索語</label>
-            <textarea
-              rows={2}
-              value={iteration.revisionInputs.termsToRemove}
-              onChange={(e) =>
-                onUpdate({
-                  revisionInputs: {
-                    ...iteration.revisionInputs,
-                    termsToRemove: e.target.value,
-                  },
-                })
-              }
-            />
-          </div>
-          <div className="form-group">
-            <label>希望</label>
-            <textarea
-              rows={2}
-              value={iteration.revisionInputs.userGoal}
-              onChange={(e) =>
-                onUpdate({
-                  revisionInputs: {
-                    ...iteration.revisionInputs,
-                    userGoal: e.target.value,
-                  },
-                })
-              }
-              placeholder="例：件数を500件以下に絞りたい"
-            />
-          </div>
-
-          <button
-            className="btn btn-primary"
-            onClick={handleGenerateRevisionPrompt}
-          >
-            改善プロンプトを生成
-          </button>
-
-          {iteration.revisionPrompt && (
-            <PromptDisplay
-              prompt={iteration.revisionPrompt}
-              title="改善プロンプト"
-            />
-          )}
-        </section>
-      )}
-
-      {/* Step (6 + 3N): AI改善回答 paste + 抽出 */}
-      {iteration.revisionPrompt && (
-        <section className="workflow-section">
-          <h2>
-            Step {stepBase + 2}: AI改善回答の貼り付け
-            <span className="iteration-badge">{iterationLabel}</span>
-          </h2>
-          <p className="hint">
-            上の改善プロンプトを外部AIに貼り付け、返ってきた改善回答全体をここに貼り付けてください。
-            「AI回答から検索式を抽出して次のStepへ」を押すと、抽出された検索式で次のPubMed検索ステップが自動的に開きます。
-          </p>
-          <textarea
-            value={iteration.revisedAiResponse}
-            onChange={(e) =>
-              onUpdate({ revisedAiResponse: e.target.value })
-            }
-            rows={10}
-            placeholder="AIから返ってきた改善回答全体をここに貼り付け..."
-            style={{ width: "100%" }}
-          />
-          {iteration.revisedAiResponse && (
-            <div className="step3-action">
-              <p className="hint">
-                {hasNext
-                  ? "次のPubMed検索ステップは既に開かれています。再抽出すると上書きされます。"
-                  : "次のPubMed検索ステップが新たに開きます。"}
-              </p>
-              <button
-                className="btn btn-primary"
-                onClick={handleExtractAndProceed}
-              >
-                AI回答から検索式を抽出して次のStepへ
-              </button>
-            </div>
-          )}
-        </section>
-      )}
-    </>
-  );
-}
-
-/* ========== MeSH observation guide ========== */
-
-function MeshObservationGuide({
-  pubmedResult,
-}: {
-  pubmedResult: PubMedSearchResult;
-}) {
-  const meshTerms = Array.from(
-    new Set(pubmedResult.articles.flatMap((a) => a.meshTerms ?? []))
-  );
-  const pubTypes = Array.from(
-    new Set(pubmedResult.articles.flatMap((a) => a.publicationTypes ?? []))
-  );
-  const abstractsCount = pubmedResult.articles.filter(
-    (a) => a.abstractText
-  ).length;
-
-  return (
-    <div className="mesh-observation-guide">
-      <h4>付与MeSH・抄録・Publication Types（自動取得・次ステップへ自動挿入）</h4>
-      <p>
-        <strong>抄録取得済み:</strong> {abstractsCount} /{" "}
-        {pubmedResult.articles.length} 件
-      </p>
-      {meshTerms.length > 0 ? (
-        <div className="mesh-list">
-          <strong>頻出MeSH（上位{Math.min(meshTerms.length, 30)}件）：</strong>
-          <p>{meshTerms.slice(0, 30).join("; ")}</p>
-        </div>
-      ) : (
-        <p className="hint">MeSHが取得できていません。</p>
-      )}
-      {pubTypes.length > 0 && (
-        <div className="pub-type-list">
-          <strong>Publication Types：</strong>
-          <p>{pubTypes.join("; ")}</p>
-        </div>
       )}
     </div>
   );

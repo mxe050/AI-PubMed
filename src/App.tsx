@@ -7,18 +7,20 @@ import { StrategyWorkflow } from "./components/StrategyWorkflow";
 import { EbmTab } from "./components/EbmTab";
 import { GradeExplainerTab } from "./components/GradeExplainerTab";
 import { PubMedToolTab } from "./components/PubMedToolTab";
+import { QuickEvidenceTab } from "./components/QuickEvidenceTab";
+import { SrTab } from "./components/SrTab";
 import { topicInitialPrompt, topicFields } from "./prompts/topicExploration";
 import {
   counterEvidencePrompt,
   counterEvidenceFields,
 } from "./prompts/counterEvidence";
-import { srInitialPrompt, srFields } from "./prompts/systematicReview";
 import "./App.css";
 
 type TabType =
   | "how_to_use"
   | "fact_check"
   | "topic_exploration"
+  | "quick_evidence"
   | "ebm_search"
   | "systematic_review"
   | "pubmed_tool"
@@ -30,6 +32,7 @@ const tabs: { key: TabType; label: string; kind: TabKind }[] = [
   { key: "how_to_use", label: "使い方・設定", kind: "meta" },
   { key: "fact_check", label: "AI出力ファクトチェック", kind: "main" },
   { key: "topic_exploration", label: "PubMedで見逃しやすい論文検索", kind: "main" },
+  { key: "quick_evidence", label: "ちょっと調べたい", kind: "main" },
   { key: "ebm_search", label: "EBMのための検索", kind: "supp" },
   { key: "systematic_review", label: "システマティックレビュー", kind: "supp" },
   { key: "pubmed_tool", label: "PubMed Tool", kind: "supp" },
@@ -221,27 +224,16 @@ export default function App() {
           </>
         )}
 
+        {activeTab === "quick_evidence" && (
+          <QuickEvidenceTab settings={settings} />
+        )}
+
         {activeTab === "ebm_search" && <EbmTab settings={settings} />}
 
         {activeTab === "systematic_review" && (
-          <StrategyWorkflow
-            title="システマティックレビュー（補助機能）"
+          <SrTab
             settings={settings}
-            fields={srFields}
-            promptTemplate={srInitialPrompt}
-            description={
-              <>
-                <p>
-                  PICOに基づくSR、メタ解析、診療ガイドライン用の効果検索に使います。最終的に必ずPubMedで完結し、査読（PRESS
-                  / PRISMA-S）通過品質の検索式と、その構築理由の解説を作ります。
-                </p>
-                <p className="sr-brushup-note">
-                  EBMのための検索と異なり、一度PubMedで検索した結果を加えてAIで検索式をブラッシュアップ（Brush
-                  up）してから、再度PubMedで検索をします。
-                </p>
-              </>
-            }
-            mode="sr-revision"
+            onNavigateToEbm={() => setActiveTab("ebm_search")}
           />
         )}
 
