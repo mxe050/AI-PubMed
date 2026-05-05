@@ -2,6 +2,40 @@
 // ユーザー提供の長文レポートを、レイアウトのみ整えて掲載。
 // 内容は逐語的に保持し、見出し構造・コードブロック・参考文献リストで読みやすくする。
 
+import { useState } from "react";
+
+/** 検索式コードブロック＋コピーボタンの共通子コンポーネント。 */
+function CodeBlockWithCopy({ code }: { code: string }) {
+  const [copied, setCopied] = useState(false);
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(code);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = code;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  }
+  return (
+    <div className="harms-code-block">
+      <button
+        type="button"
+        className="harms-code-copy-btn"
+        onClick={handleCopy}
+        title="この検索式をクリップボードにコピー"
+      >
+        {copied ? "✓ コピーしました" : "📋 コピー"}
+      </button>
+      <pre className="harms-code">{code}</pre>
+    </div>
+  );
+}
+
 export function HarmsSearchTab() {
   return (
     <div className="harms-search-tab">
@@ -199,25 +233,25 @@ export function HarmsSearchTab() {
       <section className="harms-section">
         <h3>9. 実際の検索式の基本構造</h3>
         <p>害の検索式は、基本的には以下の形になります［1,10］。</p>
-        <pre className="harms-code">
-{`(P：対象疾患・対象患者)
+        <CodeBlockWithCopy
+          code={`(P：対象疾患・対象患者)
 AND
 (I：介入)
 AND
 (H：害フィルター または 特定害語)
 NOT
 (animals NOT humans)`}
-        </pre>
+        />
         <p>
           害のプロファイルが疾患を超えて共通すると考えられる場合は、P を省略して以下のようにします［1,10］。
         </p>
-        <pre className="harms-code">
-{`(I：介入)
+        <CodeBlockWithCopy
+          code={`(I：介入)
 AND
 (H：害フィルター または 特定害語)
 NOT
 (animals NOT humans)`}
-        </pre>
+        />
         <p>
           探索的に広く害を拾う場合は generic harm terms を使い、特定の害を拾う場合は specific harm terms を使います。Golder、Peryer、Loke は、generic terms と specific terms の両方を OR で組み合わせることを推奨しています［10］。
         </p>
@@ -229,8 +263,8 @@ NOT
         <p>
           以下は、PubMed で実務的に使いやすい汎用フィルター例です。Golder らの Ovid MEDLINE 系フィルター、Cochrane Handbook、日本語での PubMed 変換例を踏まえたものですが、Ovid で検証された性能が PubMed でそのまま保証されるわけではありません［10,19,20］。実際に使用する場合は、既知の重要文献が拾えるかを必ず確認してください［10,18］。
         </p>
-        <pre className="harms-code">
-{`(
+        <CodeBlockWithCopy
+          code={`(
   "adverse effects"[Subheading]
   OR "complications"[Subheading]
   OR "drug effects"[Subheading]
@@ -257,7 +291,7 @@ NOT
     )
   )
 )`}
-        </pre>
+        />
         <p>
           このフィルターは高感度寄りですが、safety や risk を入れるとノイズが増えます。Golder、Peryer、Loke は、risk は “risk of bias” や “relative risk”、safety は “patient safety” などを拾うため、ノイズに注意すべきと述べています［10］。検索数が多すぎる場合は、risk を使わない、safety を外す、特定害語を追加する、P や I を精密化するなどの調整が必要です［10］。
         </p>
@@ -269,8 +303,8 @@ NOT
         <p>
           薬剤の害検索では、介入名を広く作り、害フィルターを組み合わせます［10,19］。薬剤名は、一般名、商品名、薬剤クラス名、略語を含めます［10］。
         </p>
-        <pre className="harms-code">
-{`(
+        <CodeBlockWithCopy
+          code={`(
   "Drug Name"[Mesh]
   OR genericname[tiab]
   OR brandname[tiab]
@@ -300,7 +334,7 @@ AND
 )
 NOT
 ("animals"[MeSH Terms] NOT "humans"[MeSH Terms])`}
-        </pre>
+        />
         <p>
           薬剤では Embase の有用性が高く、MEDLINE だけに限定すべきではありません［1,10］。また、未公表データ、ClinicalTrials.gov、FDA、EMA、PMDA、企業臨床試験報告書などの確認が重要です［1,4,10,17］。
         </p>
@@ -316,8 +350,8 @@ NOT
           Golder、Wright、Loke は、外科的介入の害フィルターを開発し、generic terms だけで MEDLINE の検証セットでは 87%、Embase の検証セットでは 92% の relative recall を示し、特定害語を追加すると MEDLINE 93%、Embase 95% まで改善し得ると報告しています［14］。ただし、開発・評価・検証セットで数値は変動し、MEDLINE では 86%、94%、87%、Embase では 88%、89%、92% でした［14］。したがって、実務上は「およそ 90% 前後」と表現するのが適切です［14］。
         </p>
         <p>PubMed 用の外科的介入向け実務例は以下です［14］。</p>
-        <pre className="harms-code">
-{`(
+        <CodeBlockWithCopy
+          code={`(
   complicat*[tiab]
   OR "adverse effects"[Subheading]
   OR "complications"[Subheading]
@@ -327,10 +361,10 @@ NOT
   OR "procedure related"[tiab]
   OR "procedure-related"[tiab]
 )`}
-        </pre>
+        />
         <p>さらに術式に応じて以下を追加します［14］。</p>
-        <pre className="harms-code">
-{`(
+        <CodeBlockWithCopy
+          code={`(
   "Surgical Wound Infection"[Mesh]
   OR "Wound Dehiscence"[Mesh]
   OR "Pain, Postoperative"[Mesh]
@@ -343,7 +377,7 @@ NOT
   OR readmission[tiab]
   OR mortality[tiab]
 )`}
-        </pre>
+        />
         <p>
           外科系では、合併症が本文にしか出ないこともあり、検索フィルターだけで 100% を期待すべきではありません［14］。主要 SR の参考文献確認、引用検索、専門家確認が重要です［1,10,14］。
         </p>
@@ -356,8 +390,8 @@ NOT
           医療機器では、薬剤や手術と異なり、failure、malfunction、breakage、migration、loosening、removal、recall、device-related event などが重要になります［10,16］。Golder、Farrah、Mierzwinski-Urban らは、医療機器の害フィルターを開発し、generic terms だけで MEDLINE 84%、Embase 83% の relative recall、特定害語を追加すると 90% 以上に改善すると報告しています［16］。
         </p>
         <p>PubMed 用の実務例は以下です［16］。</p>
-        <pre className="harms-code">
-{`(
+        <CodeBlockWithCopy
+          code={`(
   complicat*[tiab]
   OR "adverse effects"[Subheading]
   OR "complications"[Subheading]
@@ -379,7 +413,7 @@ NOT
   OR "Equipment Failure"[Mesh]
   OR "Equipment Safety"[Mesh]
 )`}
-        </pre>
+        />
         <p>
           医療機器では、デバイスの材料、留置部位、力学的特徴に応じて特定害語を追加する必要があります［16］。たとえば、ステントなら thrombosis、restenosis、migration、fracture、人工関節なら loosening、wear、dislocation、infection、プレートやスクリューなら loosening、breakage、malunion、nonunion、nerve injury などです［16］。
         </p>
@@ -391,14 +425,14 @@ NOT
         <p>
           症例報告は、未知または稀な害のシグナル検出に有用ですが、分母がないため発生率や相対リスクの推定には不向きです［1］。検索式では、以下のような語を補助的に使います。
         </p>
-        <pre className="harms-code">
-{`(
+        <CodeBlockWithCopy
+          code={`(
   "Case Reports"[Publication Type]
   OR case report[tiab]
   OR case reports[tiab]
   OR case series[tiab]
 )`}
-        </pre>
+        />
         <p>
           ただし、症例報告まで含めると検索数が大きく増えるため、診療ガイドラインでは、重大で稀な害のシグナル確認に限定する、既存 SR・規制情報・添付文書で候補を絞ってから症例報告を探す、などの運用が現実的です［1,10］。
         </p>
@@ -410,8 +444,8 @@ NOT
         <p>
           観察研究を害検索に含める場合、単純な観察研究フィルターだけでは感度が低くなることがあります［10］。補助的には以下のような語を使用できます。
         </p>
-        <pre className="harms-code">
-{`(
+        <CodeBlockWithCopy
+          code={`(
   cohort[tiab]
   OR cohorts[tiab]
   OR "Cohort Studies"[Mesh]
@@ -425,7 +459,7 @@ NOT
   OR postmarketing[tiab]
   OR post-marketing[tiab]
 )`}
-        </pre>
+        />
         <p>
           しかし、害の研究デザイン用語は不統一であり、研究デザインフィルターで強く絞ると漏れが出る可能性があります［10］。検索数が許容できる場合は、研究デザインで絞らず、スクリーニングで判断する方が安全です［1,10］。
         </p>
@@ -502,6 +536,92 @@ NOT
         <p>
           害はメタ分析できないことも多いですが、表として整理すること自体が診療ガイドラインの推奨判断に有用です［1,8］。「害が報告されていない」ことを「安全」と解釈してはいけません。害が評価されていないなら、「害は評価されていない」と明示することが、透明性の高い診療ガイドライン作成に不可欠です［1,8］。
         </p>
+      </section>
+
+      {/* 21. 害の報告がありそうなのに見つからない場合 */}
+      <section className="harms-section harms-section-spotlight">
+        <h3>21. 害の報告が「ありそうなのに見つからない」場合</h3>
+        <p>
+          自由診療で行われている治療、たとえば高濃度ビタミンC点滴や、標準治療として有効性・安全性が十分に確立していないがん免疫療法などでは、医療者の間で「効果が乏しい可能性が高い」「患者に不利益を与える可能性がある」と認識されていても、学術論文として明確な「害」の報告が見つからないことがあります。
+        </p>
+        <p>
+          しかし、論文として害が報告されていないことは、「害がない」ことを意味しません。これは、害のシステマティックレビューを行う際に非常に重要な点です。Cochrane Handbook でも、有害事象は研究ごとに定義、測定方法、観察期間、報告の仕方が大きく異なり、しばしば十分に報告されないことが指摘されています。また、PRISMA Harms や CONSORT Harms でも、害の報告が不十分であることが、利益と害のバランスを誤って評価する原因になるとされています。
+        </p>
+        <p>
+          害の報告が論文として出にくい理由はいくつかあります。第一に、その害がすでに医療者の間で「常識的なリスク」と見なされており、あえて症例報告や研究として発表されない場合があります。第二に、治療そのものに直接的な毒性が少ない場合でも、標準治療を受ける機会を遅らせる、または失わせるという「間接的な害」が生じることがあります。がん領域では、補完代替医療を選択した患者が標準的ながん治療を拒否または遅延し、その結果として死亡リスクが高くなる可能性が報告されています。つまり、薬剤や点滴そのものの副作用が少なくても、「有効な治療を受ける機会を失うこと」自体が重大な害になり得ます。
+        </p>
+        <p>
+          第三に、自由診療では診療内容や有害事象が研究データベースや臨床試験登録に体系的に記録されていないことが多く、分母、つまり何人がその治療を受けたのかが分からない場合があります。そのため、害が起きても頻度を推定しにくく、症例報告にもつながりにくいという問題があります。第四に、患者の同意が得られない、個人が特定されやすい、経過が複雑で因果関係を明確にしにくい、といった理由で論文化されない場合もあります。さらに、重篤な被害が生じた場合には、訴訟や紛争の対象となり、医療機関や関係者が詳細を公表しにくくなることもあります。
+        </p>
+        <p>
+          高濃度ビタミンC点滴についても、すべての患者に明らかな毒性が出るわけではありませんが、腎障害やシュウ酸腎症などの症例報告があり、腎機能障害のある患者などでは注意が必要です。また、がん治療との相互作用や、標準治療の代替として用いられることによる治療機会の喪失も問題になります。したがって、「副作用報告が少ない」ことをもって安全と判断するのではなく、直接的な副作用、標準治療の遅れ、経済的負担、患者の意思決定への影響を含めて、広く害を評価する必要があります。
+        </p>
+        <p>
+          このような状況では、システマティックレビューや診療ガイドライン作成において、RCT だけに依存することは不十分です。RCT は有効性の評価には重要ですが、まれな害、長期的な害、自由診療や実臨床で起こる害、標準治療の遅延による害を十分に把握できないことがあります。そのため、観察研究、症例報告、症例集積、規制当局情報、医療安全情報、裁判例や行政資料、患者団体からの情報なども、必要に応じて探索することが重要です。
+        </p>
+
+        <div className="harms-spotlight-summary">
+          要するに、害の報告が見つからない場合には、「害がない」と考えるのではなく、
+          <ol>
+            <li>本当に害がないのか、</li>
+            <li>害はあるが論文化されていないのか、</li>
+            <li>直接的な副作用ではなく標準治療の遅れなどの間接的な害なのか、</li>
+            <li>自由診療のためデータが体系的に収集されていないのか</li>
+          </ol>
+          を慎重に検討する必要があります。
+        </div>
+
+        <p>
+          診療ガイドラインでは、介入の利益だけでなく害も評価し、そのバランスに基づいて推奨を決めます。GRADE アプローチでも、推奨の強さは望ましい効果と望ましくない効果のバランス、エビデンスの確実性、患者の価値観、資源利用などを踏まえて判断します。したがって、学術論文に害の報告が少ない治療ほど、「害がない」と結論づけるのではなく、<strong>「害に関するエビデンスが不足している」と明確に記載することが重要</strong>です。
+        </p>
+
+        <h4>参考文献・参考情報（このセクション独自）</h4>
+        <ol className="harms-spotlight-references">
+          <li>
+            Cochrane Handbook for Systematic Reviews of Interventions, Chapter 19: Adverse effects.{" "}
+            <a
+              href="https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-19"
+              target="_blank"
+              rel="noreferrer"
+            >
+              cochrane.org/handbook/current/chapter-19
+            </a>
+          </li>
+          <li>
+            Zorzela L, et al. PRISMA harms checklist: improving harms reporting in systematic reviews. <em>BMJ</em>. 2016;352:i157.{" "}
+            <a href="https://www.bmj.com/content/352/bmj.i157" target="_blank" rel="noreferrer">
+              bmj.com/content/352/bmj.i157
+            </a>
+          </li>
+          <li>
+            Junqueira DR, et al. CONSORT Harms 2022 statement, explanation, and elaboration: updated guideline for the reporting of harms in randomized trials. <em>BMJ</em>. 2023;381:e073725.{" "}
+            <a href="https://www.bmj.com/content/381/bmj-2022-073725" target="_blank" rel="noreferrer">
+              bmj.com/content/381/bmj-2022-073725
+            </a>
+          </li>
+          <li>
+            Johnson SB, et al. Complementary Medicine, Refusal of Conventional Cancer Therapy, and Survival Among Patients With Curable Cancers. <em>JAMA Oncology</em>. 2018;4(10):1375–1381.{" "}
+            <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC6233773/" target="_blank" rel="noreferrer">
+              PMC6233773
+            </a>
+          </li>
+          <li>
+            National Cancer Institute. Intravenous Vitamin C (PDQ®).{" "}
+            <a
+              href="https://www.cancer.gov/about-cancer/treatment/cam/hp/vitamin-c-pdq"
+              target="_blank"
+              rel="noreferrer"
+            >
+              cancer.gov/.../vitamin-c-pdq
+            </a>
+          </li>
+          <li>
+            Cossey LN, et al. Oxalate Nephropathy and Intravenous Vitamin C. <em>American Journal of Kidney Diseases</em>. 2013;61(6):1032–1035. 関連症例報告例：{" "}
+            <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC7363608/" target="_blank" rel="noreferrer">
+              PMC7363608
+            </a>
+          </li>
+        </ol>
       </section>
 
       {/* 参考文献 */}

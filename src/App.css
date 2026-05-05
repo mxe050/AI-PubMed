@@ -3391,8 +3391,72 @@ tr.unverified {
   font-size: 0.82rem;
   line-height: 1.55;
   overflow-x: auto;
-  margin: 10px 0;
+  margin: 0;
   white-space: pre;
+}
+/* コピー付きコードブロック */
+.harms-code-block {
+  position: relative;
+  margin: 10px 0;
+}
+.harms-code-copy-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  padding: 4px 10px;
+  font-size: 0.78rem;
+  background: rgba(255, 255, 255, 0.12);
+  color: #e2e8f0;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+  font-family: inherit;
+  z-index: 1;
+}
+.harms-code-copy-btn:hover {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+/* セクション21 ハイライト：自由診療の害評価 */
+.harms-section-spotlight {
+  border-left: 4px solid var(--color-warning);
+  background: #fffaf0;
+}
+.harms-section-spotlight h3 {
+  color: #b45309;
+}
+.harms-spotlight-summary {
+  margin: 12px 0;
+  padding: 10px 14px;
+  background: var(--color-warning-bg);
+  border: 1px solid var(--color-warning);
+  border-radius: var(--radius);
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+.harms-spotlight-summary ol {
+  margin: 6px 0;
+  padding-left: 24px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #92400e;
+}
+.harms-spotlight-references {
+  font-size: 0.82rem;
+  line-height: 1.65;
+  padding-left: 28px;
+}
+.harms-spotlight-references li {
+  margin: 6px 0;
+}
+.harms-spotlight-references a {
+  color: var(--color-primary);
+  text-decoration: none;
+  border-bottom: 1px dotted var(--color-primary);
+}
+.harms-spotlight-references a:hover {
+  text-decoration: underline;
 }
 .harms-references {
   background: var(--color-info-bg);
