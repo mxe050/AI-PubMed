@@ -118,10 +118,29 @@ export function QuickEvidenceTab(_props: Props) {
               title={`${currentMode.label}モード プロンプト`}
             />
           </div>
-          <p className="warning-text">
-            ⚠ 結果は外部AIの訓練知識からの想起を含み、論文の捏造（ハルシネーション）が起きる可能性があります。
-            重要な判断には「AI出力ファクトチェック」タブでPMID実在確認・抄録取得・URL確認を必ず行ってください。
-          </p>
+
+          {currentMode.emphasizeHallucinationCheck ? (
+            <div className="hallucination-check-imperative">
+              <h4>⚠ 必ず「AI出力ファクトチェック」タブでハルシネーションチェックを行ってください</h4>
+              <p>
+                このモードのプロンプトは、AI回答の末尾に
+                <code>===PMIDS_START===</code> 〜 <code>===PMIDS_END===</code>
+                ブロックを含む構造化された PMID リストを出させます。
+                AI回答全文（または PMID リストブロックだけ）を
+                <strong>「AI出力ファクトチェック」タブ</strong>
+                に貼り付けると、PMID の実在確認・抄録取得・撤回警告を一括で実行できます。
+              </p>
+              <p className="hallucination-check-imperative-strong">
+                医療情報は「ほぼハルシネーションがない」ではダメで、「ハルシネーションゼロ」でなければなりません。
+                必ず実在確認を行ってください。
+              </p>
+            </div>
+          ) : (
+            <p className="warning-text">
+              ⚠ 結果は外部AIの訓練知識からの想起を含み、論文の捏造（ハルシネーション）が起きる可能性があります。
+              重要な判断には「AI出力ファクトチェック」タブでPMID実在確認・抄録取得・URL確認を必ず行ってください。
+            </p>
+          )}
         </section>
       )}
     </div>

@@ -3320,6 +3320,36 @@ tr.unverified {
   line-height: 1.5;
 }
 
+/* ハルシネーションチェック必須バナー（quick モード生成後） */
+.hallucination-check-imperative {
+  margin: 16px 0 0;
+  padding: 14px 18px;
+  background: var(--color-error-bg);
+  border: 2px solid var(--color-error);
+  border-radius: var(--radius);
+}
+.hallucination-check-imperative h4 {
+  margin: 0 0 8px;
+  color: var(--color-error);
+  font-size: 1rem;
+}
+.hallucination-check-imperative p {
+  margin: 6px 0;
+  font-size: 0.88rem;
+  line-height: 1.6;
+  color: var(--color-text);
+}
+.hallucination-check-imperative code {
+  background: #fff;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 0.82em;
+}
+.hallucination-check-imperative-strong {
+  color: var(--color-error) !important;
+  font-weight: 600;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
   .app-header h1 {
