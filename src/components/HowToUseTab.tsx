@@ -126,45 +126,152 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
       </section>
 
       <section className="how-to-use-section">
-        <h3>3つの検索戦略タブ</h3>
+        <h3>アプリのタブ構成（全8タブ）</h3>
+        <p className="hint">
+          目的別に8つのタブを用意しています。最初は「ちょっと調べたい」（手軽）または
+          「EBMのための検索」（PICO学習付き）から始めるのがおすすめです。
+        </p>
+
         <div className="strategy-cards">
           <div className="strategy-card">
-            <h4>トピック探索</h4>
+            <h4>🛠 使い方・設定</h4>
             <p>
-              漠然とした疑問、概念探索、用語法、分類体系の歴史、論争点など、
-              <strong>PubMedの抄録だけでは拾いきれないトピック</strong>に使います。
-            </p>
-            <p>
-              フロー：疑問 → AI（検索式 + 暫定解説）→ PubMed検索（候補文献収集）→
-              AI（PubMed結果 + 訓練知識を統合）→ 最終回答 →
-              <strong>PubMedで全PMIDを実在確認＋抄録取得</strong>
+              本ページ。アプリの目的・タブの説明・ワークフロー・NCBI APIキー設定。
             </p>
           </div>
+
+          <div className="strategy-card">
+            <h4>● AI出力ファクトチェック</h4>
+            <p>
+              ChatGPT/Claude/Geminiの回答（医学論文の引用入り）を貼り付け、
+              <strong>PMID・DOI・URLの実在確認、抄録取得、撤回・正誤表の警告</strong>を一括実行します。
+              AIが生成した「もっともらしい嘘」を構造的に検出する要のタブです。
+            </p>
+          </div>
+
+          <div className="strategy-card">
+            <h4>● PubMedで見逃しやすい論文検索</h4>
+            <p>
+              PubMedの抄録だけでは届かない<strong>本文内証拠</strong>
+              （Discussion・Methods・Limitations・Table・Figure・参考文献にある批判・比較・改変・限界・代替分類への言及）を持つ論文を意図的に拾い上げるためのプロンプトを生成します。
+            </p>
+            <p>
+              <strong>通常検索 / 反証検索</strong>の2モード切替で、確証バイアスを防ぎながら包括的な文献レビューが可能です。
+            </p>
+          </div>
+
+          <div className="strategy-card">
+            <h4>● ちょっと調べたい</h4>
+            <p>
+              臨床現場の素朴な疑問・違和感を、6モードで素早くプロンプト化して外部AIに渡します。
+            </p>
+            <ul>
+              <li><strong>🔍 クイック</strong>：エビデンスの方向性を3〜5本で素早く確認</li>
+              <li><strong>📋 翻訳者</strong>：カルテ風の自然文 → PubMed検索式</li>
+              <li><strong>🎯 コーチ</strong>：あなたの検索式を診断・改善案を提示</li>
+              <li><strong>⚖️ 議論</strong>：保守派 vs 革新派の2人の専門家ディベート</li>
+              <li><strong>💥 常識?</strong>：教科書的常識を最新エビデンスで検証</li>
+              <li><strong>🌳 系譜</strong>：1本の重要論文の発展・批判・修正を時系列追跡</li>
+            </ul>
+          </div>
+
+          <div className="strategy-card">
+            <h4>EBMのための検索</h4>
+            <p>
+              EBM Step 2（情報検索）に特化。
+              <strong>PICO自動入力</strong>（AIが提案するPICO案を `===PICO_START===` 形式でパースして自動セット）、
+              <strong>出版年フィルター</strong>（過去1/5/10/20年/2000年以降）、
+              <strong>研究デザインフィルター</strong>（Cochrane Handbook 由来）、
+              検索結果を<strong>AIで研究デザイン別に分類</strong>して新しいブラウザタブで表示（CSVダウンロード可）。
+            </p>
+          </div>
+
           <div className="strategy-card">
             <h4>システマティックレビュー</h4>
             <p>
-              PICOに基づくSR、メタ解析、診療ガイドライン用の効果検索に使います。
-              <strong>必ずPubMed検索式で完結</strong>します。
-            </p>
-            <p>
-              フロー：疑問 → AI（PICO化 + 検索式）→ PubMed検索 →
-              改善ループ（PubMed結果をAIに戻す）→
-              <strong>査読（PRESS / PRISMA-S）通過品質の最終検索式</strong>
+              PICOに基づくSR、メタ解析、診療ガイドライン用の効果検索。
+              AIに<strong>類語を網羅的に提案</strong>させ、
+              <strong>P/I/C/O 別のインタラクティブ検索語テーブル</strong>でチェックON/OFF・行追加しながら、
+              <strong>リアルタイムにPubMed検索式を組み立て</strong>ます。
+              MeSH確認ボタンで各検索語のMeSH用語確認、構造化検索式アコーディオンでCochrane方式の個別コピーも可能。
             </p>
           </div>
+
           <div className="strategy-card">
-            <h4>GRADE-ADOLOPMENT</h4>
+            <h4>PubMed Tool</h4>
+            <p>
+              PubMed の補助ツール群（PMID 一括処理、抄録の一括翻訳プロンプト生成、書誌情報整形など）。
+              他タブと組み合わせてSR後のデータ整理に使います。
+            </p>
+          </div>
+
+          <div className="strategy-card">
+            <h4>GRADE-ADOLOPMENT解説</h4>
             <p>
               診療ガイドライン作成手法
               <strong>GRADE-ADOLOPMENT（Adoption + Adaptation + de novo Development）</strong>
-              の解説ページです。
-            </p>
-            <p>
-              フローチャート、各ステップの詳細、EtD 8基準、具体例、参考文献を掲載。
-              実際の検索作業は「トピック探索」「システマティックレビュー」タブで行います。
+              の解説ページ。フローチャート・各ステップ・EtD 8基準・参考文献を掲載。
+              実際の検索作業は他タブで行います。
             </p>
           </div>
         </div>
+      </section>
+
+      <section className="how-to-use-section">
+        <h3>タブ別ワークフロー</h3>
+
+        <h4>📋 「ちょっと調べたい」タブ（最も手軽）</h4>
+        <ol className="workflow-list">
+          <li>6モードから1つを選ぶ（デフォルト「クイック」）</li>
+          <li>気軽な質問・臨床シナリオを入力</li>
+          <li>「プロンプトを生成」→ コピー → 外部AI（ChatGPT/Claude/Gemini等）に貼り付け</li>
+          <li>AI回答を「AI出力ファクトチェック」タブで実在確認</li>
+        </ol>
+
+        <h4>📋 「EBMのための検索」タブ（PICO学習付き）</h4>
+        <ol className="workflow-list">
+          <li>原質問を入力</li>
+          <li>「PICOブレストプロンプトを生成」→ 外部AI → 回答貼付 → 「PICOを自動入力」でP/I/C/Oを自動セット</li>
+          <li>「初回プロンプトを生成」→ 外部AI → 回答貼付 → 「検索式を抽出してStep 4へ」</li>
+          <li>Step 4: 出版年・研究デザインフィルター（任意）→ 「PubMed APIで検索」</li>
+          <li>「AIで研究デザイン別に分類する」→ プロンプト＋検索結果をコピー → 外部AI</li>
+          <li>AI分類回答を貼付 → 「分類結果を表示」で<strong>新しいブラウザタブ</strong>に分類テーブル（CSVダウンロード可）</li>
+        </ol>
+
+        <h4>📋 「システマティックレビュー」タブ（査読品質）</h4>
+        <ol className="workflow-list">
+          <li>Step 1: PICO（CQ・P・I・C・O）を入力</li>
+          <li>Step 2: 「類語提案プロンプトを生成」→ 外部AI（PICO各要素の検索語と類語を網羅的に提案）</li>
+          <li>Step 3: AI回答を貼付 → 「検索語テーブルに反映」で <code>===TERMS_START===</code> ブロックをパース → Step 4 のテーブルに自動投入</li>
+          <li>Step 4: 検索語テーブルでチェックON/OFF・行追加 → 検索式がリアルタイム更新</li>
+          <li>研究デザインフィルター（GL / SR / GL+SR / RCT / 非RCT）と出版年月日範囲を任意適用</li>
+          <li>各検索語の「MeSH確認」ボタンで NCBI MeSH データベースを別タブで確認</li>
+          <li>「PubMed APIで検索」（最大100件取得）</li>
+          <li>「AIで研究デザイン別に分類する」→ プロンプト＋全件コピー → 外部AI</li>
+          <li>AI分類回答を貼付 → 「分類結果を表示」で新タブに分類テーブル（CSVダウンロード可）</li>
+        </ol>
+
+        <h4>📋 「PubMedで見逃しやすい論文検索」タブ（本文内証拠重視）</h4>
+        <ol className="workflow-list">
+          <li>通常検索 / 反証検索 のモードを選択</li>
+          <li>探したい論文・論点・違和感を自然な日本語で入力（曖昧でOK）</li>
+          <li>「プロンプトを生成」→ 外部AI（本文内証拠を含む論文を意図的に拾う）</li>
+          <li>AI回答を「AI出力ファクトチェック」タブで実在確認</li>
+        </ol>
+
+        <h4>📋 「AI出力ファクトチェック」タブ（必須の最終工程）</h4>
+        <ol className="workflow-list">
+          <li>外部AIから返ってきた回答（医学論文の引用入り）を貼り付け</li>
+          <li>PMID・DOI・URL を一括抽出 → NCBI API で実在確認 → 抄録取得</li>
+          <li>撤回論文・正誤表・懸念表明（Expression of Concern）の警告を表示</li>
+          <li>AIの主張と実際の抄録の一致度を照合</li>
+        </ol>
+
+        <p className="hint" style={{ marginTop: 12 }}>
+          <strong>共通の鉄則：</strong>どのタブでも、外部AIから得た PMID・引用は
+          <strong>必ず「AI出力ファクトチェック」タブで実在確認</strong>してください。
+          AI のハルシネーション（捏造PMID）は無料の小型モデルほど多発します。
+        </p>
       </section>
 
       <section className="how-to-use-section">
@@ -284,24 +391,6 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
             </li>
           </ul>
         </div>
-      </section>
-
-      <section className="how-to-use-section">
-        <h3>標準的なワークフロー</h3>
-        <ol className="workflow-list">
-          <li>本アプリの戦略タブで疑問を入力する（漠然とした疑問でOK）</li>
-          <li>「プロンプトを生成」ボタンを押す</li>
-          <li>生成されたプロンプトをコピー</li>
-          <li>外部AI（ChatGPT / Claude / Geminiなど）に貼り付け</li>
-          <li>AIの回答を全文コピーし、本アプリに貼り戻す</li>
-          <li>「検索式を抽出してStep 4へ」ボタンで自動的にPubMed検索式が抽出される</li>
-          <li>「PubMed APIで検索」を実行（NCBI APIキーは任意）</li>
-          <li>結果（タイトル・抄録・MeSH）が自動取得される</li>
-          <li>Step 6で改善プロンプトまたは統合プロンプトを生成</li>
-          <li>外部AIに再度貼り付け、改善された検索式または最終回答を取得</li>
-          <li>必要に応じてループを繰り返す</li>
-          <li>最終的に、PubMedで実在確認＋抄録取得によりハルシネーションをチェック</li>
-        </ol>
       </section>
 
       <section className="how-to-use-section">
