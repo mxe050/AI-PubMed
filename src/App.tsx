@@ -9,6 +9,7 @@ import { GradeExplainerTab } from "./components/GradeExplainerTab";
 import { PubMedToolTab } from "./components/PubMedToolTab";
 import { QuickEvidenceTab } from "./components/QuickEvidenceTab";
 import { SrTab } from "./components/SrTab";
+import { HarmsSearchTab } from "./components/HarmsSearchTab";
 import { topicInitialPrompt, topicFields } from "./prompts/topicExploration";
 import {
   counterEvidencePrompt,
@@ -24,6 +25,7 @@ type TabType =
   | "ebm_search"
   | "systematic_review"
   | "pubmed_tool"
+  | "harms_search"
   | "grade_explainer";
 
 type TabKind = "main" | "supp" | "meta";
@@ -36,6 +38,7 @@ const tabs: { key: TabType; label: string; kind: TabKind }[] = [
   { key: "ebm_search", label: "EBMのための検索", kind: "supp" },
   { key: "systematic_review", label: "システマティックレビュー", kind: "supp" },
   { key: "pubmed_tool", label: "PubMed Tool", kind: "supp" },
+  { key: "harms_search", label: "害の検索", kind: "supp" },
   { key: "grade_explainer", label: "GRADE-ADOLOPMENT解説", kind: "supp" },
 ];
 
@@ -243,6 +246,8 @@ export default function App() {
         )}
 
         {activeTab === "pubmed_tool" && <PubMedToolTab />}
+
+        {activeTab === "harms_search" && <HarmsSearchTab />}
 
         {activeTab === "grade_explainer" && <GradeExplainerTab />}
       </main>
