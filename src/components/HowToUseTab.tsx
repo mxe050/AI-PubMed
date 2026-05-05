@@ -11,8 +11,13 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
     <div className="how-to-use">
       <header className="how-to-use-header">
         <h2>このアプリの使い方</h2>
-        <p className="hint">
-          AI APIには一切通信しません。PubMed公式API（NCBI E-utilities）のみを使用します。
+        <p className="how-to-use-imperative">
+          医療情報は、「ほぼハルシネーションがない」ではダメで、<br />
+          「ハルシネーションゼロ」でなければならない。
+        </p>
+        <p className="how-to-use-imperative">
+          PubMedに記載してあるから、信頼できる情報とは言えないことを理解し、<br />
+          EBMを学びましょう。
         </p>
         <p className="hint hint-warning">
           ⚠ AIモデルは常に進化・変化しています。本アプリでプロンプトを生成して外部AIに渡すより、
