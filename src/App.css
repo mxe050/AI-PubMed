@@ -630,6 +630,17 @@ mark.claim-hl {
   color: #6c4f00;
 }
 
+.topic-mode-normal-intro {
+  margin: 0 0 14px;
+  padding: 8px 12px;
+  background: var(--color-info-bg);
+  border-left: 3px solid var(--color-primary);
+  border-radius: 4px;
+  font-size: 0.88rem;
+  line-height: 1.55;
+  color: var(--color-text);
+}
+
 @media (max-width: 480px) {
   .topic-mode-switch {
     display: flex;
