@@ -577,6 +577,71 @@ mark.claim-hl {
   border-radius: 2px;
 }
 
+/* ==== Topic exploration: 通常 / 反証 mode toggle ==== */
+.topic-mode-switch {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 12px;
+  padding: 4px;
+  background: #f4f4f4;
+  border: 1px solid #e1e1e1;
+  border-radius: 8px;
+}
+
+.topic-mode-btn {
+  appearance: none;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--color-text);
+  padding: 6px 14px;
+  border-radius: 6px;
+  font-size: 0.92rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease, color 0.12s ease;
+}
+
+.topic-mode-btn:hover {
+  background: #ffffff;
+}
+
+.topic-mode-btn.active {
+  background: #ffffff;
+  border-color: var(--color-primary, #1f6feb);
+  color: var(--color-primary, #1f6feb);
+  font-weight: 600;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.topic-mode-btn-counter.active {
+  border-color: #b65c00;
+  color: #b65c00;
+}
+
+.topic-mode-counter-intro {
+  margin: 0 0 14px;
+  padding: 10px 12px;
+  background: #fff8e1;
+  border-left: 4px solid #ffb300;
+  border-radius: 4px;
+  font-size: 0.92rem;
+  line-height: 1.55;
+  color: #6c4f00;
+}
+
+@media (max-width: 480px) {
+  .topic-mode-switch {
+    display: flex;
+    width: 100%;
+  }
+  .topic-mode-btn {
+    flex: 1 1 0;
+    text-align: center;
+    padding: 8px 6px;
+  }
+}
+
 .hallucination-low-model-note {
   margin-top: 6px;
   color: #c62828;
