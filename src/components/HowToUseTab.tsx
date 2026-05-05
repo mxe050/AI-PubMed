@@ -123,10 +123,138 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
         </div>
       </section>
 
+      {/* コラム：OpenEvidence について */}
+      <section className="how-to-use-section open-evidence-column">
+        <h3>📖 コラム：OpenEvidence について</h3>
+        <p>
+          近年、医療情報の世界で <strong>OpenEvidence（オープンエビデンス）</strong>
+          が急速に浸透しています。NEJM・JAMA 本文の直接引用、ハルシネーションの少なさ、回答速度といった点で従来の生成AIに対する明確な優位性があり、米国医師の <strong>40% 超</strong>が日常的に使用するとされます。一方で、参照データベースが限られること、情報の最新性、利益相反の構造など、無視できない論点も指摘されています。本コラムは、批判的検討を含む資料を整理したものです。
+        </p>
+
+        <h4>最も網羅的な批判的検討（日本語）</h4>
+        <div className="open-evidence-source">
+          <p>
+            <strong>ザックス氏（本名・所属不明）「今更ながら、外科医がOpen Evidenceを使ってみた」</strong>
+            （note, 2025年）
+            <br />
+            <a
+              href="https://note.com/5392/n/n002267f62ea1"
+              target="_blank"
+              rel="noreferrer"
+            >
+              https://note.com/5392/n/n002267f62ea1
+            </a>
+          </p>
+          <p>
+            商業的な紹介記事が多い現状に対し、外科医の立場から批判的検討を主眼に書かれた資料です。要点として、
+          </p>
+          <ol>
+            <li>
+              USMLE 100% という指標の裏で独立系レビューでは <strong>約15%の確率で不正確な情報が含まれる可能性</strong>があり、テネクテプラーゼをFDA未承認と回答する誤りなど、レビュー記事・総説への参照依存に伴う時滞の問題、
+            </li>
+            <li>
+              日本語入力が内部で英語に変換され再翻訳される<strong>二重翻訳構造</strong>による情報損失、
+            </li>
+            <li>
+              米国法下のサービスで<strong>HIPAA保護対象外、PHI入力禁止</strong>というデータガバナンス上の制約、
+            </li>
+            <li>
+              CPMが汎用プラットフォームの10倍に達する広告収入モデルに内在する<strong>構造的利益相反</strong>、
+            </li>
+            <li>
+              AI生成物自体は査読を経ていないため<strong>引用元としては不適切</strong>、
+            </li>
+          </ol>
+          <p>
+            といった論点が挙げられています。結論として、UpToDate や PubMed、ガイドライン原典を置換するものではなく、
+            <strong>point-of-care での初期エビデンス探索とガイドライン横断的迅速参照に用途を限定する補完ツール</strong>として位置づけるべき、という主張で、まさに「片手間では」というご指摘と整合します。
+          </p>
+        </div>
+
+        <h4>戦略的・構造的な分析（英語）</h4>
+        <div className="open-evidence-source">
+          <p>
+            <strong>Robert Wachter “Medicine's AI Knowledge War Heats Up”</strong>（Substack）
+            <br />
+            <a
+              href="https://robertwachter.substack.com/p/medicines-ai-knowledge-war-heats"
+              target="_blank"
+              rel="noreferrer"
+            >
+              https://robertwachter.substack.com/p/medicines-ai-knowledge-war-heats
+            </a>
+          </p>
+          <p>
+            UCSF 医学部長による分析で、UpToDate Expert AI、OpenEvidence、Epic（Cosmos データベース活用の Art）を「知識ソースの違い」で比較しています。OpenEvidence は世界中の医学文献・学会ガイドラインをスキャンして genAI で回答を生成する一方、UpToDate は <strong>7,500 人超の人間専門家が継続的に編纂したチャプターのみを情報源</strong>とする、という設計思想の違いを論じており、「データベースが限られる」問題を正面から扱っています。Wolters Kluwer 側の CMO が UpToDate の専門家について「エビデンス、実臨床、すべてに無作為化試験があるわけではないという事実、判断力（judgment）の交点を理解している」と語ったくだりは、人間の編集が介在しない AI 回答の限界を示唆する点で印象的です。
+          </p>
+        </div>
+
+        <h4>学術的検証（英語）</h4>
+        <div className="open-evidence-source">
+          <p>
+            <strong>Mayo Clinic 研究グループによる回答品質検証論文</strong>（PMC12033599）
+            <br />
+            <a
+              href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12033599/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              https://pmc.ncbi.nlm.nih.gov/articles/PMC12033599/
+            </a>
+          </p>
+          <p>
+            point-of-care の臨床疑問への回答品質を検証した論文。検証の枠組みそのものを把握する上で参照価値があります。
+          </p>
+          <p>
+            <strong>medRxiv “The accuracy and repeatability of OpenEvidence on complex...”</strong>
+            <br />
+            <a
+              href="https://www.medrxiv.org/content/10.64898/2025.11.29.25341091v1.full-text"
+              target="_blank"
+              rel="noreferrer"
+            >
+              https://www.medrxiv.org/content/10.64898/2025.11.29.25341091v1.full-text
+            </a>
+          </p>
+          <p>
+            複雑な臨床問題に対する正確性と再現性を検証した最近のプレプリント。限界を指摘した別文献（
+            <em>Cureus 2025;17(1):e76867 “OpenEvidence: Enhancing medical student clinical rotations with AI but with limitations”</em>
+            ― タイトル自体が結論になっています）も引用しています。
+          </p>
+        </div>
+
+        <h4>現場医師の運用上の声（英語）</h4>
+        <div className="open-evidence-source">
+          <p>
+            <strong>Reddit r/medicine “We are OpenEvidence – Let's talk about AI and LLMs in healthcare”</strong>
+            <br />
+            <a
+              href="https://www.reddit.com/r/medicine/comments/1dehwb3/"
+              target="_blank"
+              rel="noreferrer"
+            >
+              https://www.reddit.com/r/medicine/comments/1dehwb3/
+            </a>
+          </p>
+          <p>
+            <strong>出版済み医学文献の80%が方法論的に質が低く、15%が出版バイアス、質の高いものはわずか5%</strong>という指摘に対して OpenEvidence 側がどう対応するかという根本的な質問が投げかけられています。同じく r/FamilyMedicine の比較スレッドでは、OpenEvidence はエビデンス更新は速いものの「<strong>検索エンジンとしてのロバストさは劣り、カバーするトピックも少ない</strong>」という現場医師の声が示されています。
+          </p>
+        </div>
+
+        <div className="open-evidence-summary">
+          <h4>総合</h4>
+          <p>
+            ご指摘の「データベースが限られる」問題は、OpenEvidence の設計思想の根幹にかかわる<strong>構造的論点</strong>として、外科医、学術研究者、UCSF 医学部長、現場医師という独立した複数の立場から共通して指摘されています。なかでもザックス氏の note と Wachter 氏の Substack がこの論点をもっとも体系的に扱っており、コラムの中核資料として有用です。各資料の結論は「
+            <strong>OpenEvidence は point-of-care での初期探索に用途を限定し、UpToDate・PubMed・ガイドライン原典と多層的に併用すべき</strong>
+            」という方向に収斂しており、片手間で使うことの危うさを補助線として浮かび上がらせています。
+          </p>
+        </div>
+      </section>
+
       <section className="how-to-use-section">
-        <h3>アプリのタブ構成（全8タブ）</h3>
+        <h3>アプリのタブ構成（全9タブ）</h3>
         <p className="hint">
-          目的別に8つのタブを用意しています。最初は「ちょっと調べたい」（手軽）または
+          目的別に9つのタブを用意しています。最初は「ちょっと調べたい」（手軽）または
           「EBMのための検索」（PICO学習付き）から始めるのがおすすめです。
         </p>
 
@@ -164,12 +292,14 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
               臨床現場の素朴な疑問・違和感を、6モードで素早くプロンプト化して外部AIに渡します。
             </p>
             <ul>
-              <li><strong>🔍 クイック</strong>：エビデンスの方向性を3〜5本で素早く確認</li>
-              <li><strong>📋 翻訳者</strong>：カルテ風の自然文 → PubMed検索式</li>
-              <li><strong>🎯 コーチ</strong>：あなたの検索式を診断・改善案を提示</li>
-              <li><strong>⚖️ 議論</strong>：保守派 vs 革新派の2人の専門家ディベート</li>
-              <li><strong>💥 常識?</strong>：教科書的常識を最新エビデンスで検証</li>
-              <li><strong>🌳 系譜</strong>：1本の重要論文の発展・批判・修正を時系列追跡</li>
+              <li>
+                <strong>🔍 ハルシネーションチェックが行いやすい検索</strong>：初心者向け解説付きで重要論文3〜5本を提示。末尾に PMID 機械可読リストを出すため、AI出力ファクトチェックに直結
+              </li>
+              <li><strong>🌳 系譜</strong>：1本の重要論文の発展・批判・修正を家系図で追跡</li>
+              <li><strong>💥 常識?</strong>：教科書的常識を、タイムライン図＋ジャッジマップで最新エビデンス検証</li>
+              <li><strong>⚖️ 議論</strong>：保守派 vs 革新派の議論マップ＋最終アライメント図で両極の視点を可視化</li>
+              <li><strong>📋 簡単検索式</strong>：カルテ風の自然文 → 3段階（精密/標準/網羅）の PubMed 検索式</li>
+              <li><strong>🎯 検索式チェック</strong>：あなたの既存検索式を4観点で診断・改善版3種を提示</li>
             </ul>
           </div>
 
@@ -177,7 +307,7 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
             <h4>EBMのための検索</h4>
             <p>
               EBM Step 2（情報検索）に特化。
-              <strong>PICO自動入力</strong>（AIが提案するPICO案を `===PICO_START===` 形式でパースして自動セット）、
+              <strong>PICO自動入力</strong>（AIが提案するPICO案を <code>===PICO_START===</code> 形式でパースして自動セット）、
               <strong>出版年フィルター</strong>（過去1/5/10/20年/2000年以降）、
               <strong>研究デザインフィルター</strong>（Cochrane Handbook 由来）、
               検索結果を<strong>AIで研究デザイン別に分類</strong>して新しいブラウザタブで表示（CSVダウンロード可）。
@@ -204,6 +334,14 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
           </div>
 
           <div className="strategy-card">
+            <h4>害の検索</h4>
+            <p>
+              診療ガイドライン作成における<strong>「害」の検索</strong>に特化した解説タブ。RCT だけでは害の評価が不十分である理由、Cochrane Handbook / PRISMA Harms / CONSORT Harms / GRADE に基づく実務的検索戦略、
+              薬剤・外科・医療機器それぞれの<strong>PubMed 検索式（コピーボタン付き）</strong>、自由診療や代替療法における「害がありそうなのに見つからない場合」の検討項目までを網羅。
+            </p>
+          </div>
+
+          <div className="strategy-card">
             <h4>GRADE-ADOLOPMENT解説</h4>
             <p>
               診療ガイドライン作成手法
@@ -218,12 +356,19 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
       <section className="how-to-use-section">
         <h3>タブ別ワークフロー</h3>
 
-        <h4>📋 「ちょっと調べたい」タブ（最も手軽）</h4>
+        <h4>📋 「ちょっと調べたい」タブ（最も手軽・6モード）</h4>
         <ol className="workflow-list">
-          <li>6モードから1つを選ぶ（デフォルト「クイック」）</li>
+          <li>
+            6モードから1つを選ぶ（デフォルト「<strong>🔍 ハルシネーションチェックが行いやすい検索</strong>」、他に
+            🌳 系譜 / 💥 常識? / ⚖️ 議論 / 📋 簡単検索式 / 🎯 検索式チェック）
+          </li>
           <li>気軽な質問・臨床シナリオを入力</li>
           <li>「プロンプトを生成」→ コピー → 外部AI（ChatGPT/Claude/Gemini等）に貼り付け</li>
-          <li>AI回答を「AI出力ファクトチェック」タブで実在確認</li>
+          <li>
+            「ハルシネーションチェックが行いやすい検索」モードでは、AI回答の末尾に
+            <code>===PMIDS_START===</code> 機械可読 PMID リストが含まれるため、そのまま「AI出力ファクトチェック」タブに貼り付けて一括実在確認
+          </li>
+          <li>他モードでもAI回答内の PMID は必ず「AI出力ファクトチェック」タブで実在確認</li>
         </ol>
 
         <h4>📋 「EBMのための検索」タブ（PICO学習付き）</h4>
@@ -247,6 +392,19 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
           <li>「PubMed APIで検索」（最大100件取得）</li>
           <li>「AIで研究デザイン別に分類する」→ プロンプト＋全件コピー → 外部AI</li>
           <li>AI分類回答を貼付 → 「分類結果を表示」で新タブに分類テーブル（CSVダウンロード可）</li>
+        </ol>
+
+        <h4>📋 「害の検索」タブ（読み物・診療ガイドライン作成者向け）</h4>
+        <ol className="workflow-list">
+          <li>
+            診療ガイドライン作成における「害」検索の理論と実務（Cochrane Handbook / PRISMA Harms / CONSORT Harms / GRADE）を読み物形式で参照
+          </li>
+          <li>
+            必要な検索式（汎用害フィルター・薬剤・外科・医療機器・症例報告・観察研究の各テンプレート）を<strong>コピーボタン</strong>で取得し、SRタブや PubMed Tool タブの検索式に組み込み
+          </li>
+          <li>
+            「害がありそうなのに見つからない」場合の検討項目（自由診療・代替療法・標準治療遅延の害評価）を確認
+          </li>
         </ol>
 
         <h4>📋 「PubMedで見逃しやすい論文検索」タブ（本文内証拠重視）</h4>
