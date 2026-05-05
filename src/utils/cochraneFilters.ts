@@ -13,6 +13,7 @@ export type StudyDesignFilterKey =
   | "none"
   | "guideline"
   | "systematic_review"
+  | "guideline_or_sr"
   | "rct"
   | "non_rct";
 
@@ -53,6 +54,16 @@ export const studyDesignFilters: StudyDesignFilter[] = [
       "(systematic review[pt] OR meta-analysis[pt] OR \"systematic review\"[tiab] OR \"meta-analysis\"[tiab] OR \"meta analysis\"[tiab] OR systematic[sb] OR \"cochrane database syst rev\"[ta])",
     source:
       "Cochrane Handbook v6.5, Chapter 4 Box 4.5.b（SR/MA 同定）に準拠。",
+  },
+  {
+    key: "guideline_or_sr",
+    label: "診療ガイドライン ＋ SR/メタ解析（結合）",
+    description:
+      "上位エビデンス（GL/SR/メタ解析）をまとめて拾う結合フィルター。GL単体・SR単体の expression を OR で結合。",
+    expression:
+      "(guideline[pt] OR practice guideline[pt] OR consensus development conference[pt] OR consensus development conference, NIH[pt] OR \"clinical practice guideline\"[tiab] OR \"practice guideline\"[tiab] OR \"consensus statement\"[tiab] OR \"consensus guideline\"[tiab] OR systematic review[pt] OR meta-analysis[pt] OR \"systematic review\"[tiab] OR \"meta-analysis\"[tiab] OR \"meta analysis\"[tiab] OR systematic[sb] OR \"cochrane database syst rev\"[ta])",
+    source:
+      "Cochrane Handbook v6.5, Chapter 4（GL/SR/MA 同定戦略の結合）",
   },
   {
     key: "rct",

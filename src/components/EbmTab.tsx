@@ -1,24 +1,27 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { AppSettings, PubMedSearchResult } from "../types";
 import { buildPrompt } from "../utils/buildPrompt";
-import { buildApiFeedbackBlock } from "../utils/buildApiFeedbackBlock";
-import { buildAbstractsBlock } from "../utils/buildAbstractsBlock";
 import { extractSearchString } from "../utils/extractSearchString";
 import {
   ebmInitialPrompt,
-  ebmAiEndingPrompt,
-  ebmPubmedEndingPrompt,
-  ebmClassificationPrompt,
   ebmPicoRefinementPrompt,
   ebmPicoBrainstormPrompt,
 } from "../prompts/ebmStep2";
-import { buildArticleListForClassification } from "../utils/buildArticleListForClassification";
 import { evaluatePicoCompleteness } from "../utils/evaluatePicoCompleteness";
+import { parsePicoFromAiResponse } from "../utils/parsePicoFromAiResponse";
+import { parseClassificationResponse } from "../utils/parseClassificationResponse";
+import { renderClassificationNewTab } from "../utils/renderClassificationNewTab";
+import { buildEbmClassificationCopyText } from "../utils/buildEbmClassificationCopyText";
 import {
   studyDesignFilters,
   applyStudyDesignFilter,
 } from "../utils/cochraneFilters";
 import type { StudyDesignFilterKey } from "../utils/cochraneFilters";
+import {
+  pubDateFilters,
+  applyPubDateFilter,
+} from "../utils/publicationDateFilter";
+import type { PubDateFilterKey } from "../utils/publicationDateFilter";
 import { PromptDisplay } from "./PromptDisplay";
 import { SearchStringInput } from "./SearchStringInput";
 import { PubMedSearchBox } from "./PubMedSearchBox";
@@ -48,9 +51,14 @@ export function EbmTab({ settings }: Props) {
   const [picoI, setPicoI] = useState("");
   const [picoC, setPicoC] = useState("");
   const [picoO, setPicoO] = useState("");
-  const [showPicoBrainstorm, setShowPicoBrainstorm] = useState(false);
+
+  // PICO brainstorm sub-flow (now anchored under raw question)
   const [picoBrainstormPrompt, setPicoBrainstormPrompt] = useState("");
   const [picoBrainstormResponse, setPicoBrainstormResponse] = useState("");
+  const [picoAutofillMsg, setPicoAutofillMsg] = useState<{
+    kind: "ok" | "error";
+    text: string;
+  } | null>(null);
 
   const combinedPico = [
     picoP && `P: ${picoP}`,
@@ -61,7 +69,7 @@ export function EbmTab({ settings }: Props) {
     .filter(Boolean)
     .join(" / ");
   const pico = combinedPico;
-  const context = combinedPico; // Use PICO as the patient context block in prompts
+  const context = combinedPico;
 
   const [initialPrompt, setInitialPrompt] = useState("");
   const [aiResponse, setAiResponse] = useState("");
@@ -70,14 +78,14 @@ export function EbmTab({ settings }: Props) {
     null
   );
 
-  // 5-B sub-flow state
-  const [pubmedEndingAiResponse, setPubmedEndingAiResponse] = useState("");
-  const [extractedRevisedSearch, setExtractedRevisedSearch] = useState("");
-  const [revisedSearchFilterKey, setRevisedSearchFilterKey] =
-    useState<StudyDesignFilterKey>("none");
-  const [revisedSearchCopyMsg, setRevisedSearchCopyMsg] = useState("");
-  const [pubmedResultRound2, setPubmedResultRound2] =
-    useState<PubMedSearchResult | null>(null);
+  // Step 4 filters (year + design)
+  const [pubDateKey, setPubDateKey] = useState<PubDateFilterKey>("none");
+  const [designKey, setDesignKey] = useState<StudyDesignFilterKey>("none");
+
+  // Step 4 classification sub-flow
+  const [classificationCopyMsg, setClassificationCopyMsg] = useState("");
+  const [classificationAiResponse, setClassificationAiResponse] = useState("");
+  const [classificationError, setClassificationError] = useState("");
 
   // PICO refinement sub-flow state (Step 1)
   const [picoRefinementPrompt, setPicoRefinementPrompt] = useState("");
@@ -89,6 +97,14 @@ export function EbmTab({ settings }: Props) {
     rawQuestion.trim().length > 0 &&
     picoEval.recommendRefinement &&
     !picoCheckDismissed;
+
+  // 検索式にフィルターを適用したもの（API送信用）。表示は元の searchString のまま。
+  const effectiveSearchString = useMemo(() => {
+    if (!searchString.trim()) return "";
+    const designFilter = studyDesignFilters.find((f) => f.key === designKey)!;
+    const withDesign = applyStudyDesignFilter(searchString, designFilter);
+    return applyPubDateFilter(withDesign, pubDateKey);
+  }, [searchString, designKey, pubDateKey]);
 
   function generateInitialPrompt() {
     if (!rawQuestion.trim()) {
@@ -137,7 +153,27 @@ export function EbmTab({ settings }: Props) {
       purpose: purposeLabel,
     });
     setPicoBrainstormPrompt(prompt);
-    setShowPicoBrainstorm(true);
+  }
+
+  function autofillPicoFromAi() {
+    setPicoAutofillMsg(null);
+    const result = parsePicoFromAiResponse(picoBrainstormResponse);
+    if (!result.ok || !result.pico) {
+      setPicoAutofillMsg({
+        kind: "error",
+        text: `自動入力できませんでした：${result.reason}。手動でP/I/C/Oを入力してください。`,
+      });
+      return;
+    }
+    if (result.pico.p) setPicoP(result.pico.p);
+    if (result.pico.i) setPicoI(result.pico.i);
+    if (result.pico.c) setPicoC(result.pico.c);
+    if (result.pico.o) setPicoO(result.pico.o);
+    setPicoAutofillMsg({
+      kind: "ok",
+      text: "PICO を自動入力しました。必要に応じて手動で編集できます。",
+    });
+    setTimeout(() => setPicoAutofillMsg(null), 4000);
   }
 
   function extractSearchFromAi() {
@@ -151,31 +187,43 @@ export function EbmTab({ settings }: Props) {
       }, 100);
     } else {
       alert(
-        "検索式を自動抽出できませんでした。コードブロック（\\`\\`\\`text ... \\`\\`\\`）が含まれているか確認してください。"
+        "検索式を自動抽出できませんでした。コードブロック（```text ... ```）が含まれているか確認してください。"
       );
     }
   }
 
-  function extractRevisedSearchFromAi() {
-    const extracted = extractSearchString(pubmedEndingAiResponse);
-    if (extracted) {
-      setExtractedRevisedSearch(extracted);
-    } else {
-      alert(
-        "改善検索式を自動抽出できませんでした。AI回答に\\`\\`\\`text コードブロックが含まれているか確認してください。"
-      );
+  async function copyClassificationPrompt() {
+    if (!pubmedResult) return;
+    const text = buildEbmClassificationCopyText(pubmedResult);
+    try {
+      await navigator.clipboard.writeText(text);
+      setClassificationCopyMsg("コピーしました。外部AIに貼り付けてください");
+      setTimeout(() => setClassificationCopyMsg(""), 2500);
+    } catch {
+      // フォールバック
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+      setClassificationCopyMsg("コピーしました（フォールバック）");
+      setTimeout(() => setClassificationCopyMsg(""), 2500);
     }
   }
 
-  function buildClassificationPromptText(): string {
-    if (!pubmedResultRound2) return "";
-    return buildPrompt(ebmClassificationPrompt, {
-      searchString: finalRevisedSearch,
-      totalCount: String(pubmedResultRound2.count),
-      count: String(
-        Math.min(pubmedResultRound2.articles.length, 100)
-      ),
-      articleList: buildArticleListForClassification(pubmedResultRound2, 100),
+  function showClassificationResult() {
+    setClassificationError("");
+    const parsed = parseClassificationResponse(classificationAiResponse);
+    if (!parsed.ok) {
+      setClassificationError(parsed.reason ?? "分類結果のパースに失敗しました");
+      return;
+    }
+    renderClassificationNewTab(parsed.categories, {
+      rawQuestion,
+      pico,
+      searchString: effectiveSearchString || searchString,
+      warnings: parsed.warnings,
     });
   }
 
@@ -188,9 +236,9 @@ export function EbmTab({ settings }: Props) {
     setPicoI("");
     setPicoC("");
     setPicoO("");
-    setShowPicoBrainstorm(false);
     setPicoBrainstormPrompt("");
     setPicoBrainstormResponse("");
+    setPicoAutofillMsg(null);
     setPicoCheckDismissed(false);
     setPicoRefinementPrompt("");
     setPicoRefinedAiResponse("");
@@ -198,53 +246,13 @@ export function EbmTab({ settings }: Props) {
     setAiResponse("");
     setSearchString("");
     setPubmedResult(null);
-    setPubmedEndingAiResponse("");
-    setExtractedRevisedSearch("");
-    setRevisedSearchFilterKey("none");
-    setRevisedSearchCopyMsg("");
-    setPubmedResultRound2(null);
+    setPubDateKey("none");
+    setDesignKey("none");
+    setClassificationAiResponse("");
+    setClassificationCopyMsg("");
+    setClassificationError("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
-
-  const revisedSearchFilter = studyDesignFilters.find(
-    (f) => f.key === revisedSearchFilterKey
-  )!;
-  const finalRevisedSearch = applyStudyDesignFilter(
-    extractedRevisedSearch,
-    revisedSearchFilter
-  );
-
-  function copyFinalRevisedSearch() {
-    if (!finalRevisedSearch) return;
-    navigator.clipboard.writeText(finalRevisedSearch).then(() => {
-      setRevisedSearchCopyMsg("コピーしました");
-      setTimeout(() => setRevisedSearchCopyMsg(""), 1800);
-    });
-  }
-
-  const aiEndingPromptText =
-    pubmedResult &&
-    buildPrompt(ebmAiEndingPrompt, {
-      question: rawQuestion,
-      pico: pico || "（PICOはAI回答から手動でコピーしてください）",
-      searchString,
-      purpose:
-        purposeOptions.find((p) => p.value === purpose)?.label ?? purpose,
-      apiFeedbackBlock: buildApiFeedbackBlock(pubmedResult),
-      abstractsBlock: buildAbstractsBlock(pubmedResult),
-    });
-
-  const pubmedEndingPromptText =
-    pubmedResult &&
-    buildPrompt(ebmPubmedEndingPrompt, {
-      question: rawQuestion,
-      pico: pico || "（PICOはAI回答から手動でコピーしてください）",
-      searchString,
-      purpose:
-        purposeOptions.find((p) => p.value === purpose)?.label ?? purpose,
-      apiFeedbackBlock: buildApiFeedbackBlock(pubmedResult),
-      abstractsBlock: buildAbstractsBlock(pubmedResult),
-    });
 
   return (
     <div className="ebm-tab">
@@ -258,7 +266,7 @@ export function EbmTab({ settings }: Props) {
         <div className="ebm-design-note">
           <strong>本アプリの検索方針：</strong>
           PubMed検索式には<strong>研究デザインフィルター（publication type / 研究デザイン語）を含めません</strong>。
-          P×I（×O）の主題ベースで広め1本を検索し、取得結果を後段（Step 5）でEBMヒエラルキー
+          P×I（×O）の主題ベースで広め1本を検索し、取得結果を後段でAIに依頼してEBMヒエラルキー
           （診療GL → SR → RCT → 非RCT → 非RCT以外の観察研究 → シミュレーション/基礎研究 → その他）の
           全階層に分類します。「ガイドラインがあればGL、なければSR、なければRCT、…」という読み進めは検索後に判定します。
         </div>
@@ -313,6 +321,66 @@ export function EbmTab({ settings }: Props) {
           />
         </div>
 
+        {/* PICO Brainstorm section — moved here, directly under raw question */}
+        <details className="pico-brainstorm-section">
+          <summary>
+            <strong>
+              PICOが思いつかない場合：AIに案を考えてもらうプロンプトを生成
+            </strong>
+          </summary>
+          <p className="hint">
+            原質問・診療科・検索目的だけを使って、AIにPICO案を3パターン考えてもらうプロンプトを生成します。
+            AI回答を貼り付けて「PICOを自動入力」を押すと、下のP/I/C/Oフィールドに自動でセットされます。
+          </p>
+          <button
+            className="btn btn-secondary"
+            onClick={generatePicoBrainstormPrompt}
+          >
+            PICO案ブレストプロンプトを生成
+          </button>
+          {picoBrainstormPrompt && (
+            <>
+              <PromptDisplay
+                prompt={picoBrainstormPrompt}
+                title="PICO案ブレストプロンプト"
+              />
+              <p className="hint">
+                上のプロンプトを外部AIに貼り付け、返ってきた回答を下に貼り付けてください。
+                AIの回答末尾に <code>===PICO_START===</code> ブロックが含まれていれば、
+                「PICOを自動入力」ボタンで下のP/I/C/Oフィールドに自動セットされます。
+              </p>
+              <textarea
+                value={picoBrainstormResponse}
+                onChange={(e) => setPicoBrainstormResponse(e.target.value)}
+                rows={10}
+                placeholder="AIから返ってきたPICO案回答全体を貼り付け..."
+                style={{ width: "100%" }}
+              />
+              <div className="step3-action">
+                <button
+                  className="btn btn-primary"
+                  onClick={autofillPicoFromAi}
+                  disabled={!picoBrainstormResponse.trim()}
+                >
+                  PICOを自動入力
+                </button>
+                {picoAutofillMsg && (
+                  <p
+                    className={
+                      picoAutofillMsg.kind === "ok"
+                        ? "pico-autofill-ok"
+                        : "pico-autofill-err"
+                    }
+                  >
+                    {picoAutofillMsg.kind === "ok" ? "✅ " : "⚠ "}
+                    {picoAutofillMsg.text}
+                  </p>
+                )}
+              </div>
+            </>
+          )}
+        </details>
+
         <div className="form-group">
           <label>診療科</label>
           <input
@@ -337,8 +405,8 @@ export function EbmTab({ settings }: Props) {
             EBMには必ずステップがあり、ステップを飛ばすと根拠の薄い検索になります。
           </p>
           <p>
-            自分でPICOが想定できない場合は、下の「PICO案をAIに考えてもらうプロンプトを生成」を使ってください。
-            AIで案を出してから、その案を本欄に転記して進めてください。
+            自分でPICOが想定できない場合は、上の「PICO案をAIに考えてもらうプロンプトを生成」を使ってください。
+            AIで案を出してから、その案を「PICOを自動入力」ボタンで本欄に転記して進めてください。
           </p>
         </div>
 
@@ -379,42 +447,6 @@ export function EbmTab({ settings }: Props) {
             placeholder="例：心不全入院、全死亡、QOL"
           />
         </div>
-
-        <details className="pico-brainstorm-section">
-          <summary>
-            <strong>
-              PICOが思いつかない場合：AIに案を考えてもらうプロンプトを生成
-            </strong>
-          </summary>
-          <p className="hint">
-            原質問・診療科・検索目的だけを使って、AIにPICO案を3パターン考えてもらうプロンプトを生成します。
-            AIで案を出してから、上のP/I/C/Oフィールドに転記してください。
-          </p>
-          <button
-            className="btn btn-secondary"
-            onClick={generatePicoBrainstormPrompt}
-          >
-            PICO案ブレストプロンプトを生成
-          </button>
-          {showPicoBrainstorm && picoBrainstormPrompt && (
-            <>
-              <PromptDisplay
-                prompt={picoBrainstormPrompt}
-                title="PICO案ブレストプロンプト"
-              />
-              <p className="hint">
-                上のプロンプトを外部AIに貼り付け、返ってきた回答を下に貼り付けて参照しながら、上のP/I/C/Oに記入してください。
-              </p>
-              <textarea
-                value={picoBrainstormResponse}
-                onChange={(e) => setPicoBrainstormResponse(e.target.value)}
-                rows={10}
-                placeholder="AIから返ってきたPICO案回答全体を参照用に貼り付け..."
-                style={{ width: "100%" }}
-              />
-            </>
-          )}
-        </details>
 
         <div className="form-group">
           <label>検索目的</label>
@@ -536,15 +568,15 @@ export function EbmTab({ settings }: Props) {
         </section>
       )}
 
-      {/* Step 4: PubMed search — broad / no design filter */}
+      {/* Step 4: PubMed search — broad / no design filter, optional year/design narrowing */}
       {aiResponse && (
         <section id="ebm-step-pubmed" className="workflow-section">
           <h2>Step 4: PubMed検索（広め・研究デザイン非限定）</h2>
           <div className="ebm-no-filter-note">
-            <strong>⚠ 研究デザインフィルターは入れません。</strong>
-            P×I（×O）の主題ベースで広め1本を検索します。
-            ヒエラルキー別の分類は Step 5 で行うため、この段階で
-            guideline[pt] / systematic review[pt] / randomized[tiab] などを足さないでください。
+            <strong>⚠ 基本方針：</strong>
+            研究デザインフィルターは入れません。P×I（×O）の主題ベースで広め1本を検索します。
+            研究デザイン別の分類は<strong>検索後にAIで行います</strong>。
+            ただし、検索結果があまりにも多い場合は、下の出版年・研究デザインフィルターで絞り込みができます。
           </div>
 
           <SearchStringInput
@@ -553,330 +585,121 @@ export function EbmTab({ settings }: Props) {
           />
 
           {searchString && (
-            <PubMedSearchBox
-              settings={settings}
-              searchString={searchString}
-              onResult={(r) => setPubmedResult(r)}
-            />
+            <>
+              {/* Publication year filter */}
+              <div className="ebm-filter-block">
+                <h4>出版年フィルター（任意）</h4>
+                <div className="ebm-filter-buttons" role="radiogroup" aria-label="出版年">
+                  {pubDateFilters.map((f) => (
+                    <button
+                      key={f.key}
+                      type="button"
+                      role="radio"
+                      aria-checked={pubDateKey === f.key}
+                      className={`ebm-filter-btn ${pubDateKey === f.key ? "active" : ""}`}
+                      onClick={() => setPubDateKey(f.key)}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Study design filter */}
+              <div className="ebm-filter-block">
+                <h4>研究デザインフィルター（任意・通常は使わない）</h4>
+                <p className="hint">
+                  通常は使わない設定です。検索結果が多すぎる場合のみ、絞り込みに使ってください。
+                  選択中のフィルターはAPI送信時のみ付加され、上の検索式テキスト自体は変更されません。
+                </p>
+                <div className="ebm-filter-buttons" role="radiogroup" aria-label="研究デザイン">
+                  {studyDesignFilters.map((f) => (
+                    <button
+                      key={f.key}
+                      type="button"
+                      role="radio"
+                      aria-checked={designKey === f.key}
+                      className={`ebm-filter-btn ${designKey === f.key ? "active" : ""}`}
+                      onClick={() => setDesignKey(f.key)}
+                      title={f.description}
+                    >
+                      {f.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {(pubDateKey !== "none" || designKey !== "none") && (
+                <div className="form-group">
+                  <label>API送信される実際の検索式（フィルター適用後・参照用）</label>
+                  <pre className="search-preview">{effectiveSearchString}</pre>
+                </div>
+              )}
+
+              <PubMedSearchBox
+                settings={settings}
+                searchString={effectiveSearchString}
+                onResult={(r) => setPubmedResult(r)}
+                retmax={100}
+              />
+            </>
           )}
 
           {pubmedResult && (
-            <PubMedResultTable
-              result={pubmedResult}
-              selectedPmids={[]}
-              onToggle={() => {}}
-            />
-          )}
-        </section>
-      )}
-
-      {/* Step 5: Two ending prompts */}
-      {pubmedResult && (
-        <section className="workflow-section">
-          <h2>Step 5: 2つの終わり方（AI終了版 / PubMed終了版）</h2>
-          <div className="ebm-two-endings-explainer">
-            <h3>なぜ2つ用意したか？</h3>
-            <p>
-              EBM Step 2で「最終的に何を成果物にするか」によって、AIに任せる範囲が変わります。
-              本アプリでは <strong>AI終了版</strong>と <strong>PubMed終了版</strong> の2つを並列で生成し、
-              ユーザーが目的に応じて選べるようにしました。
-            </p>
-            <table className="ebm-comparison">
-              <thead>
-                <tr>
-                  <th></th>
-                  <th>AI終了版</th>
-                  <th>PubMed終了版</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr>
-                  <th>最終成果物</th>
-                  <td>AIが整理した文献候補リスト（文献タイプ別）</td>
-                  <td>PubMedで再実行する改善検索式</td>
-                </tr>
-                <tr>
-                  <th>ハルシネーション・リスク</th>
-                  <td>
-                    <strong>あり</strong>
-                    （AIが文献を要約・整理するため、捏造PMID・誤帰属が混入しうる）
-                  </td>
-                  <td>
-                    <strong>構造的に低い</strong>
-                    （AIは検索式を出すだけ。実際の文献はPubMed側が返す）
-                  </td>
-                </tr>
-                <tr>
-                  <th>必須の後処理</th>
-                  <td>
-                    <strong>必ず</strong>「AI出力ファクトチェック」タブでPMID・引用の実在確認
-                  </td>
-                  <td>PubMed APIで再検索してヒット件数・上位文献を確認</td>
-                </tr>
-                <tr>
-                  <th>適している場面</th>
-                  <td>
-                    急いで全体像を把握したい、AIで一旦俯瞰したい、論文タイプ別に整理が欲しい
-                  </td>
-                  <td>
-                    査読・SR・公式記録を残したい、検索式の透明性が必要、ハルシネーション混入を構造的に避けたい
-                  </td>
-                </tr>
-                <tr>
-                  <th>EBM原理との整合</th>
-                  <td>
-                    Step 3（批判的吟味）には進めないので、「整理に留める」設計
-                  </td>
-                  <td>
-                    AIは「検索を助ける」のみ、PubMedが「実在確認を担う」、人間が「問いを保つ」
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          {/* AI-ending */}
-          <div className="prompt-card prompt-card-ai-ending">
-            <div className="prompt-card-header">
-              <h3>5-A. AI終了版プロンプト（AIが文献候補を整理）</h3>
-              <span className="prompt-tag prompt-tag-warn">
-                ⚠ 必ずファクトチェックタブへ
-              </span>
-            </div>
-            <div className="ai-ending-warning">
-              <strong>重要：</strong>
-              このバージョンでは、AIが文献を整理した結果（PMID付きリスト）が最終回答になります。
-              AIは存在しないPMIDを混入させる可能性があるため、
-              <strong>「AI出力ファクトチェック」タブで必ずPMID実在確認＋抄録取得</strong>を行ってください。
-              これを怠るとEBMとして致命的なエラーになります。
-            </div>
-            {aiEndingPromptText && (
-              <PromptDisplay prompt={aiEndingPromptText} title="AI終了版プロンプト" />
-            )}
-            <div className="next-step-hint">
-              <h4>このプロンプトの次にすること</h4>
-              <ol>
-                <li>上のプロンプトをコピー → ChatGPT / Claude / Geminiに貼り付け</li>
-                <li>AIから文献タイプ別の整理回答を取得</li>
-                <li>
-                  <strong>「AI出力ファクトチェック」タブ</strong>に回答全文を貼り付け
-                </li>
-                <li>全PMIDの実在確認＋抄録取得＋URL確認を実行</li>
-                <li>
-                  捏造PMIDが見つかった場合、AI回答内のその引用は無効として扱う
-                </li>
-                <li>確認済み文献候補リストを次のEBM Step 3（批判的吟味）に渡す</li>
-              </ol>
-            </div>
-          </div>
-
-          {/* PubMed-ending */}
-          <div className="prompt-card prompt-card-pubmed-ending">
-            <div className="prompt-card-header">
-              <h3>5-B-1. PubMed終了版プロンプト（AIが検索式を磨く）</h3>
-              <span className="prompt-tag prompt-tag-safe">
-                ✓ ハルシネーション低リスク
-              </span>
-            </div>
-            <div className="pubmed-ending-note">
-              <strong>特徴：</strong>
-              このバージョンではAIに最終回答を作らせず、
-              <strong>改善された検索式（一文）</strong>のみを出させます。
-              抽出した検索式でPubMed再検索 → 結果を文献タイプ別に分類、まで
-              <strong>このページ内で完結</strong>します（Step 4に戻る必要はありません）。
-              AIによる文献捏造のリスクが構造的に低くなります。
-            </div>
-            {pubmedEndingPromptText && (
-              <PromptDisplay
-                prompt={pubmedEndingPromptText}
-                title="5-B-1. PubMed終了版プロンプト"
-              />
-            )}
-
-            {/* 5-B-2: AI回答貼付＋抽出 */}
-            <h4 style={{ marginTop: 16 }}>
-              5-B-2. AI回答を貼り付け → 改善検索式を抽出
-            </h4>
-            <p className="hint">
-              5-B-1のプロンプトを外部AIに貼り付けて得た回答を、ここに貼り戻してください。
-              ボタン1つで最終推奨検索式（コードブロック内の一文）を抽出します。
-            </p>
-            <textarea
-              value={pubmedEndingAiResponse}
-              onChange={(e) => setPubmedEndingAiResponse(e.target.value)}
-              rows={10}
-              placeholder="AIから返ってきた改善回答全体をここに貼り付け..."
-              style={{ width: "100%" }}
-            />
-            {pubmedEndingAiResponse && (
-              <div className="step3-action">
+            <>
+              {/* Classification copy + new-tab flow */}
+              <div className="ebm-classification-bar">
                 <button
                   className="btn btn-primary"
-                  onClick={extractRevisedSearchFromAi}
+                  onClick={copyClassificationPrompt}
+                  type="button"
                 >
-                  改善検索式を抽出
+                  AIで研究デザイン別に分類する（プロンプト＋結果をコピー）
                 </button>
-              </div>
-            )}
-
-            {extractedRevisedSearch && (
-              <>
-                <div className="extracted-revised">
-                  <div
-                    style={{
-                      display: "flex",
-                      justifyContent: "space-between",
-                      alignItems: "center",
-                      marginBottom: 6,
-                    }}
-                  >
-                    <h4 style={{ margin: 0 }}>抽出された改善検索式（編集可）</h4>
-                  </div>
-                  <textarea
-                    value={extractedRevisedSearch}
-                    onChange={(e) => setExtractedRevisedSearch(e.target.value)}
-                    rows={5}
-                    style={{
-                      width: "100%",
-                      fontFamily:
-                        "'SF Mono', 'Fira Code', Consolas, 'Courier New', monospace",
-                      fontSize: "0.9rem",
-                      whiteSpace: "pre-wrap",
-                    }}
-                  />
-
-                  <div className="form-group" style={{ marginTop: 12 }}>
-                    <label>研究デザインフィルター（任意）</label>
-                    <select
-                      value={revisedSearchFilterKey}
-                      onChange={(e) =>
-                        setRevisedSearchFilterKey(
-                          e.target.value as StudyDesignFilterKey
-                        )
-                      }
-                    >
-                      {studyDesignFilters.map((f) => (
-                        <option key={f.key} value={f.key}>
-                          {f.label}
-                        </option>
-                      ))}
-                    </select>
-                    <p className="hint">{revisedSearchFilter.description}</p>
-                    {revisedSearchFilter.source && (
-                      <p
-                        className="hint"
-                        style={{ fontSize: "0.78rem", fontStyle: "italic" }}
-                      >
-                        出典：{revisedSearchFilter.source}
-                      </p>
-                    )}
-                  </div>
-
-                  {revisedSearchFilterKey !== "none" && (
-                    <div className="form-group">
-                      <label>フィルター適用後の最終検索式（プレビュー）</label>
-                      <pre className="search-preview">{finalRevisedSearch}</pre>
-                    </div>
-                  )}
-                </div>
-
-                {/* 5-B-3: 抽出検索式でPubMed再検索 */}
-                <h4 style={{ marginTop: 16 }}>
-                  5-B-3. この検索式でPubMed再検索（最大100件）
-                </h4>
-                <p className="hint">
-                  抽出された検索式（フィルター適用済み）で、このページ内のPubMed APIで再検索します。
-                  分類プロンプトに使うため、最大100件まで取得します。
-                </p>
-
-                <div className="button-group">
-                  <button
-                    className="btn btn-secondary"
-                    type="button"
-                    onClick={copyFinalRevisedSearch}
-                    disabled={!finalRevisedSearch}
-                  >
-                    {revisedSearchCopyMsg || "検索式をコピー"}
-                  </button>
-                  <button
-                    className="btn btn-secondary"
-                    type="button"
-                    onClick={() => {
-                      if (!finalRevisedSearch) return;
-                      const url = `https://pubmed.ncbi.nlm.nih.gov/advanced/?term=${encodeURIComponent(finalRevisedSearch)}`;
-                      window.open(url, "_blank", "noopener,noreferrer");
-                    }}
-                    disabled={!finalRevisedSearch}
-                  >
-                    PubMed Advanced Search で開く（外部）
-                  </button>
-                  <button
-                    className="btn btn-secondary"
-                    type="button"
-                    onClick={() => {
-                      if (!finalRevisedSearch) return;
-                      const url = `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(finalRevisedSearch)}`;
-                      window.open(url, "_blank", "noopener,noreferrer");
-                    }}
-                    disabled={!finalRevisedSearch}
-                  >
-                    PubMed 検索結果で開く（外部）
-                  </button>
-                </div>
-
-                <PubMedSearchBox
-                  settings={settings}
-                  searchString={finalRevisedSearch}
-                  onResult={(r) => setPubmedResultRound2(r)}
-                  retmax={100}
-                  buttonLabel="PubMed APIで再検索（最大100件・このアプリ内）"
-                />
-                {pubmedResultRound2 && (
-                  <PubMedResultTable
-                    result={pubmedResultRound2}
-                    selectedPmids={[]}
-                    onToggle={() => {}}
-                  />
+                {classificationCopyMsg && (
+                  <span className="ebm-copy-feedback">
+                    ✅ {classificationCopyMsg}
+                  </span>
                 )}
-              </>
-            )}
+              </div>
 
-            {/* 5-B-4: 分類プロンプト */}
-            {pubmedResultRound2 && (
-              <>
-                <h4 style={{ marginTop: 16 }}>
-                  5-B-4. 取得結果（最大100件）を文献タイプ別に分類するプロンプト
-                </h4>
+              <PubMedResultTable
+                result={pubmedResult}
+                selectedPmids={[]}
+                onToggle={() => {}}
+              />
+
+              {/* AI response paste + show classification */}
+              <div className="ebm-classify-result-block">
+                <h4>AIの回答を貼り付け</h4>
                 <p className="hint">
-                  PubMed再検索で取得した{" "}
-                  <strong>
-                    {Math.min(pubmedResultRound2.articles.length, 100)}
-                  </strong>{" "}
-                  件（PubMed側ヒット {pubmedResultRound2.count.toLocaleString()} 件中の上位）を、
-                  AIに「ガイドライン / SR・メタ解析 / RCT / 観察研究 / 基礎研究 / その他 / 不明」で分類させるプロンプトを生成します。
-                  分類はPubMedから取得したPub Type / MeSHのみに基づくため、捏造リスクは構造的にありません。
+                  上のプロンプトを外部AIに貼り付け、返ってきた回答を下に貼り付けてください。
+                  「分類結果を表示」ボタンで新しいブラウザタブに分類テーブルが開きます。
                 </p>
-                <PromptDisplay
-                  prompt={buildClassificationPromptText()}
-                  title="文献タイプ分類プロンプト（コピー用）"
+                <textarea
+                  value={classificationAiResponse}
+                  onChange={(e) => setClassificationAiResponse(e.target.value)}
+                  rows={10}
+                  placeholder="AIから返ってきた分類回答全体をここに貼り付け..."
+                  style={{ width: "100%" }}
                 />
-                <div className="next-step-hint">
-                  <h4>このプロンプトの次にすること</h4>
-                  <ol>
-                    <li>上のプロンプトをコピー → ChatGPT / Claude / Geminiに貼り付け</li>
-                    <li>AIから文献タイプ別の分類結果を取得</li>
-                    <li>
-                      EBM Step 2ヒエラルキーの上位（ガイドライン / SR /
-                      RCT）から優先的に読む文献を選定
-                    </li>
-                    <li>
-                      選定した文献を次のEBM Step 3（批判的吟味）に渡す
-                    </li>
-                  </ol>
+                <div className="step3-action">
+                  <button
+                    className="btn btn-primary"
+                    onClick={showClassificationResult}
+                    disabled={!classificationAiResponse.trim()}
+                  >
+                    分類結果を表示（新しいブラウザタブ）
+                  </button>
                 </div>
-              </>
-            )}
-          </div>
+                {classificationError && (
+                  <div className="error-box" role="alert">
+                    <p>⚠ {classificationError}</p>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </section>
       )}
     </div>
