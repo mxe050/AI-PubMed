@@ -387,6 +387,196 @@ body {
   color: #ff0000;
 }
 
+/* ====================================================================
+   FactCheck enhancements (4 features) — added together
+   ==================================================================== */
+
+/* (1) Auto-clean notice */
+.auto-clean-notice {
+  margin-top: 8px;
+  padding: 6px 10px;
+  background: #f1f8ff;
+  color: #1f6feb;
+  border: 1px solid #c8def5;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+/* (2) Confidence summary strip + per-item badge */
+.confidence-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 10px 0;
+  padding: 8px 10px;
+  background: #fafafa;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  font-size: 0.9rem;
+}
+
+.conf-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid transparent;
+  cursor: help;
+}
+
+.conf-badge.conf-high {
+  background: #e8f5e9;
+  color: #1b5e20;
+  border-color: #a5d6a7;
+}
+
+.conf-badge.conf-mid,
+.conf-badge.conf-medium {
+  background: #fff8e1;
+  color: #8d6e00;
+  border-color: #ffe082;
+}
+
+.conf-badge.conf-low {
+  background: #ffebee;
+  color: #b71c1c;
+  border-color: #ef9a9a;
+}
+
+/* (3) Retraction badge cluster on the verified-article-card */
+.retraction-badges {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.retraction-badge {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-weight: 600;
+  font-size: 0.92rem;
+  border: 1px solid;
+}
+
+.retraction-badge.retraction-severe {
+  background: #ffebee;
+  color: #b71c1c;
+  border-color: #ef9a9a;
+}
+
+.retraction-badge.retraction-moderate {
+  background: #fff3e0;
+  color: #b65c00;
+  border-color: #ffcc80;
+}
+
+.retraction-badge.retraction-mild {
+  background: #fffde7;
+  color: #8d6e00;
+  border-color: #fff59d;
+}
+
+.retraction-badge-icon {
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.retraction-badge-link {
+  margin-left: auto;
+  font-weight: 500;
+  font-size: 0.85rem;
+}
+
+/* Light red background for cards whose paper was retracted. */
+.verified-article-card.card-retracted-bg {
+  background: #fff5f5;
+  border-color: #f5b0b0;
+}
+
+/* (4) Claim ↔ abstract verifier panel */
+.claim-verifier {
+  margin: 12px 0 4px;
+  padding: 12px;
+  background: #fcfcfc;
+  border: 1px solid #d8d8d8;
+  border-radius: 8px;
+}
+
+.claim-verifier-header {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.claim-verifier-stats {
+  font-size: 0.95rem;
+}
+
+.claim-verifier-warning {
+  margin: 4px 0 10px;
+  font-size: 0.85rem;
+  color: #8d6e00;
+}
+
+.claim-verifier-cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+@media (max-width: 768px) {
+  .claim-verifier-cols {
+    grid-template-columns: 1fr;
+  }
+}
+
+.claim-verifier-col {
+  background: #fff;
+  border: 1px solid #e5e5e5;
+  border-radius: 6px;
+  padding: 10px 12px;
+}
+
+.claim-verifier-col h4 {
+  margin: 0 0 6px;
+  font-size: 0.95rem;
+  color: #333;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 4px;
+}
+
+.claim-verifier-col .claim-text,
+.claim-verifier-col .abstract-text {
+  white-space: pre-wrap;
+  line-height: 1.55;
+  font-size: 0.92rem;
+  margin: 0;
+}
+
+.claim-verifier-link {
+  margin-top: 8px;
+  font-size: 0.88rem;
+}
+
+mark.claim-hl {
+  background: #fff59d;
+  color: inherit;
+  padding: 0 2px;
+  border-radius: 2px;
+}
+
 .hallucination-low-model-note {
   margin-top: 6px;
   color: #c62828;

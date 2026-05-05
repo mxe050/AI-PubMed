@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { AppSettings, PubMedArticle } from "../types";
 import { extractPmidsCategorized } from "../utils/extractPmidsCategorized";
 import type { ExtractedPmid } from "../utils/extractPmidsCategorized";
@@ -12,6 +12,14 @@ import {
 import { createNcbiRateLimiter } from "../utils/createNcbiRateLimiter";
 import { getEvidenceBadge, getRetractionStatus } from "../utils/evidenceLevel";
 import { checkMetadataMatch } from "../utils/metadataMatch";
+import { cleanAiOutput } from "../utils/cleanAiOutput";
+import {
+  scoreCitationConfidence,
+  scorePmidExtractionConfidence,
+} from "../utils/citationConfidence";
+import type { CitationConfidence } from "../utils/citationConfidence";
+import { checkRetractionStatus } from "../utils/checkRetractionStatus";
+import { ClaimVerifier } from "./ClaimVerifier";
 
 interface Props {
   settings: AppSettings;
@@ -37,10 +45,15 @@ export function FactCheckTab({ settings }: Props) {
   const [citationLoading, setCitationLoading] = useState(false);
   const [citationError, setCitationError] = useState<string | null>(null);
 
-  const extractedPmids = extractPmidsCategorized(aiResponse);
-  const extractedUrls = extractUrls(aiResponse);
-  const extractedDois = extractDois(aiResponse);
-  const citationExtraction = extractCitationCandidates(aiResponse);
+  // Step 1: pre-process the pasted text so downstream extractors see a clean form.
+  // The textarea still binds to the raw `aiResponse`; everything else uses `cleanedAiResponse`.
+  const cleanResult = useMemo(() => cleanAiOutput(aiResponse), [aiResponse]);
+  const cleanedAiResponse = cleanResult.cleaned;
+
+  const extractedPmids = extractPmidsCategorized(cleanedAiResponse);
+  const extractedUrls = extractUrls(cleanedAiResponse);
+  const extractedDois = extractDois(cleanedAiResponse);
+  const citationExtraction = extractCitationCandidates(cleanedAiResponse);
   const extractedCitations = citationExtraction.candidates;
   const skippedAuthorYearOnly = citationExtraction.skippedAuthorYearOnly;
   const combinedAuthorYearCount = citationExtraction.combinedAuthorYearCount;
@@ -287,6 +300,30 @@ ${aiResponse}
         r.status.isDuplicate
     );
 
+  // Confidence summary: combines verified PMID extractions + citation candidates.
+  const confidenceCounts: Record<CitationConfidence, number> = (() => {
+    const counts: Record<CitationConfidence, number> = {
+      HIGH: 0,
+      MEDIUM: 0,
+      LOW: 0,
+    };
+    for (const it of items) {
+      const c = scorePmidExtractionConfidence({
+        extracted: it.extracted,
+        verified: Boolean(it.article),
+      });
+      counts[c.level] += 1;
+    }
+    for (const r of citationResults) {
+      const c = scoreCitationConfidence({
+        candidate: r.candidate,
+        pubmedHitCount: r.totalCount ?? r.hits.length,
+      });
+      counts[c.level] += 1;
+    }
+    return counts;
+  })();
+
   return (
     <div className="fact-check-tab">
       <header className="fact-check-header">
@@ -326,6 +363,17 @@ ${aiResponse}
           placeholder="ChatGPT / Claude / Gemini などからのAI回答全体をここに貼り付けてください..."
           style={{ width: "100%" }}
         />
+
+        {aiResponse &&
+          (cleanResult.steps.markdownTable || cleanResult.steps.listSplit) && (
+            <p className="auto-clean-notice" role="status">
+              ✨ テキストを自動整形しました
+              {cleanResult.steps.markdownTable && "（表を行ごとに分解）"}
+              {cleanResult.steps.markdownTable && cleanResult.steps.listSplit && "／"}
+              {cleanResult.steps.listSplit && "（番号付き／箇条書きを分割）"}
+              。引用抽出の精度が上がります。
+            </p>
+          )}
 
         {aiResponse && (
           <div className="detected-summary">
@@ -456,6 +504,18 @@ ${aiResponse}
                   </span>
                 )}
               </div>
+              <div className="confidence-summary" aria-label="読み取り信頼度サマリー">
+                <strong>読み取り信頼度：</strong>
+                <span className="conf-badge conf-high" title="PMIDまたはDOIで特定できました">
+                  🟢 高信頼 {confidenceCounts.HIGH} 件
+                </span>
+                <span className="conf-badge conf-mid" title="著者名と年で推定。候補が複数あるため確認をお勧めします">
+                  🟡 中信頼 {confidenceCounts.MEDIUM} 件
+                </span>
+                <span className="conf-badge conf-low" title="具体的な論文を特定できませんでした。手動での確認が必要です">
+                  🔴 低信頼 {confidenceCounts.LOW} 件
+                </span>
+              </div>
 
               {retractionFlags.length > 0 && (
                 <div className="retraction-banner">
@@ -554,6 +614,10 @@ ${aiResponse}
                 key={v.article!.pmid}
                 article={v.article!}
                 extracted={v.extracted}
+                confidence={scorePmidExtractionConfidence({
+                  extracted: v.extracted,
+                  verified: true,
+                })}
               />
             ))}
           </div>
@@ -849,19 +913,26 @@ function ConfidenceTag({
 function FactCheckArticleCard({
   article,
   extracted,
+  confidence,
 }: {
   article: PubMedArticle;
   extracted: ExtractedPmid;
+  confidence?: ReturnType<typeof scorePmidExtractionConfidence>;
 }) {
   const [showSummaryPrompt, setShowSummaryPrompt] = useState(false);
   const [showClaimCheckPrompt, setShowClaimCheckPrompt] = useState(false);
   const [showFullTextPrompt, setShowFullTextPrompt] = useState(false);
+  const [showClaimVerifier, setShowClaimVerifier] = useState(false);
   const [copied, setCopied] = useState<"summary" | "claim" | "fulltext" | null>(
     null
   );
 
   const badge = getEvidenceBadge(article.publicationTypes);
   const retraction = getRetractionStatus(article);
+  const retractionResult = useMemo(
+    () => checkRetractionStatus(article),
+    [article]
+  );
   const meta = checkMetadataMatch(extracted.context, article);
 
   const summaryPrompt = `以下はPubMedで取得した論文の抄録です。日本語で3〜5行に簡潔に要約してください。
@@ -994,22 +1065,34 @@ ${article.abstractText ?? "(抄録は取得できませんでした)"}
   }
 
   return (
-    <div className="verified-article-card">
-      {(retraction.isRetracted ||
-        retraction.isRetractionNotice ||
-        retraction.hasExpressionOfConcern ||
-        retraction.isDuplicate) && (
-        <div className="retraction-strong">
-          🚨{" "}
-          {retraction.isRetracted && "撤回論文 (Retracted Publication) "}
-          {retraction.isRetractionNotice && "撤回通知 (Retraction Notice) "}
-          {retraction.hasExpressionOfConcern &&
-            "懸念表明 (Expression of Concern) "}
-          {retraction.isDuplicate && "重複出版 (Duplicate Publication) "}
+    <div
+      className={`verified-article-card${retractionResult.hasSevereProblem ? " card-retracted-bg" : ""}`}
+    >
+      {retractionResult.badges.length > 0 && (
+        <div className="retraction-badges">
+          {retractionResult.badges.map((b) => (
+            <div
+              key={b.kind}
+              className={`retraction-badge retraction-${b.severity}`}
+              title={b.description}
+            >
+              <span className="retraction-badge-icon" aria-hidden="true">
+                {b.icon}
+              </span>
+              <span className="retraction-badge-label">{b.label}</span>
+              {b.relatedPmid && (
+                <a
+                  href={`https://pubmed.ncbi.nlm.nih.gov/${b.relatedPmid}/`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="retraction-badge-link"
+                >
+                  関連 PMID {b.relatedPmid}
+                </a>
+              )}
+            </div>
+          ))}
         </div>
-      )}
-      {retraction.hasErratum && !retraction.isRetracted && (
-        <div className="retraction-mild">ℹ 訂正あり (Erratum)</div>
       )}
 
       <div className="vac-header">
@@ -1022,6 +1105,15 @@ ${article.abstractText ?? "(抄録は取得できませんでした)"}
           PMID {article.pmid}
         </a>
         <ConfidenceTag confidence={extracted.confidence} />
+        {confidence && (
+          <span
+            className={`conf-badge conf-${confidence.level.toLowerCase()}`}
+            title={confidence.reason}
+            aria-label={`読み取り信頼度: ${confidence.label} — ${confidence.reason}`}
+          >
+            {confidence.label}
+          </span>
+        )}
         <span className={`evidence-badge evidence-${badge.color}`}>
           {badge.hint}
         </span>
@@ -1193,6 +1285,15 @@ ${article.abstractText ?? "(抄録は取得できませんでした)"}
         >
           {showSummaryPrompt ? "要約プロンプトを隠す" : "抄録要約プロンプト"}
         </button>
+        {article.abstractText && (
+          <button
+            className="btn btn-secondary btn-small"
+            onClick={() => setShowClaimVerifier((v) => !v)}
+            title="AIの主張と実際のアブストラクトを並列表示し、キーワードをハイライト"
+          >
+            {showClaimVerifier ? "主張照合を隠す" : "主張を照合"}
+          </button>
+        )}
         <button
           className="btn btn-primary btn-small"
           onClick={() => setShowClaimCheckPrompt((v) => !v)}
@@ -1211,6 +1312,14 @@ ${article.abstractText ?? "(抄録は取得できませんでした)"}
             : "本文ベース検証プロンプト（Discussion等）"}
         </button>
       </div>
+
+      {showClaimVerifier && article.abstractText && (
+        <ClaimVerifier
+          aiClaimText={extracted.context}
+          article={article}
+          onClose={() => setShowClaimVerifier(false)}
+        />
+      )}
 
       {showSummaryPrompt && article.abstractText && (
         <div className="prompt-box">
