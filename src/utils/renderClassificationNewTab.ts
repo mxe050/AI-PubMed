@@ -1,10 +1,7 @@
 // 分類結果を新しいブラウザタブに描画する
 // CSV ダウンロード機能・チェックボックス選択機能付き
 
-import type {
-  ClassifiedCategory,
-  ClassifiedArticle,
-} from "./parseClassificationResponse";
+import type { ClassifiedCategory } from "./parseClassificationResponse";
 
 export interface RenderContext {
   rawQuestion: string;
