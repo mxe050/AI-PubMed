@@ -4,6 +4,7 @@ import { buildPrompt } from "../utils/buildPrompt";
 import { quickEvidenceModes } from "../prompts/quickEvidence";
 import type { QuickEvidenceMode } from "../prompts/quickEvidence";
 import { PromptDisplay } from "./PromptDisplay";
+import { HallucinationStrategiesTable } from "./HallucinationStrategiesTable";
 
 interface Props {
   // settings は他タブと統一するため受け取るが、本タブでは未使用
@@ -77,6 +78,8 @@ export function QuickEvidenceTab(_props: Props) {
           ))}
         </div>
         <p className="quick-evidence-mode-desc">{currentMode.description}</p>
+
+        {mode === "low_model_guard" && <HallucinationStrategiesTable />}
       </section>
 
       <section className="workflow-section">
