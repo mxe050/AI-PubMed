@@ -210,6 +210,9 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
           チェック ON/OFF・行追加しながら、リアルタイムに PubMed 検索式を組み立てます。
           最終的に PubMed で検索して結果を取得し、AI に研究デザイン別の分類を依頼します。
         </p>
+        <p className="sr-existing-sr-tip">
+          既存のシステマティックレビューの検索式を参考にすることを推奨します。
+        </p>
       </div>
 
       {/* Step 1: PICO入力 */}

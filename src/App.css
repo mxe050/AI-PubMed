@@ -3131,6 +3131,13 @@ tr.unverified {
   margin-bottom: 6px;
 }
 
+/* SR description 直下の推奨ヒント（赤字） */
+.sr-existing-sr-tip {
+  margin: 8px 0 0;
+  color: var(--color-error);
+  font-weight: 600;
+}
+
 /* PRISMA 短文ノート（SR Step 1） */
 .sr-prisma-note {
   background: var(--color-info-bg);
