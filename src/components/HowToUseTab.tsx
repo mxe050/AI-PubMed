@@ -289,17 +289,16 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
           <div className="strategy-card">
             <h4>● ちょっと調べたい</h4>
             <p>
-              臨床現場の素朴な疑問・違和感を、6モードで素早くプロンプト化して外部AIに渡します。
+              臨床現場の素朴な疑問・違和感を、7モードで素早くプロンプト化して外部AIに渡します。
             </p>
             <ul>
-              <li>
-                <strong>🔍 ハルシネーションチェックが行いやすい検索</strong>：初心者向け解説付きで重要論文3〜5本を提示。末尾に PMID 機械可読リストを出すため、AI出力ファクトチェックに直結
-              </li>
-              <li><strong>🌳 系譜</strong>：1本の重要論文の発展・批判・修正を家系図で追跡</li>
-              <li><strong>💥 常識?</strong>：教科書的常識を、タイムライン図＋ジャッジマップで最新エビデンス検証</li>
-              <li><strong>⚖️ 議論</strong>：保守派 vs 革新派の議論マップ＋最終アライメント図で両極の視点を可視化</li>
-              <li><strong>📋 簡単検索式</strong>：カルテ風の自然文 → 3段階（精密/標準/網羅）の PubMed 検索式</li>
-              <li><strong>🎯 検索式チェック</strong>：あなたの既存検索式を4観点で診断・改善版3種を提示</li>
+              <li><strong>🛡 低モデル用ハルシネーション防止プロンプト</strong></li>
+              <li><strong>🔍 ハルシネーションチェックが行いやすい検索</strong></li>
+              <li><strong>🌳 系譜</strong></li>
+              <li><strong>💥 常識?</strong></li>
+              <li><strong>⚖️ 議論</strong></li>
+              <li><strong>📋 簡単検索式</strong></li>
+              <li><strong>🎯 検索式チェック</strong></li>
             </ul>
           </div>
 
@@ -351,83 +350,6 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
             </p>
           </div>
         </div>
-      </section>
-
-      <section className="how-to-use-section">
-        <h3>タブ別ワークフロー</h3>
-
-        <h4>📋 「ちょっと調べたい」タブ（最も手軽・6モード）</h4>
-        <ol className="workflow-list">
-          <li>
-            6モードから1つを選ぶ（デフォルト「<strong>🔍 ハルシネーションチェックが行いやすい検索</strong>」、他に
-            🌳 系譜 / 💥 常識? / ⚖️ 議論 / 📋 簡単検索式 / 🎯 検索式チェック）
-          </li>
-          <li>気軽な質問・臨床シナリオを入力</li>
-          <li>「プロンプトを生成」→ コピー → 外部AI（ChatGPT/Claude/Gemini等）に貼り付け</li>
-          <li>
-            「ハルシネーションチェックが行いやすい検索」モードでは、AI回答の末尾に
-            <code>===PMIDS_START===</code> 機械可読 PMID リストが含まれるため、そのまま「AI出力ファクトチェック」タブに貼り付けて一括実在確認
-          </li>
-          <li>他モードでもAI回答内の PMID は必ず「AI出力ファクトチェック」タブで実在確認</li>
-        </ol>
-
-        <h4>📋 「EBMのための検索」タブ（PICO学習付き）</h4>
-        <ol className="workflow-list">
-          <li>原質問を入力</li>
-          <li>「PICOブレストプロンプトを生成」→ 外部AI → 回答貼付 → 「PICOを自動入力」でP/I/C/Oを自動セット</li>
-          <li>「初回プロンプトを生成」→ 外部AI → 回答貼付 → 「検索式を抽出してStep 4へ」</li>
-          <li>Step 4: 出版年・研究デザインフィルター（任意）→ 「PubMed APIで検索」</li>
-          <li>「AIで研究デザイン別に分類する」→ プロンプト＋検索結果をコピー → 外部AI</li>
-          <li>AI分類回答を貼付 → 「分類結果を表示」で<strong>新しいブラウザタブ</strong>に分類テーブル（CSVダウンロード可）</li>
-        </ol>
-
-        <h4>📋 「システマティックレビュー」タブ（査読品質）</h4>
-        <ol className="workflow-list">
-          <li>Step 1: PICO（CQ・P・I・C・O）を入力</li>
-          <li>Step 2: 「類語提案プロンプトを生成」→ 外部AI（PICO各要素の検索語と類語を網羅的に提案）</li>
-          <li>Step 3: AI回答を貼付 → 「検索語テーブルに反映」で <code>===TERMS_START===</code> ブロックをパース → Step 4 のテーブルに自動投入</li>
-          <li>Step 4: 検索語テーブルでチェックON/OFF・行追加 → 検索式がリアルタイム更新</li>
-          <li>研究デザインフィルター（GL / SR / GL+SR / RCT / 非RCT）と出版年月日範囲を任意適用</li>
-          <li>各検索語の「MeSH確認」ボタンで NCBI MeSH データベースを別タブで確認</li>
-          <li>「PubMed APIで検索」（最大100件取得）</li>
-          <li>「AIで研究デザイン別に分類する」→ プロンプト＋全件コピー → 外部AI</li>
-          <li>AI分類回答を貼付 → 「分類結果を表示」で新タブに分類テーブル（CSVダウンロード可）</li>
-        </ol>
-
-        <h4>📋 「害の検索」タブ（読み物・診療ガイドライン作成者向け）</h4>
-        <ol className="workflow-list">
-          <li>
-            診療ガイドライン作成における「害」検索の理論と実務（Cochrane Handbook / PRISMA Harms / CONSORT Harms / GRADE）を読み物形式で参照
-          </li>
-          <li>
-            必要な検索式（汎用害フィルター・薬剤・外科・医療機器・症例報告・観察研究の各テンプレート）を<strong>コピーボタン</strong>で取得し、SRタブや PubMed Tool タブの検索式に組み込み
-          </li>
-          <li>
-            「害がありそうなのに見つからない」場合の検討項目（自由診療・代替療法・標準治療遅延の害評価）を確認
-          </li>
-        </ol>
-
-        <h4>📋 「PubMedで見逃しやすい論文検索」タブ（本文内証拠重視）</h4>
-        <ol className="workflow-list">
-          <li>通常検索 / 反証検索 のモードを選択</li>
-          <li>探したい論文・論点・違和感を自然な日本語で入力（曖昧でOK）</li>
-          <li>「プロンプトを生成」→ 外部AI（本文内証拠を含む論文を意図的に拾う）</li>
-          <li>AI回答を「AI出力ファクトチェック」タブで実在確認</li>
-        </ol>
-
-        <h4>📋 「AI出力ファクトチェック」タブ（必須の最終工程）</h4>
-        <ol className="workflow-list">
-          <li>外部AIから返ってきた回答（医学論文の引用入り）を貼り付け</li>
-          <li>PMID・DOI・URL を一括抽出 → NCBI API で実在確認 → 抄録取得</li>
-          <li>撤回論文・正誤表・懸念表明（Expression of Concern）の警告を表示</li>
-          <li>AIの主張と実際の抄録の一致度を照合</li>
-        </ol>
-
-        <p className="hint" style={{ marginTop: 12 }}>
-          <strong>共通の鉄則：</strong>どのタブでも、外部AIから得た PMID・引用は
-          <strong>必ず「AI出力ファクトチェック」タブで実在確認</strong>してください。
-          AI のハルシネーション（捏造PMID）は無料の小型モデルほど多発します。
-        </p>
       </section>
 
       <section className="how-to-use-section">
