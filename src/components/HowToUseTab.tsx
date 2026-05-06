@@ -276,7 +276,7 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
           </div>
 
           <div className="strategy-card">
-            <h4>● PubMedで見逃しやすい論文検索</h4>
+            <h4>● 質問ズレ・PubMed検索漏れ</h4>
             <p>
               PubMedの抄録だけでは届かない<strong>本文内証拠</strong>
               （Discussion・Methods・Limitations・Table・Figure・参考文献にある批判・比較・改変・限界・代替分類への言及）を持つ論文を意図的に拾い上げるためのプロンプトを生成します。
