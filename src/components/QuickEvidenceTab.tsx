@@ -14,7 +14,7 @@ interface Props {
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 export function QuickEvidenceTab(_props: Props) {
-  const [mode, setMode] = useState<QuickEvidenceMode>("quick");
+  const [mode, setMode] = useState<QuickEvidenceMode>("low_model_guard");
   const [questionText, setQuestionText] = useState("");
   const [generatedPrompt, setGeneratedPrompt] = useState("");
 
@@ -52,7 +52,7 @@ export function QuickEvidenceTab(_props: Props) {
         <p className="quick-evidence-question-warning">
           ⚠ <strong>質問の仕方がずれていると、求めている検索結果にならず、ハルシネーションが増えることがあります。</strong>
           うまく結果が出ない場合は、まず
-          <strong>「質問ズレ・PubMed検索漏れ」タブ</strong>
+          <strong>「質問ズレ/PubMed検索漏れ」タブ</strong>
           で自分の質問の表現が適切か確認してから戻ってくると、ハルシネーションを減らしやすくなります。
         </p>
         <p>

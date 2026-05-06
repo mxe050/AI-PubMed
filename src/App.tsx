@@ -33,7 +33,7 @@ type TabKind = "main" | "supp" | "meta";
 const tabs: { key: TabType; label: string; kind: TabKind }[] = [
   { key: "how_to_use", label: "使い方・設定", kind: "meta" },
   { key: "fact_check", label: "AI出力ファクトチェック", kind: "main" },
-  { key: "topic_exploration", label: "質問ズレ・PubMed検索漏れ", kind: "main" },
+  { key: "topic_exploration", label: "質問ズレ/PubMed検索漏れ", kind: "main" },
   { key: "quick_evidence", label: "ちょっと調べたい", kind: "main" },
   { key: "ebm_search", label: "EBMのための検索", kind: "supp" },
   { key: "systematic_review", label: "システマティックレビュー", kind: "supp" },
@@ -139,8 +139,8 @@ export default function App() {
               key="topic-shared"
               title={
                 topicMode === "counter"
-                  ? "質問ズレ・PubMed検索漏れ（反証パラレル検索）"
-                  : "質問ズレ・PubMed検索漏れ（メイン機能）"
+                  ? "質問ズレ/PubMed検索漏れ（反証パラレル検索）"
+                  : "質問ズレ/PubMed検索漏れ（メイン機能）"
               }
               settings={settings}
               fields={

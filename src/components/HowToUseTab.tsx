@@ -43,6 +43,12 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
             本アプリは、<strong>AIの簡単・便利さを損なわない</strong>まま、
             <strong>「あえて確認する」「あえて検索する」</strong>という医療者の覚悟を支えるためのワークフローを提供します。
           </p>
+          <p className="purpose-quick-tip">
+            💡 質問がズレているとハルシネーションが増えるので、
+            <strong>「質問ズレ/PubMed検索漏れ」</strong>を利用するとよいでしょう。
+            また、ハルシネーション対策は、<strong>● ちょっと調べたい</strong>の
+            <strong>「低モデル用ハルシネーション防止プロンプト」</strong>タブに一覧があります。
+          </p>
         </div>
 
         <h4>AIに頼り切ることの弊害（最新研究より）</h4>
@@ -276,7 +282,7 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
           </div>
 
           <div className="strategy-card">
-            <h4>● 質問ズレ・PubMed検索漏れ</h4>
+            <h4>● 質問ズレ/PubMed検索漏れ</h4>
             <p>
               PubMedの抄録だけでは届かない<strong>本文内証拠</strong>
               （Discussion・Methods・Limitations・Table・Figure・参考文献にある批判・比較・改変・限界・代替分類への言及）を持つ論文を意図的に拾い上げるためのプロンプトを生成します。
