@@ -3721,6 +3721,17 @@ tr.unverified {
   word-break: break-all;
 }
 
+/* 使い方タブ：このアプリの目的の補足ヒント */
+.purpose-quick-tip {
+  margin-top: 8px;
+  padding: 10px 14px;
+  background: var(--color-info-bg);
+  border-left: 3px solid var(--color-primary);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  line-height: 1.7;
+}
+
 /* ちょっと調べたいタブ：質問ズレ警告 */
 .quick-evidence-question-warning {
   margin: 0 0 10px;
