@@ -3559,6 +3559,168 @@ tr.unverified {
   text-decoration: underline;
 }
 
+/* ================================
+   ハルシネーション対策比較表（低モデル用ガードモード）
+   ================================ */
+.hs-strategies {
+  margin: 16px 0 0;
+  padding: 14px 16px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.hs-strategies-header h3 {
+  margin: 0 0 6px;
+  font-size: 1rem;
+  color: var(--color-primary);
+}
+.hs-strategies-header .hint {
+  margin: 0 0 12px;
+  font-size: 0.82rem;
+  line-height: 1.6;
+}
+
+/* フィルターバー */
+.hs-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+  background: var(--color-info-bg);
+  border-radius: var(--radius);
+  font-size: 0.85rem;
+}
+.hs-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.hs-filter-group label {
+  font-weight: 600;
+  margin: 0;
+}
+.hs-filter-group select {
+  padding: 3px 8px;
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  background: #fff;
+}
+.hs-filter-group input[type="checkbox"] {
+  margin-right: 4px;
+}
+.hs-filter-summary {
+  margin-left: auto;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+}
+
+/* テーブル本体 */
+.hs-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+.hs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.82rem;
+  background: #fff;
+}
+.hs-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--color-info-bg);
+  border-bottom: 2px solid var(--color-primary);
+  padding: 8px 10px;
+  text-align: left;
+  font-weight: 600;
+  z-index: 1;
+}
+.hs-table td {
+  padding: 6px 10px;
+  border-bottom: 1px solid var(--color-border);
+  vertical-align: top;
+  line-height: 1.55;
+}
+.hs-table .hs-item-row {
+  background: #f1f5f9;
+}
+.hs-table .hs-item-row .hs-item-id {
+  font-weight: 700;
+  color: var(--color-primary);
+  text-align: center;
+  border-right: 1px solid var(--color-border);
+}
+.hs-table .hs-item-row .hs-item-name {
+  padding: 8px 10px;
+}
+.hs-table .hs-item-row strong {
+  font-size: 0.92rem;
+  color: var(--color-text);
+  margin-left: 8px;
+}
+.hs-category-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  background: #e0e7ff;
+  color: #3730a3;
+  border-radius: 12px;
+  font-size: 0.72rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+.hs-table .hs-provider-row td:first-child {
+  border-right: 1px solid var(--color-border);
+}
+.hs-provider-cell {
+  white-space: nowrap;
+  font-weight: 600;
+  font-size: 0.82rem;
+}
+.hs-provider-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-right: 6px;
+  vertical-align: middle;
+}
+.hs-na {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* 参考資料 */
+.hs-references {
+  margin-top: 16px;
+  padding: 12px 14px;
+  background: var(--color-info-bg);
+  border-left: 3px solid var(--color-primary);
+  border-radius: var(--radius);
+}
+.hs-references h4 {
+  margin: 0 0 8px;
+  color: var(--color-primary);
+  font-size: 0.95rem;
+}
+.hs-references ul {
+  margin: 0;
+  padding-left: 22px;
+  font-size: 0.82rem;
+  line-height: 1.65;
+}
+.hs-references li {
+  margin: 6px 0;
+}
+.hs-references a {
+  color: var(--color-primary);
+  word-break: break-all;
+}
+
 /* ハルシネーションチェック必須バナー（quick モード生成後） */
 .hallucination-check-imperative {
   margin: 16px 0 0;
