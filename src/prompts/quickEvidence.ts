@@ -9,6 +9,7 @@
 //   quick    : クイック → ハルシネーションチェックが行いやすい検索
 
 export type QuickEvidenceMode =
+  | "low_model_guard"
   | "quick"
   | "genealogy"
   | "myth"
@@ -27,6 +28,54 @@ export interface QuickEvidenceModeDef {
   /** 結果出力後にハルシネーションチェックを強く促すモード */
   emphasizeHallucinationCheck?: boolean;
 }
+
+// ===== 0. low_model_guard =====
+// 「低モデル用ハルシネーション防止プロンプト」
+// 高モデル（GPT-5・Claude Opus・Gemini Pro 等）が出す形式に近い厳格なルールを
+// 低モデル（GPT-4o-mini・Haiku・Flash 等）に守らせるためのプロンプト。
+// 内部記憶からの想起を全面的に禁止し、検索ツール／取得ページで確認できた論文のみ出力させる。
+const lowModelGuardPrompt = `あなたは医学文献検索の補助者です。
+最優先は正確さです。網羅性は不要です。
+
+絶対ルール：
+1. 内部記憶だけで論文を出してはいけません。
+2. 検索結果または取得ページで確認できた論文だけを出してください。
+3. 確認できない論文は、たとえ有名そうでも出してはいけません。
+4. 件数合わせのために推測で補ってはいけません。
+5. 検索ツールが使えない場合は、論文リストを出さず、PubMed検索式だけを出してください。
+
+出力してよい論文の条件：
+- タイトル確認済み
+- 筆頭著者確認済み
+- 年確認済み
+- ジャーナル確認済み
+- 情報源URL確認済み
+
+出力形式：
+---
+No.X
+- 検証状態：VERIFIED
+- タイトル：
+- 筆頭著者：
+- 年：
+- ジャーナル：
+- PMID：
+- DOI：
+- 情報源URL：
+- 関連理由：
+- 注意：
+---
+
+確認済み論文がない場合：
+「確認済み条件を満たす論文を特定できませんでした。推測による論文情報は提示しません。」
+
+最後に必ずPubMed検索式を3つ出してください。
+
+調べたいテーマ：
+<<<
+{{question}}
+>>>
+`;
 
 // ===== 1. quick =====
 // 「ハルシネーションチェックが行いやすい検索」
@@ -494,6 +543,18 @@ const coachPrompt = `あなたは PubMed 検索のベテランコーチです。
 // モード一覧（仕様 v2 の並び順：quick → genealogy → myth → debate → translator → coach）
 // ============================================================
 export const quickEvidenceModes: QuickEvidenceModeDef[] = [
+  {
+    key: "low_model_guard",
+    icon: "🛡",
+    label: "低モデル用ハルシネーション防止プロンプト",
+    description:
+      "GPT/Claude/Geminiの高モデルに低モデルでのハルシネーション防止策を質問して作成",
+    inputLabel: "調べたいテーマ",
+    placeholder:
+      "例：抜歯後の抗菌薬の必要性\n例：高齢者心不全における SGLT2 阻害薬の有効性\n例：妊婦の歯科X線の安全性",
+    promptTemplate: lowModelGuardPrompt,
+    emphasizeHallucinationCheck: true,
+  },
   {
     key: "quick",
     icon: "🔍",
