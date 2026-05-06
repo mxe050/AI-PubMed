@@ -49,8 +49,14 @@ export function QuickEvidenceTab(_props: Props) {
       </header>
 
       <div className="strategy-description">
+        <p className="quick-evidence-question-warning">
+          ⚠ <strong>質問の仕方がずれていると、求めている検索結果にならず、ハルシネーションが増えることがあります。</strong>
+          うまく結果が出ない場合は、まず
+          <strong>「質問ズレ・PubMed検索漏れ」タブ</strong>
+          で自分の質問の表現が適切か確認してから戻ってくると、ハルシネーションを減らしやすくなります。
+        </p>
         <p>
-          臨床現場で生まれる素朴な疑問・違和感を、6つのモードで素早く外部AIに渡すためのプロンプトを作ります。
+          臨床現場で生まれる素朴な疑問・違和感を、7つのモードで素早く外部AIに渡すためのプロンプトを作ります。
           AI APIには通信しません。質問を入力してモードを選び、生成されたプロンプトをコピーして
           ChatGPT / Claude / Gemini などに貼り付けてください。
         </p>

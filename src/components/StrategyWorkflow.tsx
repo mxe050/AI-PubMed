@@ -1,4 +1,4 @@
-// topic_exploration（PubMedで見逃しやすい論文検索）専用ワークフロー。
+// topic_exploration（質問ズレ・PubMed検索漏れ）専用ワークフロー。
 // SR タブ（旧 mode="sr-revision"）は SrTab.tsx に分離されたため、
 // このコンポーネントは "topic-synthesis" 1モードのみを扱う。
 //
@@ -93,7 +93,7 @@ export function StrategyWorkflow({
           <h2>Step 2: プロンプトを外部AIに渡す</h2>
 
           <div className="prompt-recommendation-banner">
-            <h4>📌 PubMedで見逃しやすい論文検索プロンプト</h4>
+            <h4>📌 質問ズレ・PubMed検索漏れプロンプト</h4>
             <p>
               PubMedのタイトル・抄録検索では届かない、
               <strong>
@@ -112,14 +112,14 @@ export function StrategyWorkflow({
 
           <div className="prompt-card prompt-card-synthesis">
             <div className="prompt-card-header">
-              <h3>PubMedで見逃しやすい論文検索プロンプト</h3>
+              <h3>質問ズレ・PubMed検索漏れプロンプト</h3>
               <span className="prompt-tag prompt-tag-continues">
                 本文内証拠重視
               </span>
             </div>
             <PromptDisplay
               prompt={generatedPrompt}
-              title="PubMedで見逃しやすい論文検索プロンプト"
+              title="質問ズレ・PubMed検索漏れプロンプト"
             />
           </div>
 
