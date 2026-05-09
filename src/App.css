@@ -266,6 +266,28 @@ body {
   font-weight: 700;
 }
 
+.label-note {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+  font-weight: 400;
+}
+
+.search-focus-field {
+  margin-top: 12px;
+}
+
+.search-focus-preview {
+  margin: 8px 0 12px;
+  padding: 8px 10px;
+  background: var(--color-warning-bg);
+  border-left: 3px solid var(--color-warning);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  line-height: 1.5;
+}
+
 .strategy-header {
   text-align: center;
   padding: 16px 0;

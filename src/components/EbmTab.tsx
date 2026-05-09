@@ -100,6 +100,7 @@ export function EbmTab({ settings }: Props) {
   const [purpose, setPurpose] = useState("treatment");
   const [picoVariant, setPicoVariant] = useState<PicoVariantKey>("A");
   const [searchVariant, setSearchVariant] = useState<SearchVariantKey>("A");
+  const [searchFocus, setSearchFocus] = useState("");
 
   // PICO fields (EBM Step 1 — required, but app falls back silently if blank)
   const [picoP, setPicoP] = useState("");
@@ -187,6 +188,7 @@ export function EbmTab({ settings }: Props) {
       purpose: purposeLabel,
       searchVariantLabel: selectedVariant.label,
       searchVariantInstruction: selectedVariant.instruction,
+      searchFocus: searchFocus.trim() || "なし",
     });
   }
 
@@ -335,6 +337,7 @@ export function EbmTab({ settings }: Props) {
     setPurpose("treatment");
     setPicoVariant("A");
     setSearchVariant("A");
+    setSearchFocus("");
     setPicoP("");
     setPicoI("");
     setPicoC("");
@@ -633,6 +636,20 @@ SGLT2阻害薬（ダパグリフロジン10mg/日）
             ))}
           </div>
         </div>
+        <div className="form-group search-focus-field">
+          <label>
+            強調したいポイント
+            <span className="label-note">
+              （検索結果が自分の疑問とずれている場合は、ここに記入して再度作り直してください）
+            </span>
+          </label>
+          <textarea
+            rows={3}
+            value={searchFocus}
+            onChange={(e) => setSearchFocus(e.target.value)}
+            placeholder="例：心不全入院よりもQOL改善を重視したい／外来高齢者に近い集団を優先したい／薬剤名ではなくクラス全体で拾いたい"
+          />
+        </div>
       </section>
 
       {/* Step 2: AI initial prompt */}
@@ -651,6 +668,12 @@ SGLT2阻害薬（ダパグリフロジン10mg/日）
               </button>
             ))}
           </div>
+          {searchFocus.trim() && (
+            <div className="search-focus-preview">
+              <strong>強調したいポイント：</strong>
+              {searchFocus}
+            </div>
+          )}
           <p className="hint">
             このプロンプトをコピーしてChatGPT / Claude /
             Geminiなどに貼り付けてください。
