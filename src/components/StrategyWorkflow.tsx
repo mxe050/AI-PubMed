@@ -62,6 +62,12 @@ export function StrategyWorkflow({
     setGeneratedPrompt(buildPrompt(promptTemplate, values));
   }
 
+  function handleClear() {
+    if (!confirm("入力内容と生成プロンプトをすべてクリアしますか？")) return;
+    setValues({});
+    setGeneratedPrompt("");
+  }
+
   return (
     <div className="strategy-workflow">
       {title && (
@@ -83,9 +89,14 @@ export function StrategyWorkflow({
           values={values}
           onChange={handleFieldChange}
         />
-        <button className="btn btn-primary" onClick={handleGeneratePrompt}>
-          プロンプトを生成
-        </button>
+        <div className="button-group">
+          <button className="btn btn-primary" onClick={handleGeneratePrompt}>
+            プロンプトを生成
+          </button>
+          <button className="btn btn-secondary" onClick={handleClear}>
+            🗑 すべてクリア
+          </button>
+        </div>
       </section>
 
       {generatedPrompt && values.question && (

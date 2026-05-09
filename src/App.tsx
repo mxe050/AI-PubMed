@@ -83,16 +83,18 @@ export default function App() {
       </nav>
 
       <main className="app-main">
-        {activeTab === "how_to_use" && (
+        <div className="tab-panel" hidden={activeTab !== "how_to_use"}>
           <HowToUseTab
             settings={settings}
             onSettingsChange={setSettings}
           />
-        )}
+        </div>
 
-        {activeTab === "fact_check" && <FactCheckTab settings={settings} />}
+        <div className="tab-panel" hidden={activeTab !== "fact_check"}>
+          <FactCheckTab settings={settings} />
+        </div>
 
-        {activeTab === "topic_exploration" && (
+        <div className="tab-panel" hidden={activeTab !== "topic_exploration"}>
           <>
             <div className="topic-mode-switch" role="tablist" aria-label="検索モード">
               <button
@@ -242,26 +244,34 @@ export default function App() {
               mode="topic-synthesis"
             />
           </>
-        )}
+        </div>
 
-        {activeTab === "quick_evidence" && (
+        <div className="tab-panel" hidden={activeTab !== "quick_evidence"}>
           <QuickEvidenceTab settings={settings} />
-        )}
+        </div>
 
-        {activeTab === "ebm_search" && <EbmTab settings={settings} />}
+        <div className="tab-panel" hidden={activeTab !== "ebm_search"}>
+          <EbmTab settings={settings} />
+        </div>
 
-        {activeTab === "systematic_review" && (
+        <div className="tab-panel" hidden={activeTab !== "systematic_review"}>
           <SrTab
             settings={settings}
             onNavigateToEbm={() => setActiveTab("ebm_search")}
           />
-        )}
+        </div>
 
-        {activeTab === "pubmed_tool" && <PubMedToolTab />}
+        <div className="tab-panel" hidden={activeTab !== "pubmed_tool"}>
+          <PubMedToolTab />
+        </div>
 
-        {activeTab === "harms_search" && <HarmsSearchTab />}
+        <div className="tab-panel" hidden={activeTab !== "harms_search"}>
+          <HarmsSearchTab />
+        </div>
 
-        {activeTab === "grade_explainer" && <GradeExplainerTab />}
+        <div className="tab-panel" hidden={activeTab !== "grade_explainer"}>
+          <GradeExplainerTab />
+        </div>
       </main>
 
       <footer className="app-footer">

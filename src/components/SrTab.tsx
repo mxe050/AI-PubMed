@@ -75,6 +75,9 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
   const [classificationAiResponse, setClassificationAiResponse] = useState("");
   const [classificationError, setClassificationError] = useState("");
   const [searchCopyMsg, setSearchCopyMsg] = useState("");
+  const picoText = [picoP, picoI, picoC, picoO].some((v) => v.length > 0)
+    ? [picoP, picoI, picoC, picoO].join("\n")
+    : "";
 
   // 検索式の派生値
   const baseSearchString = useMemo(
@@ -107,6 +110,37 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
       knownPmids: knownPmids || "なし",
     });
     setInitialPrompt(prompt);
+  }
+
+  function setPicoFromText(value: string) {
+    const lines = value.split(/\r?\n/);
+    setPicoP(lines[0] ?? "");
+    setPicoI(lines[1] ?? "");
+    setPicoC(lines[2] ?? "");
+    setPicoO(lines.slice(3).join("\n"));
+  }
+
+  function clearAll() {
+    if (!confirm("入力内容・取得結果をすべてクリアして最初からやり直しますか？")) return;
+    setPicoP("");
+    setPicoI("");
+    setPicoC("");
+    setPicoO("");
+    setQuestion("");
+    setKnownPmids("");
+    setInitialPrompt("");
+    setAiResponse("");
+    setParseMsg(null);
+    setTermTable({ P: [], I: [], C: [], O: [] });
+    setDesignKey("none");
+    setFromDate("");
+    setToDate("");
+    setPubmedResult(null);
+    setClassificationCopyMsg("");
+    setClassificationAiResponse("");
+    setClassificationError("");
+    setSearchCopyMsg("");
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function applyTermsFromAi() {
@@ -202,6 +236,11 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
     <div className="strategy-workflow sr-tab">
       <header className="strategy-header">
         <h2>システマティックレビュー（補助機能）</h2>
+        <div className="ebm-clear-bar">
+          <button className="btn btn-secondary" onClick={clearAll}>
+            🗑 すべての入力・結果をクリアして最初からやり直す
+          </button>
+        </div>
       </header>
       <div className="strategy-description">
         <p>
@@ -212,6 +251,9 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
         </p>
         <p className="sr-existing-sr-tip">
           既存のシステマティックレビューの検索式を参考にすることを推奨します。
+        </p>
+        <p className="ai-format-warning" role="alert">
+          高モデルで回答すると、複数の回答が得られ、自動抽出ができない場合がありますので、手動で入力してください。
         </p>
       </div>
 
@@ -275,42 +317,18 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
 
         <div className="form-group">
           <label>
-            P（対象患者・状況）<span className="required">*</span>
+            P/I/C/O（1行ずつ、P → I → C → O の順。P/Iは必須）
+            <span className="required">*</span>
           </label>
           <textarea
-            rows={2}
-            value={picoP}
-            onChange={(e) => setPicoP(e.target.value)}
-            placeholder="例：60歳以上、HFrEF（LVEF≦40%）、外来通院中"
-          />
-        </div>
-        <div className="form-group">
-          <label>
-            I（介入・曝露）<span className="required">*</span>
-          </label>
-          <textarea
-            rows={2}
-            value={picoI}
-            onChange={(e) => setPicoI(e.target.value)}
-            placeholder="例：SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフロジン10mg/日）の標準治療への追加"
-          />
-        </div>
-        <div className="form-group">
-          <label>C（比較）— 任意</label>
-          <textarea
-            rows={2}
-            value={picoC}
-            onChange={(e) => setPicoC(e.target.value)}
-            placeholder="例：標準治療（ACE-I/ARB/β遮断薬/MRA）のみ。Cが不要なCQでは空欄でOK。"
-          />
-        </div>
-        <div className="form-group">
-          <label>O（アウトカム）— 任意</label>
-          <textarea
-            rows={2}
-            value={picoO}
-            onChange={(e) => setPicoO(e.target.value)}
-            placeholder="例：心不全入院、全死亡、心血管死、QOL（KCCQ）"
+            rows={5}
+            value={picoText}
+            onChange={(e) => setPicoFromText(e.target.value)}
+            placeholder={`例：
+60歳以上、HFrEF（LVEF≦40%）、外来通院中
+SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフロジン10mg/日）の標準治療への追加
+標準治療（ACE-I/ARB/β遮断薬/MRA）のみ。Cが不要なCQでは空行でOK。
+心不全入院、全死亡、心血管死、QOL（KCCQ）`}
           />
         </div>
         <div className="form-group">

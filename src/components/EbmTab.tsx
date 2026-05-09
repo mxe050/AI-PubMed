@@ -41,10 +41,65 @@ const purposeOptions = [
   { value: "research", label: "研究計画用" },
 ];
 
+type PicoVariantKey = "A" | "B" | "C";
+type SearchVariantKey = "A" | "B" | "C";
+
+const picoVariantOptions: {
+  key: PicoVariantKey;
+  label: string;
+  instruction: string;
+}[] = [
+  {
+    key: "A",
+    label: "PICO案 A：臨床判断に近い形（標準）",
+    instruction:
+      "PICO案 A：臨床判断に近い形（標準）の一つだけを作成してください。PICO案 B/C や代替案は出さないでください。",
+  },
+  {
+    key: "B",
+    label: "PICO案 B：患者説明・教育用（一般的・分かりやすい形）",
+    instruction:
+      "PICO案 B：患者説明・教育用（一般的・分かりやすい形）の一つだけを作成してください。PICO案 A/C や代替案は出さないでください。",
+  },
+  {
+    key: "C",
+    label: "PICO案 C：システマティックレビュー用（厳密・網羅的な形）",
+    instruction:
+      "PICO案 C：システマティックレビュー用（厳密・網羅的な形）の一つだけを作成してください。PICO案 A/B や代替案は出さないでください。",
+  },
+];
+
+const searchVariantOptions: {
+  key: SearchVariantKey;
+  label: string;
+  instruction: string;
+}[] = [
+  {
+    key: "A",
+    label: "検索案 A：臨床判断に近い形（標準）",
+    instruction:
+      "検索案 A：臨床判断に近い形（標準）の一つだけを作成してください。検索案 B/C や複数パターンは出さないでください。",
+  },
+  {
+    key: "B",
+    label: "検索案 B：患者説明・教育用（一般的・分かりやすい形）",
+    instruction:
+      "検索案 B：患者説明・教育用（一般的・分かりやすい形）の一つだけを作成してください。検索案 A/C や複数パターンは出さないでください。",
+  },
+  {
+    key: "C",
+    label: "検索案 C：システマティックレビュー用（厳密・網羅的な形）",
+    instruction:
+      "検索案 C：システマティックレビュー用（厳密・網羅的な形）の一つだけを作成してください。検索案 A/B や複数パターンは出さないでください。",
+  },
+];
+
 export function EbmTab({ settings }: Props) {
   const [rawQuestion, setRawQuestion] = useState("");
   const [specialty, setSpecialty] = useState("");
   const [purpose, setPurpose] = useState("treatment");
+  const [picoVariant, setPicoVariant] = useState<PicoVariantKey>("A");
+  const [searchVariant, setSearchVariant] = useState<SearchVariantKey>("A");
 
   // PICO fields (EBM Step 1 — required, but app falls back silently if blank)
   const [picoP, setPicoP] = useState("");
@@ -70,6 +125,10 @@ export function EbmTab({ settings }: Props) {
     .join(" / ");
   const pico = combinedPico;
   const context = combinedPico;
+  const picoText = [picoP, picoI, picoC, picoO].some((v) => v.length > 0)
+    ? [picoP, picoI, picoC, picoO].join("\n")
+    : "";
+  const hasCorePico = Boolean(picoP.trim() && picoI.trim());
 
   const [initialPrompt, setInitialPrompt] = useState("");
   const [aiResponse, setAiResponse] = useState("");
@@ -95,6 +154,7 @@ export function EbmTab({ settings }: Props) {
   const picoEval = evaluatePicoCompleteness(rawQuestion);
   const showPicoRefinement =
     rawQuestion.trim().length > 0 &&
+    !hasCorePico &&
     picoEval.recommendRefinement &&
     !picoCheckDismissed;
 
@@ -106,26 +166,49 @@ export function EbmTab({ settings }: Props) {
     return applyPubDateFilter(withDesign, pubDateKey);
   }, [searchString, designKey, pubDateKey]);
 
+  function setPicoFromText(value: string) {
+    const lines = value.split(/\r?\n/);
+    setPicoP(lines[0] ?? "");
+    setPicoI(lines[1] ?? "");
+    setPicoC(lines[2] ?? "");
+    setPicoO(lines.slice(3).join("\n"));
+  }
+
+  function buildInitialPromptForVariant(variant: SearchVariantKey) {
+    const purposeLabel =
+      purposeOptions.find((p) => p.value === purpose)?.label ?? purpose;
+    const selectedVariant =
+      searchVariantOptions.find((opt) => opt.key === variant) ??
+      searchVariantOptions[0];
+    return buildPrompt(ebmInitialPrompt, {
+      question: rawQuestion || "PICOに基づく臨床疑問",
+      specialty: specialty || "未入力",
+      context: context || "未入力",
+      purpose: purposeLabel,
+      searchVariantLabel: selectedVariant.label,
+      searchVariantInstruction: selectedVariant.instruction,
+    });
+  }
+
   function generateInitialPrompt() {
-    if (!rawQuestion.trim()) {
-      alert("原質問を入力してください。");
+    if (!rawQuestion.trim() && !hasCorePico) {
+      alert("原質問、またはP/Iを含むPICOを入力してください。");
       return;
     }
-    if (picoEval.recommendRefinement && !picoCheckDismissed) {
+    if (!hasCorePico && picoEval.recommendRefinement && !picoCheckDismissed) {
       const ok = confirm(
         `この疑問はPICO要素のうち以下が不足している可能性があります：\n\n${picoEval.missing.join("、")}\n\n下のPICO洗練サブフローで疑問を磨くことを強く推奨します。\n\nそれでもこのまま初回プロンプト生成に進みますか？\n\n（OK = このまま進む / キャンセル = 戻ってPICO洗練を行う）`
       );
       if (!ok) return;
     }
-    const purposeLabel =
-      purposeOptions.find((p) => p.value === purpose)?.label ?? purpose;
-    const prompt = buildPrompt(ebmInitialPrompt, {
-      question: rawQuestion,
-      specialty: specialty || "未入力",
-      context: context || "未入力",
-      purpose: purposeLabel,
-    });
-    setInitialPrompt(prompt);
+    setInitialPrompt(buildInitialPromptForVariant(searchVariant));
+  }
+
+  function handleSearchVariantChange(variant: SearchVariantKey) {
+    setSearchVariant(variant);
+    if (initialPrompt) {
+      setInitialPrompt(buildInitialPromptForVariant(variant));
+    }
   }
 
   function generatePicoRefinementPrompt() {
@@ -140,19 +223,37 @@ export function EbmTab({ settings }: Props) {
     setPicoRefinementPrompt(prompt);
   }
 
-  function generatePicoBrainstormPrompt() {
+  function buildPicoBrainstormPromptForVariant(variant: PicoVariantKey) {
     if (!rawQuestion.trim()) {
       alert("先に原質問を入力してください。");
-      return;
+      return "";
     }
     const purposeLabel =
       purposeOptions.find((p) => p.value === purpose)?.label ?? purpose;
-    const prompt = buildPrompt(ebmPicoBrainstormPrompt, {
+    const selectedVariant =
+      picoVariantOptions.find((opt) => opt.key === variant) ??
+      picoVariantOptions[0];
+    return buildPrompt(ebmPicoBrainstormPrompt, {
       question: rawQuestion,
       specialty: specialty || "未入力",
       purpose: purposeLabel,
+      picoVariantLabel: selectedVariant.label,
+      picoVariantInstruction: selectedVariant.instruction,
     });
+  }
+
+  function generatePicoBrainstormPrompt() {
+    const prompt = buildPicoBrainstormPromptForVariant(picoVariant);
+    if (!prompt) return;
     setPicoBrainstormPrompt(prompt);
+  }
+
+  function handlePicoVariantChange(variant: PicoVariantKey) {
+    setPicoVariant(variant);
+    if (picoBrainstormPrompt) {
+      const prompt = buildPicoBrainstormPromptForVariant(variant);
+      if (prompt) setPicoBrainstormPrompt(prompt);
+    }
   }
 
   function autofillPicoFromAi() {
@@ -232,6 +333,8 @@ export function EbmTab({ settings }: Props) {
     setRawQuestion("");
     setSpecialty("");
     setPurpose("treatment");
+    setPicoVariant("A");
+    setSearchVariant("A");
     setPicoP("");
     setPicoI("");
     setPicoC("");
@@ -262,6 +365,9 @@ export function EbmTab({ settings }: Props) {
           このアプリは <strong>EBM Step 2（情報検索）</strong>に特化したフローです。
           批判的吟味（Step 3）・推奨判断・治療方針決定は<strong>行いません</strong>。
           目的は、次のEBM Step 3に渡せる「文献候補リスト」を、AIとPubMedの往復で作ることです。
+        </p>
+        <p className="ai-format-warning" role="alert">
+          高モデルで回答すると、複数の回答が得られ、自動抽出ができない場合がありますので、手動で入力してください。
         </p>
         <div className="ebm-design-note">
           <strong>本アプリの検索方針：</strong>
@@ -329,15 +435,29 @@ export function EbmTab({ settings }: Props) {
             </strong>
           </summary>
           <p className="hint">
-            原質問・診療科・検索目的だけを使って、AIにPICO案を3パターン考えてもらうプロンプトを生成します。
+            原質問・診療科・検索目的だけを使って、選択した種類のPICO案を一つだけ考えてもらうプロンプトを生成します。
             AI回答を貼り付けて「PICOを自動入力」を押すと、下のP/I/C/Oフィールドに自動でセットされます。
           </p>
-          <button
-            className="btn btn-secondary"
-            onClick={generatePicoBrainstormPrompt}
-          >
-            PICO案ブレストプロンプトを生成
-          </button>
+          <div className="prompt-option-row">
+            <button
+              className="btn btn-secondary"
+              onClick={generatePicoBrainstormPrompt}
+            >
+              PICO案ブレストプロンプトを生成
+            </button>
+            <div className="prompt-option-buttons" aria-label="作成するPICO案">
+              {picoVariantOptions.map((opt) => (
+                <button
+                  key={opt.key}
+                  type="button"
+                  className={`option-chip ${picoVariant === opt.key ? "active" : ""}`}
+                  onClick={() => handlePicoVariantChange(opt.key)}
+                >
+                  {opt.label}
+                </button>
+              ))}
+            </div>
+          </div>
           {picoBrainstormPrompt && (
             <>
               <PromptDisplay
@@ -412,39 +532,16 @@ export function EbmTab({ settings }: Props) {
 
         <h4>PICO（必須）</h4>
         <div className="form-group">
-          <label>P（対象患者・状況）</label>
+          <label>P/I/C/O（1行ずつ、P → I → C → O の順）</label>
           <textarea
-            rows={2}
-            value={picoP}
-            onChange={(e) => setPicoP(e.target.value)}
-            placeholder="例：80歳代の女性、HFrEF、eGFR 45、糖尿病あり、外来"
-          />
-        </div>
-        <div className="form-group">
-          <label>I（介入・曝露）</label>
-          <textarea
-            rows={2}
-            value={picoI}
-            onChange={(e) => setPicoI(e.target.value)}
-            placeholder="例：SGLT2阻害薬（ダパグリフロジン10mg/日）"
-          />
-        </div>
-        <div className="form-group">
-          <label>C（比較）</label>
-          <textarea
-            rows={2}
-            value={picoC}
-            onChange={(e) => setPicoC(e.target.value)}
-            placeholder="例：標準治療（ACE-I/ARB/β遮断薬）のみ"
-          />
-        </div>
-        <div className="form-group">
-          <label>O（アウトカム）</label>
-          <textarea
-            rows={2}
-            value={picoO}
-            onChange={(e) => setPicoO(e.target.value)}
-            placeholder="例：心不全入院、全死亡、QOL"
+            rows={5}
+            value={picoText}
+            onChange={(e) => setPicoFromText(e.target.value)}
+            placeholder={`例：
+80歳代の女性、HFrEF、eGFR 45、糖尿病あり、外来
+SGLT2阻害薬（ダパグリフロジン10mg/日）
+標準治療（ACE-I/ARB/β遮断薬）のみ
+心不全入院、全死亡、QOL`}
           />
         </div>
 
@@ -461,9 +558,9 @@ export function EbmTab({ settings }: Props) {
 
         {showPicoRefinement && (
           <div className="pico-refinement-box">
-            <h4>⚠ PICO適合度のチェック</h4>
+            <h4>⚠ PICOに加えて、患者情報で必要なことを学ぼう</h4>
             <p>
-              入力された疑問は、PubMed検索に進む前に以下の要素を補強することを推奨します：
+              現在のPICOをより良くするために、追加で確認したい患者情報・検査値・問診内容を整理します：
             </p>
             <ul>
               {picoEval.missing.map((m) => (
@@ -474,8 +571,8 @@ export function EbmTab({ settings }: Props) {
               )}
             </ul>
             <p className="hint">
-              下の「PICO洗練プロンプトを生成」を押し、得たプロンプトをAIに投げると、PICOを補った洗練疑問文（3パターン）が得られます。
-              気に入った洗練版を上の「原質問」欄にコピー上書きして、再度「初回プロンプトを生成」に進んでください。
+              下の「学習プロンプトを生成」を押し、得たプロンプトをAIに投げると、現在のPICOをEBM的に見直す観点と、
+              追加で患者から聞くべきこと・確認すべき検査値が得られます。
               なお、現在の疑問でも問題ないと判断した場合は「このまま進める」で警告を消せます。
             </p>
 
@@ -484,7 +581,7 @@ export function EbmTab({ settings }: Props) {
                 className="btn btn-primary"
                 onClick={generatePicoRefinementPrompt}
               >
-                PICO洗練プロンプトを生成
+                学習プロンプトを生成
               </button>
               <button
                 className="btn btn-secondary"
@@ -498,21 +595,20 @@ export function EbmTab({ settings }: Props) {
               <>
                 <PromptDisplay
                   prompt={picoRefinementPrompt}
-                  title="PICO洗練プロンプト"
+                  title="PICOと患者情報の学習プロンプト"
                 />
 
                 <h5 style={{ marginTop: 12 }}>
-                  AIの洗練回答を貼り付け（任意・参照用）
+                  AIの回答を貼り付け（任意・参照用）
                 </h5>
                 <p className="hint">
-                  AIから返ってきた回答をここに貼り付けると、3パターンの洗練疑問文を見ながら検討できます。
-                  気に入ったものを<strong>上の「原質問」欄にコピー上書き</strong>してから「初回プロンプトを生成」を押してください。
+                  AIから返ってきた回答をここに貼り付けると、現在のPICOに何を足して考えるべきかを見ながら検討できます。
                 </p>
                 <textarea
                   value={picoRefinedAiResponse}
                   onChange={(e) => setPicoRefinedAiResponse(e.target.value)}
                   rows={10}
-                  placeholder="AIから返ってきたPICO洗練回答全体をここに貼り付け..."
+                  placeholder="AIから返ってきた学習回答全体をここに貼り付け..."
                   style={{ width: "100%" }}
                 />
               </>
@@ -520,15 +616,41 @@ export function EbmTab({ settings }: Props) {
           </div>
         )}
 
-        <button className="btn btn-primary" onClick={generateInitialPrompt}>
-          初回プロンプトを生成（PICO + 検索語 + 検索式案）
-        </button>
+        <div className="prompt-option-row">
+          <button className="btn btn-primary" onClick={generateInitialPrompt}>
+            初回プロンプトを生成（PICO + 検索語 + 検索式案）
+          </button>
+          <div className="prompt-option-buttons" aria-label="作成する検索案">
+            {searchVariantOptions.map((opt) => (
+              <button
+                key={opt.key}
+                type="button"
+                className={`option-chip ${searchVariant === opt.key ? "active" : ""}`}
+                onClick={() => handleSearchVariantChange(opt.key)}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+        </div>
       </section>
 
       {/* Step 2: AI initial prompt */}
       {initialPrompt && (
         <section className="workflow-section">
           <h2>Step 2: AI用プロンプト</h2>
+          <div className="prompt-option-buttons prompt-option-buttons-inline" aria-label="作成する検索案">
+            {searchVariantOptions.map((opt) => (
+              <button
+                key={opt.key}
+                type="button"
+                className={`option-chip ${searchVariant === opt.key ? "active" : ""}`}
+                onClick={() => handleSearchVariantChange(opt.key)}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
           <p className="hint">
             このプロンプトをコピーしてChatGPT / Claude /
             Geminiなどに貼り付けてください。

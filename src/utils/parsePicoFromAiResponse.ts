@@ -15,12 +15,16 @@ export interface ParsePicoResult {
 }
 
 export function parsePicoFromAiResponse(text: string): ParsePicoResult {
-  if (!text || !text.trim()) {
+  const normalized = text
+    .normalize("NFKC")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "");
+
+  if (!normalized || !normalized.trim()) {
     return { ok: false, reason: "AI回答が空です" };
   }
 
-  const blockMatch = text.match(
-    /===\s*PICO_START\s*===([\s\S]*?)===\s*PICO_END\s*===/
+  const blockMatch = normalized.match(
+    /=+\s*PICO[\s_-]*START\s*=+([\s\S]*?)=+\s*PICO[\s_-]*END\s*=+/i
   );
   if (!blockMatch) {
     return {
@@ -32,16 +36,32 @@ export function parsePicoFromAiResponse(text: string): ParsePicoResult {
 
   const block = blockMatch[1];
   const grab = (label: string): string => {
-    // 行頭から「P:」「I:」「C:」「O:」を探す。括弧書きや全角コロンも許容。
-    const re = new RegExp(`^\\s*${label}\\s*[:：]\\s*(.+?)\\s*$`, "im");
+    // 「P:」「P（対象）:」「| P | 内容 |」など、高モデルの揺れを広く許容する。
+    const tableRe = new RegExp(
+      `^\\s*\\|\\s*${label}(?:\\s*[（(][^|]*?[）)])?\\s*\\|\\s*([^|]+?)\\s*(?:\\|.*)?$`,
+      "im"
+    );
+    const tableMatch = block.match(tableRe);
+    if (tableMatch) {
+      return cleanValue(tableMatch[1]);
+    }
+
+    const re = new RegExp(
+      `^\\s*${label}(?:\\s*[（(].*?[）)])?\\s*[:：\\-]\\s*(.+?)\\s*$`,
+      "im"
+    );
     const m = block.match(re);
     if (!m) return "";
-    let v = m[1].trim();
+    return cleanValue(m[1]);
+  };
+
+  function cleanValue(value: string): string {
+    let v = value.trim();
     // [Patient/Problem をここに記入] 等のテンプレ残置を空扱い
     if (/^\[.*をここに記入\]$/.test(v)) v = "";
     if (/^\[.*\]$/.test(v) && /記入|here|入力/i.test(v)) v = "";
     return v;
-  };
+  }
 
   const pico: ParsedPico = {
     p: grab("P"),

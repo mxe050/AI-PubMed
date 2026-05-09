@@ -37,6 +37,12 @@ export function QuickEvidenceTab(_props: Props) {
     }, 80);
   }
 
+  function handleClear() {
+    if (!confirm("入力内容と生成プロンプトをすべてクリアしますか？")) return;
+    setQuestionText("");
+    setGeneratedPrompt("");
+  }
+
   return (
     <div className="strategy-workflow quick-evidence-tab">
       <header className="strategy-header">
@@ -105,9 +111,14 @@ export function QuickEvidenceTab(_props: Props) {
             />
           </div>
         </div>
-        <button className="btn btn-primary" onClick={handleGenerate}>
-          プロンプトを生成
-        </button>
+        <div className="button-group">
+          <button className="btn btn-primary" onClick={handleGenerate}>
+            プロンプトを生成
+          </button>
+          <button className="btn btn-secondary" onClick={handleClear}>
+            🗑 すべてクリア
+          </button>
+        </div>
       </section>
 
       {generatedPrompt && (
