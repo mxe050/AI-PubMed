@@ -29,6 +29,7 @@ import { PubMedResultTable } from "./PubMedResultTable";
 
 interface Props {
   settings: AppSettings;
+  onPubMedFallbackToAi: (payload: { question: string; pico: string }) => void;
 }
 
 const purposeOptions = [
@@ -94,7 +95,7 @@ const searchVariantOptions: {
   },
 ];
 
-export function EbmTab({ settings }: Props) {
+export function EbmTab({ settings, onPubMedFallbackToAi }: Props) {
   const [rawQuestion, setRawQuestion] = useState("");
   const [specialty, setSpecialty] = useState("");
   const [purpose, setPurpose] = useState("treatment");
@@ -327,6 +328,17 @@ export function EbmTab({ settings }: Props) {
       pico,
       searchString: effectiveSearchString || searchString,
       warnings: parsed.warnings,
+    });
+  }
+
+  function handlePubMedFallbackToAi() {
+    if (!rawQuestion.trim() && !pico.trim()) {
+      alert("先に原質問、またはPICOを入力してください。");
+      return;
+    }
+    onPubMedFallbackToAi({
+      question: rawQuestion.trim(),
+      pico,
     });
   }
 
@@ -635,6 +647,19 @@ SGLT2阻害薬（ダパグリフロジン10mg/日）
               </button>
             ))}
           </div>
+        </div>
+        <div className="pubmed-fallback-box">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handlePubMedFallbackToAi}
+          >
+            PubMed断念AIに頼る
+          </button>
+          <p className="hint">
+            どうしてもPubMed検索でヒットしない場合は、AIに頼りますが、必ずファクトチェックをしてください。
+            また、PICOに問題があってヒットしない場合、そもそも学術論文がない場合もあります。
+          </p>
         </div>
         <div className="form-group search-focus-field">
           <label>

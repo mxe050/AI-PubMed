@@ -44,10 +44,30 @@ const tabs: { key: TabType; label: string; kind: TabKind }[] = [
 
 type TopicSearchMode = "normal" | "counter";
 
+interface TopicPrefill {
+  key: number;
+  values: Record<string, string>;
+}
+
 export default function App() {
   const [activeTab, setActiveTab] = useState<TabType>("how_to_use");
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
   const [topicMode, setTopicMode] = useState<TopicSearchMode>("normal");
+  const [topicPrefill, setTopicPrefill] = useState<TopicPrefill | null>(null);
+
+  function sendEbmToTopicSearch(payload: { question: string; pico: string }) {
+    const parts = [
+      payload.question && `【現質問】\n${payload.question}`,
+      payload.pico && `【PICO】\n${payload.pico}`,
+      "PubMed検索で十分にヒットしなかったため、PubMedだけでは拾いにくい本文内証拠や関連論点も含めて探索してください。候補論文は必ず実在確認・PMID確認を行い、未確認候補と確認済み候補を分けてください。",
+    ].filter(Boolean);
+    setTopicMode("normal");
+    setTopicPrefill({
+      key: Date.now(),
+      values: { question: parts.join("\n\n") },
+    });
+    setActiveTab("topic_exploration");
+  }
 
   return (
     <div className="app">
@@ -242,6 +262,8 @@ export default function App() {
                 )
               }
               mode="topic-synthesis"
+              prefillValues={topicPrefill?.values}
+              prefillKey={topicPrefill?.key}
             />
           </>
         </div>
@@ -251,7 +273,10 @@ export default function App() {
         </div>
 
         <div className="tab-panel" hidden={activeTab !== "ebm_search"}>
-          <EbmTab settings={settings} />
+          <EbmTab
+            settings={settings}
+            onPubMedFallbackToAi={sendEbmToTopicSearch}
+          />
         </div>
 
         <div className="tab-panel" hidden={activeTab !== "systematic_review"}>

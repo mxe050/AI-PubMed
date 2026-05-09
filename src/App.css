@@ -288,6 +288,18 @@ body {
   line-height: 1.5;
 }
 
+.pubmed-fallback-box {
+  margin: 8px 0 12px;
+  padding: 10px 12px;
+  background: var(--color-warning-bg);
+  border: 1px solid #fde68a;
+  border-radius: 6px;
+}
+
+.pubmed-fallback-box .hint {
+  margin: 8px 0 0;
+}
+
 .strategy-header {
   text-align: center;
   padding: 16px 0;
