@@ -29,7 +29,11 @@ import { PubMedResultTable } from "./PubMedResultTable";
 
 interface Props {
   settings: AppSettings;
-  onPubMedFallbackToAi: (payload: { question: string; pico: string }) => void;
+  onPubMedFallbackToAi: (payload: {
+    question: string;
+    pico: string;
+    focus: string;
+  }) => void;
 }
 
 const purposeOptions = [
@@ -332,13 +336,14 @@ export function EbmTab({ settings, onPubMedFallbackToAi }: Props) {
   }
 
   function handlePubMedFallbackToAi() {
-    if (!rawQuestion.trim() && !pico.trim()) {
-      alert("先に原質問、またはPICOを入力してください。");
+    if (!rawQuestion.trim() && !pico.trim() && !searchFocus.trim()) {
+      alert("先に原質問、PICO、または強調したいポイントを入力してください。");
       return;
     }
     onPubMedFallbackToAi({
       question: rawQuestion.trim(),
       pico,
+      focus: searchFocus.trim(),
     });
   }
 
@@ -648,19 +653,6 @@ SGLT2阻害薬（ダパグリフロジン10mg/日）
             ))}
           </div>
         </div>
-        <div className="pubmed-fallback-box">
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={handlePubMedFallbackToAi}
-          >
-            PubMed断念AIに頼る
-          </button>
-          <p className="hint">
-            どうしてもPubMed検索でヒットしない場合は、AIに頼りますが、必ずファクトチェックをしてください。
-            また、PICOに問題があってヒットしない場合、そもそも学術論文がない場合もあります。
-          </p>
-        </div>
         <div className="form-group search-focus-field">
           <label>
             強調したいポイント
@@ -674,6 +666,19 @@ SGLT2阻害薬（ダパグリフロジン10mg/日）
             onChange={(e) => setSearchFocus(e.target.value)}
             placeholder="例：心不全入院よりもQOL改善を重視したい／外来高齢者に近い集団を優先したい／薬剤名ではなくクラス全体で拾いたい"
           />
+        </div>
+        <div className="pubmed-fallback-box">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={handlePubMedFallbackToAi}
+          >
+            PubMed断念AIに頼る
+          </button>
+          <p className="hint">
+            どうしてもPubMed検索でヒットしない場合は、AIに頼りますが、必ずファクトチェックをしてください。
+            また、PICOに問題があってヒットしない場合、そもそも学術論文がない場合もあります。
+          </p>
         </div>
       </section>
 
