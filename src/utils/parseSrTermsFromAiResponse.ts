@@ -12,6 +12,8 @@
 //   ...
 //   ===TERMS_END===
 
+import { extractSearchString } from "./extractSearchString";
+
 export type SrPicoElement = "P" | "I" | "C" | "O";
 
 export type SrFieldTag =
@@ -92,6 +94,49 @@ function parseTermLine(line: string): SrTerm | null {
   };
 }
 
+function createTerm(
+  term: string,
+  fieldTag: SrFieldTag,
+  reason: string,
+  japanese = ""
+): SrTerm {
+  return {
+    id:
+      typeof crypto !== "undefined" && crypto.randomUUID
+        ? crypto.randomUUID()
+        : Math.random().toString(36).slice(2),
+    term,
+    japanese,
+    fieldTag,
+    reason,
+    enabled: true,
+  };
+}
+
+function termsFromSearchString(text: string): ParseSrTermsResult | null {
+  const searchString = extractSearchString(text);
+  if (!searchString) return null;
+
+  return {
+    ok: true,
+    terms: {
+      P: [
+        createTerm(
+          searchString,
+          "[tiab]",
+          "AI回答のPubMed検索式をそのまま抽出"
+        ),
+      ],
+      I: [],
+      C: [],
+      O: [],
+    },
+    warnings: [
+      "===TERMS_START=== ブロックがないため、AI回答内のPubMed検索式全体をStep 4へ反映しました",
+    ],
+  };
+}
+
 export function parseSrTermsFromAiResponse(
   text: string
 ): ParseSrTermsResult {
@@ -108,6 +153,9 @@ export function parseSrTermsFromAiResponse(
     /===\s*TERMS_START\s*===([\s\S]*?)===\s*TERMS_END\s*===/
   );
   if (!blockMatch) {
+    const fromSearchString = termsFromSearchString(text);
+    if (fromSearchString) return fromSearchString;
+
     return {
       ok: false,
       warnings,
