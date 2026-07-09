@@ -44,6 +44,13 @@ interface Props {
 }
 
 const EMPTY_TABLE: SrTermsByElement = { P: [], I: [], C: [], O: [] };
+const SR_ANIMAL_EXCLUSION = "NOT (animals [mh] NOT humans [mh])";
+
+function applySrAnimalExclusion(searchString: string): string {
+  const trimmed = searchString.trim();
+  if (!trimmed) return "";
+  return `(${trimmed}) ${SR_ANIMAL_EXCLUSION}`;
+}
 
 export function SrTab({ settings, onNavigateToEbm }: Props) {
   const [picoP, setPicoP] = useState("");
@@ -88,7 +95,8 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
   const effectiveSearchString = useMemo(() => {
     if (!baseSearchString) return "";
     const withDesign = applyStudyDesignFilter(baseSearchString, designFilter);
-    return applySrDateRange(withDesign, { fromDate, toDate });
+    const withDate = applySrDateRange(withDesign, { fromDate, toDate });
+    return applySrAnimalExclusion(withDate);
   }, [baseSearchString, designFilter, fromDate, toDate]);
 
   const perElement = useMemo(
@@ -410,6 +418,14 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
           <p className="hint">
             出典：Cochrane Handbook for Systematic Reviews of Interventions, Version 6.5 (updated August 2024)
           </p>
+          <a
+            className="btn btn-secondary btn-xs sr-mesh-link-btn"
+            href="https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-04-technical-supplement-searching-and-selecting-studies"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Cochrane Handbookの該当ページを開く
+          </a>
           <div className="ebm-filter-buttons" role="radiogroup" aria-label="研究デザイン">
             {studyDesignFilters.map((f) => (
               <button
