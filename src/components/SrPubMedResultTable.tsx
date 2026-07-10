@@ -14,15 +14,24 @@ export function SrPubMedResultTable({ result }: Props) {
   return (
     <div className="pubmed-result-table sr-pubmed-result-table">
       <div className="result-summary">
+        {result.retrievalSource && (
+          <p><strong>検索元：</strong> {result.retrievalSource}</p>
+        )}
         <p><strong>検索結果総数：</strong> {result.count.toLocaleString()} 件</p>
         <p>
           <strong>プレビュー：</strong> {result.articles.length} 件
           （Best Match 上位。全件取得ではありません）
         </p>
-        {result.warnings && result.warnings.length > 0 && (
+        {result.warningList && result.warningList.length > 0 && (
           <div className="sr-api-warning" role="alert">
             <strong>PubMed からの検索警告</strong>
-            <ul>{result.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>
+            <ul>{result.warningList.map((warning) => <li key={warning}>{warning}</li>)}</ul>
+          </div>
+        )}
+        {result.errorList && result.errorList.length > 0 && (
+          <div className="error-box" role="alert">
+            <strong>PubMed からの検索エラー</strong>
+            <ul>{result.errorList.map((error) => <li key={error}>{error}</li>)}</ul>
           </div>
         )}
         {result.knownPmidBenchmark && (
@@ -67,7 +76,9 @@ export function SrPubMedResultTable({ result }: Props) {
                 </ul>
               </>
             ) : (
-              <p>入力した既知重要論文をすべて回収できています。</p>
+              <p>
+                入力した既知重要論文をすべて回収できています。ただし、既知集合での回収は完全な網羅性を保証しません。
+              </p>
             )}
             {result.knownPmidBenchmark.warnings &&
               result.knownPmidBenchmark.warnings.length > 0 && (
@@ -78,12 +89,26 @@ export function SrPubMedResultTable({ result }: Props) {
               )}
           </div>
         )}
-        {result.queryTranslation && (
-          <details>
-            <summary>PubMed query translation</summary>
-            <pre className="query-translation">{result.queryTranslation}</pre>
-          </details>
-        )}
+        <details>
+          <summary>PubMed Query Translation・監査情報</summary>
+          <p><strong>入力した検索式</strong></p>
+          <pre className="query-translation">{result.query}</pre>
+          <p><strong>PubMedが実際に解釈した検索式</strong></p>
+          <pre className="query-translation">{result.queryTranslation || "確認不能"}</pre>
+          <p className="hint">
+            {result.queryTranslation && result.queryTranslation !== result.query
+              ? "変換前後に差があります。Automatic Term Mapping、引用符、フィールドタグの作用を確認してください。"
+              : "変換差分は検出されませんでした（またはQuery Translationを取得できませんでした）。"}
+          </p>
+          <p><strong>実行日時：</strong> {result.fetchedAt}</p>
+          <p><strong>データベース：</strong> PubMed</p>
+          {result.queryParameters && (
+            <pre className="query-translation">
+              {JSON.stringify(result.queryParameters, null, 2)}
+            </pre>
+          )}
+          <p className="hint">APIキーは監査表示・CSV・JSONへ含めません。</p>
+        </details>
         <p className="api-mode-badge">
           API mode: {result.apiMode === "user_api_key" ? "APIキーあり" : "APIキーなし"}
         </p>
@@ -137,6 +162,7 @@ function ArticleRow({
             {article.pmid}
           </a>
           {!article.verified && <span className="badge-unverified">未確認</span>}
+          {article.verified && <span className="filter-evidence-badge">書誌確認済み</span>}
         </td>
         <td>{authorYear}</td>
         <td className="title-cell">
@@ -160,6 +186,16 @@ function ArticleRow({
               <div className="abstract"><strong>抄録：</strong><p>{article.abstractText}</p></div>
             ) : (
               <p className="hint">抄録は取得できませんでした。</p>
+            )}
+            <p className="hint">
+              PubMedによる書誌確認は、論文内容・主張・推奨内容の正しさを保証しません。抄録のみでは本文確認が必要です。
+            </p>
+            {article.doi && <p><strong>DOI：</strong> {article.doi}</p>}
+            {article.pmcid && (
+              <p><a href={`https://pmc.ncbi.nlm.nih.gov/articles/${article.pmcid}/`} target="_blank" rel="noreferrer">PMC全文を開く</a></p>
+            )}
+            {article.corporateAuthors && article.corporateAuthors.length > 0 && (
+              <div><strong>Corporate author：</strong><p>{article.corporateAuthors.join('; ')}</p></div>
             )}
             {article.meshTerms && article.meshTerms.length > 0 && (
               <div className="mesh-full"><strong>MeSH Terms：</strong><p>{article.meshTerms.join("; ")}</p></div>

@@ -5,7 +5,7 @@
 //   Step 1: PICO入力（既存 srFields の P/I/C/O を個別state化）
 //   Step 2: 類語提案プロンプト表示
 //   Step 3: AI回答貼り付け → 検索語テーブルに反映
-//   Step 4: インタラクティブ検索語テーブル + 研究デザイン/日付フィルター
+//   Step 4: インタラクティブ検索語テーブル + 研究デザインフィルター
 //           + PubMed検索 + 結果テーブル + 構造化検索式
 //           + AI分類プロンプトコピー + 分類結果表示（新タブ）
 
@@ -27,7 +27,6 @@ import {
   appendAnimalOnlyExclusion,
 } from "../utils/cochraneFilters";
 import type { StudyDesignFilterKey } from "../utils/cochraneFilters";
-import { applySrDateRange } from "../utils/srDateRangeFilter";
 import { buildEbmClassificationCopyText } from "../utils/buildEbmClassificationCopyText";
 import { parseClassificationResponse } from "../utils/parseClassificationResponse";
 import { renderClassificationNewTab } from "../utils/renderClassificationNewTab";
@@ -38,6 +37,7 @@ import { PubMedSearchBox } from "./PubMedSearchBox";
 import { SrTermTable } from "./SrTermTable";
 import { SrPubMedResultTable } from "./SrPubMedResultTable";
 import { SrStructuredQueryAccordion } from "./SrStructuredQueryAccordion";
+import { CpgSrSearchPanel } from "./CpgSrSearchPanel";
 
 interface Props {
   settings: AppSettings;
@@ -65,8 +65,6 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
 
   // Step 4 filters
   const [designKey, setDesignKey] = useState<StudyDesignFilterKey>("none");
-  const [fromDate, setFromDate] = useState("");
-  const [toDate, setToDate] = useState("");
 
   // PubMed result + classification
   const [pubmedResult, setPubmedResult] = useState<PubMedSearchResult | null>(
@@ -90,16 +88,11 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
     [termTable]
   );
   const designFilter = studyDesignFilters.find((f) => f.key === designKey)!;
-  const dateRangeError =
-    fromDate && toDate && fromDate > toDate
-      ? "開始日は終了日以前の日付を指定してください。"
-      : "";
   const effectiveSearchString = useMemo(() => {
     if (!baseSearchString) return "";
     const withDesign = applyStudyDesignFilter(baseSearchString, designFilter);
-    const withDate = applySrDateRange(withDesign, { fromDate, toDate });
-    return appendAnimalOnlyExclusion(withDate);
-  }, [baseSearchString, designFilter, fromDate, toDate]);
+    return appendAnimalOnlyExclusion(withDesign);
+  }, [baseSearchString, designFilter]);
 
   const currentBenchmarkKey = parsedKnownPmids.pmids.join(",");
   const resultBenchmarkKey =
@@ -152,8 +145,6 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
     setParseMsg(null);
     setTermTable({ P: [], I: [], C: [], O: [] });
     setDesignKey("none");
-    setFromDate("");
-    setToDate("");
     setPubmedResult(null);
     setClassificationCopyMsg("");
     setClassificationAiResponse("");
@@ -508,44 +499,12 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
           </div>
         </div>
 
-        <div className="ebm-filter-block">
-          <h4>出版年月日フィルター（任意・片方だけでも可）</h4>
-          <div className="sr-date-range">
-            <label htmlFor="sr-from-date">
-              開始日：
-              <input
-                id="sr-from-date"
-                type="date"
-                value={fromDate}
-                onChange={(e) => setFromDate(e.target.value)}
-              />
-            </label>
-            <label htmlFor="sr-to-date">
-              終了日：
-              <input
-                id="sr-to-date"
-                type="date"
-                value={toDate}
-                onChange={(e) => setToDate(e.target.value)}
-              />
-            </label>
-            {(fromDate || toDate) && (
-              <button
-                type="button"
-                className="btn btn-secondary btn-xs"
-                onClick={() => {
-                  setFromDate("");
-                  setToDate("");
-                }}
-              >
-                クリア
-              </button>
-            )}
-          </div>
-          {dateRangeError && (
-            <p className="date-range-error" role="alert">{dateRangeError}</p>
-          )}
+        <div className="safety-note" role="note">
+          <strong>CPG/SR専用検索では日付制限を使用しません。</strong>
+          旧版・原版・focused updateを含む全年代を検索し、版と有効性は取得後に判定します。
         </div>
+
+        <CpgSrSearchPanel settings={settings} topicQuery={baseSearchString} />
 
         {/* 検索式（自動生成・読み取り専用） */}
         <div className="form-group">
@@ -591,7 +550,7 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
         <div className="button-group">
           <PubMedSearchBox
             settings={settings}
-            searchString={dateRangeError ? "" : effectiveSearchString}
+            searchString={effectiveSearchString}
             onResult={(r) => setPubmedResult(r)}
             retmax={100}
             buttonLabel="上位100件をプレビュー"
@@ -601,7 +560,7 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
             type="button"
             className="btn btn-secondary"
             onClick={copySearchString}
-            disabled={!effectiveSearchString || Boolean(dateRangeError)}
+            disabled={!effectiveSearchString}
           >
             {searchCopyMsg || "検索式をコピー"}
           </button>
@@ -612,7 +571,7 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
               if (!effectiveSearchString) return;
               void openPubMedWithQuery(effectiveSearchString, "advanced");
             }}
-            disabled={!effectiveSearchString || Boolean(dateRangeError)}
+            disabled={!effectiveSearchString}
           >
             PubMed Advanced Search で開く（外部）
           </button>
@@ -623,7 +582,7 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
               if (!effectiveSearchString) return;
               void openPubMedWithQuery(effectiveSearchString, "regular");
             }}
-            disabled={!effectiveSearchString || Boolean(dateRangeError)}
+            disabled={!effectiveSearchString}
           >
             PubMed 検索結果で開く（外部）
           </button>

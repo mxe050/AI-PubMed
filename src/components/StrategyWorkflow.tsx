@@ -8,7 +8,7 @@
 // それ以降のステップは無し（topic は AI による論文探索結果をユーザーが
 // ファクトチェックタブで検証する設計）。
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import type { AppSettings } from "../types";
 import { buildPrompt } from "../utils/buildPrompt";
 import { FormFields } from "./FormFields";
@@ -45,16 +45,11 @@ export function StrategyWorkflow({
   description,
   title,
   prefillValues,
-  prefillKey,
 }: Props) {
-  const [values, setValues] = useState<Record<string, string>>({});
+  const [values, setValues] = useState<Record<string, string>>(
+    () => prefillValues ?? {}
+  );
   const [generatedPrompt, setGeneratedPrompt] = useState("");
-
-  useEffect(() => {
-    if (!prefillValues) return;
-    setValues(prefillValues);
-    setGeneratedPrompt("");
-  }, [prefillKey, prefillValues]);
 
   function handleFieldChange(key: string, value: string) {
     setValues((prev) => ({ ...prev, [key]: value }));

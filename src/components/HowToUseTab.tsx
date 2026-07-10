@@ -13,7 +13,7 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
         <h2>このアプリの使い方</h2>
         <p className="how-to-use-imperative">
           医療情報は、「ほぼハルシネーションがない」ではダメで、<br />
-          「ハルシネーションゼロ」でなければならない。
+          ハルシネーションを限りなくゼロに近づける必要があります。ただし、本アプリは正確性を保証せず、PubMedでの書誌確認と人間による原典確認を支援します。
         </p>
         <p className="how-to-use-imperative">
           PubMedに記載してあるから、信頼できる情報とは言えないことを理解し、<br />
@@ -29,6 +29,20 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
           <span>🎬 AI・LLMとEBM実践・システマテックレビュー作成支援・医学情報系について</span>
         </a>
       </header>
+
+      <section className="how-to-use-section">
+        <h3>30秒で分かるCPG / SR検索</h3>
+        <ol>
+          <li>システマティックレビュー画面でTOPIC_QUERYを作成します。</li>
+          <li>CPGとSRの検索式を別々に構文検査します。</li>
+          <li>CPG、SRを独立してPubMed APIで実行し、Query Translationと警告を確認します。</li>
+          <li>既知PMIDがあればCPG集合とSR集合へ分けて回収を確認します。</li>
+          <li>CPGは全年代の候補を取得後、発行機関の版・置換・有効性情報を人間が確認します。</li>
+        </ol>
+        <div className="safety-note" role="note">
+          CPG/SR検索に出版年制限はありません。consensus statement等はCPG_FILTERへ含めません。focused updateは基礎ガイドラインを自動的に全面置換せず、状態不明は <code>needs_manual_review</code> とします。
+        </div>
+      </section>
 
       <section className="how-to-use-section">
         <h3>このアプリの目的</h3>

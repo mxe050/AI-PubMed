@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape -- legacy extraction regexes retain reviewed literal forms */
 /**
  * Pre-processes AI-generated text so downstream citation extraction
  * (extractCitationCandidates / extractPmidsCategorized / extractCitations)

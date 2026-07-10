@@ -134,7 +134,7 @@ export default function App() {
           本アプリの結果を盲信せず、最終判断は必ず人間が行ってください。
           <br />
           <strong>
-            ハルシネーションは、ほほ無いではダメで、ゼロでなければなりません。
+            医療情報では、ハルシネーションを限りなくゼロに近づける必要があります。本アプリは未検証情報を明示し、PubMedによる書誌確認と、人間による原典確認を支援します。正確性を保証するものではありません。
             低モデルでは、ファクトチェックでハルシネーションが増える場合があります。
           </strong>
         </p>
@@ -210,7 +210,7 @@ export default function App() {
             )}
 
             <StrategyWorkflow
-              key="topic-shared"
+              key={`topic-shared-${topicPrefill?.key ?? 0}`}
               title={
                 topicMode === "counter"
                   ? "質問ズレ/PubMed検索漏れ（反証パラレル検索）"

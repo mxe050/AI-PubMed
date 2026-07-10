@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape -- legacy multilingual regexes retain reviewed literal forms */
 /**
  * Pulls "important" keywords out of an AI-generated claim so we can highlight
  * them inside the matching PubMed abstract. Pure heuristic — no AI calls.

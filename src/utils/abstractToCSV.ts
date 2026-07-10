@@ -33,7 +33,7 @@ function parseSingleRecord(text: string): PubMedRecord | null {
   const citationMatch = lines[0].match(/^\d+\.\s+(.+)/);
   if (!citationMatch) return null;
 
-  let citationLines = [citationMatch[1]];
+  const citationLines = [citationMatch[1]];
   let i = 1;
   while (i < lines.length && lines[i].trim() && !isBlankLine(lines[i])) {
     citationLines.push(lines[i].trim());
@@ -43,7 +43,7 @@ function parseSingleRecord(text: string): PubMedRecord | null {
 
   while (i < lines.length && isBlankLine(lines[i])) i++;
 
-  let titleLines: string[] = [];
+  const titleLines: string[] = [];
   while (i < lines.length && lines[i].trim() && !isBlankLine(lines[i])) {
     titleLines.push(lines[i].trim());
     i++;
@@ -52,7 +52,7 @@ function parseSingleRecord(text: string): PubMedRecord | null {
 
   while (i < lines.length && isBlankLine(lines[i])) i++;
 
-  let authorLines: string[] = [];
+  const authorLines: string[] = [];
   while (i < lines.length && lines[i].trim() && !lines[i].startsWith('Author information:') && !isBlankLine(lines[i])) {
     authorLines.push(lines[i].trim());
     i++;

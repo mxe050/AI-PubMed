@@ -1,3 +1,4 @@
+/* eslint-disable no-useless-escape -- legacy citation regexes retain reviewed literal forms */
 export type CitationCandidateType =
   | "quoted_title"
   | "italic_title"

@@ -1,11 +1,13 @@
 import type { AppSettings, PubMedArticle } from "../types";
 import { buildNcbiUrl } from "../utils/buildNcbiUrl";
 import type { NcbiRateLimiter } from "../utils/ncbiRateLimiter";
+import { ncbiFetch } from "./ncbiFetch";
 
 export async function esummaryPubMed(
   pmids: string[],
   settings: AppSettings,
-  limiter: NcbiRateLimiter
+  limiter: NcbiRateLimiter,
+  signal?: AbortSignal
 ): Promise<PubMedArticle[]> {
   if (pmids.length === 0) return [];
 
@@ -19,35 +21,47 @@ export async function esummaryPubMed(
     settings
   );
 
-  return limiter.schedule(async () => {
-    const res = await fetch(url);
-
-    if (!res.ok) {
-      throw new Error(`ESummary failed: ${res.status}`);
-    }
-
-    const json = await res.json();
-    const uids: string[] = json.result?.uids ?? [];
+    const res = await ncbiFetch(url, limiter, { signal });
+    const json: unknown = await res.json();
+    if (!json || typeof json !== "object") throw new Error("ESummary returned malformed JSON");
+    const root = json as { result?: Record<string, unknown> & { uids?: unknown } };
+    const result = root.result;
+    if (!result || !Array.isArray(result.uids)) throw new Error("ESummary result is missing");
+    const uids = result.uids.filter((uid): uid is string => typeof uid === "string");
 
     return uids.map((uid) => {
-      const item = json.result[uid];
+      const item = result[uid] as Record<string, unknown> | undefined;
 
       return {
         pmid: uid,
-        pmcid: extractPmcid(item?.articleids),
-        title: item?.title,
-        journal: item?.fulljournalname || item?.source,
-        pubDate: item?.pubdate,
-        year: extractYear(item?.pubdate),
+        pmcid: extractPmcid(
+          Array.isArray(item?.articleids)
+            ? item.articleids as ArticleIdEntry[]
+            : undefined
+        ),
+        title: typeof item?.title === "string" ? item.title : undefined,
+        journal:
+          typeof item?.fulljournalname === "string"
+            ? item.fulljournalname
+            : typeof item?.source === "string" ? item.source : undefined,
+        pubDate: typeof item?.pubdate === "string" ? item.pubdate : undefined,
+        year: extractYear(typeof item?.pubdate === "string" ? item.pubdate : undefined),
         authors: Array.isArray(item?.authors)
-          ? item.authors.map((a: { name: string }) => a.name)
+          ? item.authors.flatMap((author) => {
+              if (!author || typeof author !== "object") return [];
+              const name = (author as { name?: unknown }).name;
+              return typeof name === "string" ? [name] : [];
+            })
           : [],
-        doi: extractDoi(item?.elocationid) ?? extractDoiFromArticleIds(item?.articleids),
+        doi:
+          extractDoi(typeof item?.elocationid === "string" ? item.elocationid : undefined) ??
+          extractDoiFromArticleIds(Array.isArray(item?.articleids) ? item.articleids as ArticleIdEntry[] : undefined),
+        bibliographicStatus: "confirmed",
+        contentVerificationStatus: "unverified",
         verified: true,
         source: "esummary",
       } satisfies PubMedArticle;
     });
-  });
 }
 
 function extractYear(pubDate?: string): string | undefined {

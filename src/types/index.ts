@@ -56,6 +56,16 @@ export interface PubMedArticle {
   meshTerms?: string[];
   publicationTypes?: string[];
   commentsCorrections?: CommentsCorrection[];
+  corporateAuthors?: string[];
+  retrievalSources?: Array<"CPG" | "SR">;
+  bibliographicStatus?:
+    | "confirmed"
+    | "unverified"
+    | "unverifiable";
+  contentVerificationStatus?:
+    | "abstract_may_support"
+    | "full_text_required"
+    | "unverified";
   verified: boolean;
   source: "esummary" | "efetch" | "manual";
 }
@@ -67,7 +77,11 @@ export interface PubMedSearchResult {
   count: number;
   idList: string[];
   queryTranslation?: string;
+  warningList?: string[];
+  errorList?: string[];
   warnings?: string[];
+  queryParameters?: Record<string, string>;
+  retrievalSource?: "CPG" | "SR";
   knownPmidBenchmark?: KnownPmidBenchmarkResult;
   articles: PubMedArticle[];
   fetchedAt: string;

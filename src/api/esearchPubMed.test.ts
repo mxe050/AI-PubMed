@@ -40,6 +40,21 @@ describe("esearchPubMed", () => {
     expect(init.method).toBe("POST");
     expect(new URLSearchParams(init.body as string).get("term")).toBe(longTerm);
     expect(result.idList).toEqual(["1", "2"]);
-    expect(result.warnings).toEqual(["ignored phrase"]);
+    expect(result.warningList).toEqual(["ignored phrase"]);
+    expect(result.errorList).toEqual([]);
+    expect(new URLSearchParams(init.body as string).get("usehistory")).toBe("y");
+  });
+
+  it("keeps NCBI warninglist and errorlist separate", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      esearchresult: {
+        count: "0", idlist: [],
+        warninglist: { quotedphrasesnotfound: ["missing phrase"] },
+        errorlist: { fieldnotfound: ["bad field"] },
+      },
+    }), { status: 200 })));
+    const result = await esearchPubMed("asthma", defaultSettings, immediateLimiter);
+    expect(result.warningList).toEqual(["missing phrase"]);
+    expect(result.errorList).toEqual(["bad field"]);
   });
 });

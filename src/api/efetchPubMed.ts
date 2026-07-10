@@ -6,11 +6,13 @@ import type {
 } from "../types";
 import { buildNcbiUrl } from "../utils/buildNcbiUrl";
 import type { NcbiRateLimiter } from "../utils/ncbiRateLimiter";
+import { ncbiFetch } from "./ncbiFetch";
 
 export async function efetchPubMed(
   pmids: string[],
   settings: AppSettings,
-  limiter: NcbiRateLimiter
+  limiter: NcbiRateLimiter,
+  signal?: AbortSignal
 ): Promise<PubMedArticle[]> {
   if (pmids.length === 0) return [];
 
@@ -25,21 +27,16 @@ export async function efetchPubMed(
     settings
   );
 
-  return limiter.schedule(async () => {
-    const res = await fetch(url);
-
-    if (!res.ok) {
-      throw new Error(`EFetch failed: ${res.status}`);
-    }
+    const res = await ncbiFetch(url, limiter, { signal });
 
     const xmlText = await res.text();
     return parsePubMedXml(xmlText);
-  });
 }
 
 export function parsePubMedXml(xmlText: string): PubMedArticle[] {
   const parser = new DOMParser();
   const xml = parser.parseFromString(xmlText, "application/xml");
+  if (xml.querySelector("parsererror")) throw new Error("EFetch returned malformed XML");
 
   const articles = Array.from(xml.querySelectorAll("PubmedArticle"));
 
@@ -110,6 +107,10 @@ export function parsePubMedXml(xmlText: string): PubMedArticle[] {
       node.querySelector("ArticleDate > Year")?.textContent ??
       undefined;
 
+    const corporateAuthors = Array.from(node.querySelectorAll("Author > CollectiveName"))
+      .map((element) => element.textContent?.trim())
+      .filter((value): value is string => Boolean(value));
+
     return {
       pmid,
       pmcid,
@@ -123,6 +124,9 @@ export function parsePubMedXml(xmlText: string): PubMedArticle[] {
       publicationTypes,
       commentsCorrections:
         commentsCorrections.length > 0 ? commentsCorrections : undefined,
+      corporateAuthors: corporateAuthors.length > 0 ? corporateAuthors : undefined,
+      bibliographicStatus: "confirmed",
+      contentVerificationStatus: abstractText ? "abstract_may_support" : "full_text_required",
       verified: Boolean(pmid),
       source: "efetch",
     } satisfies PubMedArticle;
