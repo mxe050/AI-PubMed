@@ -182,7 +182,10 @@ export function parseSrTermsFromAiResponse(
     }
 
     // 検索語行
-    if (/検索語|term|search/i.test(line) && line.includes(":")) {
+    if (
+      /検索語|term|search/i.test(line) &&
+      (line.includes(":") || line.includes("："))
+    ) {
       if (!current) {
         warnings.push(
           `セクション見出し前に検索語行が出現しました: "${line.slice(0, 60)}"`
@@ -191,6 +194,9 @@ export function parseSrTermsFromAiResponse(
       }
       const t = parseTermLine(line);
       if (t) {
+        // 高感度な SR 検索では P/I を中心にし、C は必要時のみ、O は原則
+        // 検索式へ入れない。語は削除せず、ユーザーが個別に有効化できる。
+        t.enabled = current === "P" || current === "I";
         terms[current].push(t);
       } else {
         unparsed++;
@@ -209,6 +215,13 @@ export function parseSrTermsFromAiResponse(
   }
   if (unparsed > 0) {
     warnings.push(`${unparsed} 件の検索語行を完全にパースできませんでした`);
+  }
+
+  const disabledByDefault = terms.C.length + terms.O.length;
+  if (disabledByDefault > 0) {
+    warnings.push(
+      `検索感度を保つため、C/O の ${disabledByDefault} 語は初期状態で検索式から除外しました。必要な語だけ Step 4 で選択してください`
+    );
   }
 
   return { ok: true, terms, warnings };

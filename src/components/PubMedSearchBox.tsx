@@ -44,11 +44,15 @@ export function PubMedSearchBox({
         const fetched = await efetchPubMed(search.idList, settings, limiter);
         detailedArticles = summaries.map((summary) => {
           const detail = fetched.find((f) => f.pmid === summary.pmid);
+          if (!detail) return summary;
           return {
+            ...detail,
             ...summary,
-            abstractText: detail?.abstractText,
-            meshTerms: detail?.meshTerms,
-            publicationTypes: detail?.publicationTypes,
+            abstractText: detail.abstractText,
+            abstractSections: detail.abstractSections,
+            meshTerms: detail.meshTerms,
+            publicationTypes: detail.publicationTypes,
+            commentsCorrections: detail.commentsCorrections,
           };
         });
       } catch {
@@ -62,6 +66,7 @@ export function PubMedSearchBox({
         count: search.count,
         idList: search.idList,
         queryTranslation: search.queryTranslation,
+        warnings: search.warnings,
         articles: detailedArticles,
         fetchedAt: new Date().toISOString(),
         apiMode: settings.ncbiApiKey ? "user_api_key" : "no_api_key",

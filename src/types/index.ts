@@ -67,6 +67,7 @@ export interface PubMedSearchResult {
   count: number;
   idList: string[];
   queryTranslation?: string;
+  warnings?: string[];
   articles: PubMedArticle[];
   fetchedAt: string;
   apiMode: "no_api_key" | "user_api_key";

@@ -1,13 +1,13 @@
-// 研究デザイン高感度フィルター（PubMed用）
+// PubMed 用の研究デザインフィルター。
 // 出典：Cochrane Handbook for Systematic Reviews of Interventions, Version 6.5
 //   (updated August 2024), Chapter 4 "Searching for and selecting studies"
-//   Section 4.4.7 "Designing search strategies", Box 4.5.a/4.5.b
+//   Section 4.4.7 "Search filters", Box 4.4.a（RCT・PubMed 形式）
 //   Editors: Higgins JPT, Thomas J, Chandler J, Cumpston M, Li T,
 //            Page MJ, Welch VA. Cochrane, 2024.
 //   Available from: https://training.cochrane.org/handbook
 //
-// 注意：以下のフィルターはプロンプトには出典情報を入れず、
-// アプリ内のコードコメントとUI上のヒントでのみ出典を明示します。
+// 注意：Cochrane の検証済みフィルターは RCT のみです。その他は
+// NLM/PubMed の公式仕様またはアプリ内で構成した補助式です。
 
 export type StudyDesignFilterKey =
   | "none"
@@ -25,81 +25,124 @@ export interface StudyDesignFilter {
   expression: string;
   /** Source citation (shown in UI, not embedded in AI prompt). */
   source: string;
+  /** Primary source URL shown in the UI. */
+  sourceUrl?: string;
+  /** Important limitations that must not be hidden in a title tooltip. */
+  caution?: string;
 }
+
+export const COCHRANE_CHAPTER_4_URL =
+  "https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-04";
+export const COCHRANE_CHAPTER_24_URL =
+  "https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-24";
+export const PUBMED_HELP_URL = "https://pubmed.ncbi.nlm.nih.gov/help/";
+export const ANIMAL_ONLY_EXCLUSION = "(animals[mh] NOT humans[mh])";
+export const COCHRANE_RCT_SENSITIVITY_MAX_EXPRESSION =
+  "(randomized controlled trial[pt] OR controlled clinical trial[pt] OR randomized[tiab] OR placebo[tiab] OR drug therapy[sh] OR randomly[tiab] OR trial[tiab] OR groups[tiab])";
 
 export const studyDesignFilters: StudyDesignFilter[] = [
   {
     key: "none",
-    label: "フィルターなし（広め検索のまま）",
-    description: "研究デザインで絞り込まない。Step 4までの検索式をそのまま使用。",
+    label: "フィルターなし（最も広い）",
+    description:
+      "研究デザインでは絞り込みません。未索引・デザイン表記が不明確な文献も残すため、検索漏れを最小化できます。",
     expression: "",
     source: "",
   },
   {
     key: "guideline",
-    label: "診療ガイドライン",
+    label: "診療ガイドライン（感度優先）",
     description:
-      "診療ガイドライン・コンセンサスステートメント・実践ガイドラインを優先的にヒットさせる高感度フィルター。",
+      "NLM の Publication Type に、未索引レコードを補うタイトル語を加えた感度優先の補助式です。検証済み Cochrane フィルターではありません。",
     expression:
-      "(guideline[pt] OR practice guideline[pt] OR consensus development conference[pt] OR consensus development conference, NIH[pt] OR \"clinical practice guideline\"[tiab] OR \"practice guideline\"[tiab] OR \"consensus statement\"[tiab] OR \"consensus guideline\"[tiab])",
+      "(guideline[pt] OR consensus statement[pt] OR \"clinical practice guideline\"[ti] OR \"practice guideline\"[ti] OR \"consensus statement\"[ti] OR \"consensus guideline\"[ti])",
     source:
-      "Cochrane Handbook v6.5, Chapter 4 のガイドライン検索戦略（PubMed publication type）に準拠。",
+      "NLM PubMed Publication Types / MeSH（タイトル語は本アプリによる補助）",
+    sourceUrl: PUBMED_HELP_URL,
+    caution:
+      "未索引文献の取りこぼしを減らす一方、独立して検証された検索フィルターではありません。",
   },
   {
     key: "systematic_review",
-    label: "システマティックレビュー / メタ解析",
+    label: "システマティックレビュー（PubMed公式）",
     description:
-      "SR・メタ解析を高感度に拾う。Cochrane Handbook で推奨される SR 同定戦略。",
-    expression:
-      "(systematic review[pt] OR meta-analysis[pt] OR \"systematic review\"[tiab] OR \"meta-analysis\"[tiab] OR \"meta analysis\"[tiab] OR systematic[sb] OR \"cochrane database syst rev\"[ta])",
+      "PubMed 公式の Systematic Review subset を使います。Publication Type だけでなく、未索引レコードを補う検索戦略も含まれます。",
+    expression: "systematic[sb]",
     source:
-      "Cochrane Handbook v6.5, Chapter 4 Box 4.5.b（SR/MA 同定）に準拠。",
+      "U.S. National Library of Medicine, PubMed systematic[sb]",
+    sourceUrl: PUBMED_HELP_URL,
   },
   {
     key: "guideline_or_sr",
-    label: "診療ガイドライン ＋ SR/メタ解析（結合）",
+    label: "ガイドライン＋システマティックレビュー",
     description:
-      "上位エビデンス（GL/SR/メタ解析）をまとめて拾う結合フィルター。GL単体・SR単体の expression を OR で結合。",
+      "上のガイドライン補助式と PubMed 公式 systematic[sb] を OR で結合した、本アプリの便宜的フィルターです。",
     expression:
-      "(guideline[pt] OR practice guideline[pt] OR consensus development conference[pt] OR consensus development conference, NIH[pt] OR \"clinical practice guideline\"[tiab] OR \"practice guideline\"[tiab] OR \"consensus statement\"[tiab] OR \"consensus guideline\"[tiab] OR systematic review[pt] OR meta-analysis[pt] OR \"systematic review\"[tiab] OR \"meta-analysis\"[tiab] OR \"meta analysis\"[tiab] OR systematic[sb] OR \"cochrane database syst rev\"[ta])",
+      "(guideline[pt] OR consensus statement[pt] OR \"clinical practice guideline\"[ti] OR \"practice guideline\"[ti] OR \"consensus statement\"[ti] OR \"consensus guideline\"[ti] OR systematic[sb])",
     source:
-      "Cochrane Handbook v6.5, Chapter 4（GL/SR/MA 同定戦略の結合）",
+      "NLM 由来の2つの式を本アプリ内で OR 結合",
+    sourceUrl: PUBMED_HELP_URL,
+    caution: "独立して検証された Cochrane フィルターではありません。",
   },
   {
     key: "rct",
-    label: "RCT（高感度フィルター）",
+    label: "RCT（Cochrane 感度最大）",
     description:
-      "Cochrane Handbook v6.5 Box 4.5.a の Highly Sensitive Search Strategy（HSSS）に基づく RCT 高感度フィルター（PubMed版）。",
-    expression:
-      "(randomized controlled trial[pt] OR controlled clinical trial[pt] OR randomized[tiab] OR placebo[tiab] OR clinical trials as topic[mh:noexp] OR randomly[tiab] OR trial[ti])",
+      "Cochrane Handbook v6.5 に掲載された PubMed 用 Highly Sensitive Search Strategy の感度最大版を原文どおり使用します。",
+    expression: COCHRANE_RCT_SENSITIVITY_MAX_EXPRESSION,
     source:
-      "Cochrane Handbook v6.5, Chapter 4 Box 4.5.a（Highly Sensitive Search Strategy for RCTs in PubMed）に準拠。",
+      "Cochrane Handbook v6.5, Chapter 4 §4.4.7, Box 4.4.a（2008 revision; PubMed format）",
+    sourceUrl: COCHRANE_CHAPTER_4_URL,
+    caution:
+      "感度を優先するためノイズは増えます。動物のみの研究は最終検索式で除外します。",
   },
   {
     key: "non_rct",
-    label: "非RCT（介入研究・観察研究）",
+    label: "非RCTも含む（絞り込みなし・推奨）",
     description:
-      "RCT 以外の介入研究・観察研究（コホート / 症例対照 / 横断 / レジストリ等）を拾う高感度フィルター。",
-    expression:
-      "(controlled clinical trial[pt] OR clinical trial[pt] OR observational study[pt] OR cohort studies[mh] OR case-control studies[mh] OR cross-sectional studies[mh] OR \"cohort study\"[tiab] OR \"case-control\"[tiab] OR \"cross-sectional\"[tiab] OR observational[tiab] OR registry[tiab])",
+      "非ランダム化研究はデザイン名と索引が一貫せず、一般的な方法論フィルターで漏れやすいため、研究デザインでは絞り込みません。",
+    expression: "",
     source:
-      "Cochrane Handbook v6.5, Chapter 24「Including non-randomized studies on intervention effects」を参考に構築。",
+      "Cochrane Handbook v6.5, Chapter 24（NRSI の検索ではデザインフィルターの限界に注意）",
+    sourceUrl: COCHRANE_CHAPTER_24_URL,
+    caution:
+      "検索件数は増えますが、スクリーニング段階で研究デザインを判定する方が高感度です。",
   },
 ];
+
+const TRAILING_ANIMAL_EXCLUSION =
+  /\s+NOT\s+\(\s*animals\s*\[\s*mh\s*\]\s+NOT\s+humans\s*\[\s*mh\s*\]\s*\)\s*$/i;
+
+function splitTrailingAnimalExclusion(query: string): {
+  core: string;
+  hadExclusion: boolean;
+} {
+  const trimmed = query.trim();
+  return {
+    core: trimmed.replace(TRAILING_ANIMAL_EXCLUSION, "").trim(),
+    hadExclusion: TRAILING_ANIMAL_EXCLUSION.test(trimmed),
+  };
+}
+
+/** Add the standard animal-only exclusion once, tolerating tag whitespace. */
+export function appendAnimalOnlyExclusion(query: string): string {
+  const { core, hadExclusion } = splitTrailingAnimalExclusion(query);
+  if (!core) return "";
+  if (hadExclusion) return `${core} NOT ${ANIMAL_ONLY_EXCLUSION}`;
+  return `(${core}) NOT ${ANIMAL_ONLY_EXCLUSION}`;
+}
 
 /** Apply the filter to a base query as `(base) AND (filter)`. */
 export function applyStudyDesignFilter(
   baseQuery: string,
   filter: StudyDesignFilter
 ): string {
-  const trimmed = baseQuery.trim();
-  if (!trimmed) return "";
-  if (!filter.expression) return trimmed;
-  // If the base already ends with NOT (animals[mh] NOT humans[mh]), insert filter before it.
-  const animalExclusion = /\s+NOT\s+\(animals\[mh\]\s+NOT\s+humans\[mh\]\)\s*$/i;
-  if (animalExclusion.test(trimmed)) {
-    const stripped = trimmed.replace(animalExclusion, "");
-    return `(${stripped}) AND (${filter.expression}) NOT (animals[mh] NOT humans[mh])`;
-  }
-  return `(${trimmed}) AND (${filter.expression})`;
+  const { core, hadExclusion } = splitTrailingAnimalExclusion(baseQuery);
+  if (!core) return "";
+  const filtered = filter.expression
+    ? `(${core}) AND (${filter.expression})`
+    : core;
+  return hadExclusion
+    ? `${filtered} NOT ${ANIMAL_ONLY_EXCLUSION}`
+    : filtered;
 }

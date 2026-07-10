@@ -24,6 +24,7 @@ import {
 import {
   studyDesignFilters,
   applyStudyDesignFilter,
+  appendAnimalOnlyExclusion,
 } from "../utils/cochraneFilters";
 import type { StudyDesignFilterKey } from "../utils/cochraneFilters";
 import { applySrDateRange } from "../utils/srDateRangeFilter";
@@ -44,14 +45,6 @@ interface Props {
 }
 
 const EMPTY_TABLE: SrTermsByElement = { P: [], I: [], C: [], O: [] };
-const SR_ANIMAL_EXCLUSION = "NOT (animals [mh] NOT humans [mh])";
-
-function applySrAnimalExclusion(searchString: string): string {
-  const trimmed = searchString.trim();
-  if (!trimmed) return "";
-  return `(${trimmed}) ${SR_ANIMAL_EXCLUSION}`;
-}
-
 export function SrTab({ settings, onNavigateToEbm }: Props) {
   const [picoP, setPicoP] = useState("");
   const [picoI, setPicoI] = useState("");
@@ -92,12 +85,20 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
     [termTable]
   );
   const designFilter = studyDesignFilters.find((f) => f.key === designKey)!;
+  const dateRangeError =
+    fromDate && toDate && fromDate > toDate
+      ? "開始日は終了日以前の日付を指定してください。"
+      : "";
   const effectiveSearchString = useMemo(() => {
     if (!baseSearchString) return "";
     const withDesign = applyStudyDesignFilter(baseSearchString, designFilter);
     const withDate = applySrDateRange(withDesign, { fromDate, toDate });
-    return applySrAnimalExclusion(withDate);
+    return appendAnimalOnlyExclusion(withDate);
   }, [baseSearchString, designFilter, fromDate, toDate]);
+
+  const isResultStale = Boolean(
+    pubmedResult && pubmedResult.query !== effectiveSearchString
+  );
 
   const perElement = useMemo(
     () => buildSrSearchStringPerElement(termTable),
@@ -105,7 +106,7 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
   );
 
   function generateInitialPrompt() {
-    if (!picoP.trim() && !picoI.trim()) {
+    if (!picoP.trim() || !picoI.trim()) {
       alert("最低限 P と I を入力してください。");
       return;
     }
@@ -199,7 +200,7 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
   }
 
   async function copyClassificationPrompt() {
-    if (!pubmedResult) return;
+    if (!pubmedResult || isResultStale) return;
     const text = buildEbmClassificationCopyText(pubmedResult);
     try {
       await navigator.clipboard.writeText(text);
@@ -314,8 +315,9 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
         </div>
 
         <div className="form-group">
-          <label>臨床疑問（CQ・自然な日本語でOK）</label>
+          <label htmlFor="sr-question">臨床疑問（CQ・自然な日本語でOK）</label>
           <textarea
+            id="sr-question"
             rows={2}
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
@@ -324,11 +326,14 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
         </div>
 
         <div className="form-group">
-          <label>
+          <label htmlFor="sr-pico">
             P/I/C/O（1行ずつ、P → I → C → O の順。P/Iは必須）
             <span className="required">*</span>
           </label>
           <textarea
+            id="sr-pico"
+            required
+            aria-required="true"
             rows={5}
             value={picoText}
             onChange={(e) => setPicoFromText(e.target.value)}
@@ -340,8 +345,9 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
           />
         </div>
         <div className="form-group">
-          <label>既知重要論文の PMID（任意・ベンチマーク用）</label>
+          <label htmlFor="sr-known-pmids">既知重要論文の PMID（任意・ベンチマーク用）</label>
           <textarea
+            id="sr-known-pmids"
             rows={1}
             value={knownPmids}
             onChange={(e) => setKnownPmids(e.target.value)}
@@ -416,16 +422,10 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
         <div className="ebm-filter-block">
           <h4>研究デザインフィルター（任意）</h4>
           <p className="hint">
-            出典：Cochrane Handbook for Systematic Reviews of Interventions, Version 6.5 (updated August 2024)
+            根拠は選択肢ごとに異なります。Cochrane の検証済み PubMed
+            フィルターは RCT の感度最大版です。その他を Cochrane
+            由来とは表示しません。
           </p>
-          <a
-            className="btn btn-secondary btn-xs sr-mesh-link-btn"
-            href="https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-04-technical-supplement-searching-and-selecting-studies"
-            target="_blank"
-            rel="noreferrer"
-          >
-            Cochrane Handbookの該当ページを開く
-          </a>
           <div className="ebm-filter-buttons" role="radiogroup" aria-label="研究デザイン">
             {studyDesignFilters.map((f) => (
               <button
@@ -435,28 +435,54 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
                 aria-checked={designKey === f.key}
                 className={`ebm-filter-btn ${designKey === f.key ? "active" : ""}`}
                 onClick={() => setDesignKey(f.key)}
-                title={f.description}
               >
                 {f.label}
               </button>
             ))}
+          </div>
+          <div className="filter-evidence-card" aria-live="polite">
+            <strong>{designFilter.label}</strong>
+            <p>{designFilter.description}</p>
+            {designFilter.source && (
+              <p className="filter-source">
+                <span>根拠：</span>
+                {designFilter.sourceUrl ? (
+                  <a href={designFilter.sourceUrl} target="_blank" rel="noreferrer">
+                    {designFilter.source}
+                  </a>
+                ) : (
+                  designFilter.source
+                )}
+              </p>
+            )}
+            {designFilter.caution && (
+              <p className="filter-caution">注意：{designFilter.caution}</p>
+            )}
+            <details>
+              <summary>検索式への追加内容</summary>
+              <code className="filter-expression">
+                {designFilter.expression || "追加なし（研究デザインで絞り込まない）"}
+              </code>
+            </details>
           </div>
         </div>
 
         <div className="ebm-filter-block">
           <h4>出版年月日フィルター（任意・片方だけでも可）</h4>
           <div className="sr-date-range">
-            <label>
+            <label htmlFor="sr-from-date">
               開始日：
               <input
+                id="sr-from-date"
                 type="date"
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
               />
             </label>
-            <label>
+            <label htmlFor="sr-to-date">
               終了日：
               <input
+                id="sr-to-date"
                 type="date"
                 value={toDate}
                 onChange={(e) => setToDate(e.target.value)}
@@ -475,12 +501,16 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
               </button>
             )}
           </div>
+          {dateRangeError && (
+            <p className="date-range-error" role="alert">{dateRangeError}</p>
+          )}
         </div>
 
         {/* 検索式（自動生成・読み取り専用） */}
         <div className="form-group">
-          <label>PubMed検索式（テーブルから自動生成・リアルタイム更新）</label>
+          <label htmlFor="sr-effective-query">PubMed検索式（テーブルから自動生成・リアルタイム更新）</label>
           <textarea
+            id="sr-effective-query"
             value={effectiveSearchString}
             readOnly
             rows={5}
@@ -510,19 +540,26 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
         </div>
 
         {/* 検索ボタン群 */}
+        <div className="sr-preview-notice" role="note">
+          <strong>アプリ内表示は Best Match 上位100件のプレビューです。</strong>
+          <span>
+            システマティックレビューの全件スクリーニングではありません。全件確認・保存は
+            「PubMed 検索結果で開く」を使用してください。
+          </span>
+        </div>
         <div className="button-group">
           <PubMedSearchBox
             settings={settings}
-            searchString={effectiveSearchString}
+            searchString={dateRangeError ? "" : effectiveSearchString}
             onResult={(r) => setPubmedResult(r)}
             retmax={100}
-            buttonLabel="PubMed APIで検索（最大100件・このアプリ内）"
+            buttonLabel="上位100件をプレビュー"
           />
           <button
             type="button"
             className="btn btn-secondary"
             onClick={copySearchString}
-            disabled={!effectiveSearchString}
+            disabled={!effectiveSearchString || Boolean(dateRangeError)}
           >
             {searchCopyMsg || "検索式をコピー"}
           </button>
@@ -533,7 +570,7 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
               if (!effectiveSearchString) return;
               void openPubMedWithQuery(effectiveSearchString, "advanced");
             }}
-            disabled={!effectiveSearchString}
+            disabled={!effectiveSearchString || Boolean(dateRangeError)}
           >
             PubMed Advanced Search で開く（外部）
           </button>
@@ -544,7 +581,7 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
               if (!effectiveSearchString) return;
               void openPubMedWithQuery(effectiveSearchString, "regular");
             }}
-            disabled={!effectiveSearchString}
+            disabled={!effectiveSearchString || Boolean(dateRangeError)}
           >
             PubMed 検索結果で開く（外部）
           </button>
@@ -564,11 +601,17 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
         {/* 検索結果 */}
         {pubmedResult && (
           <>
+            {isResultStale && (
+              <div className="sr-stale-warning" role="alert">
+                検索条件が前回の結果から変更されています。現在の検索式で再検索してから分類してください。
+              </div>
+            )}
             <div className="ebm-classification-bar">
               <button
                 className="btn btn-primary"
                 onClick={copyClassificationPrompt}
                 type="button"
+                disabled={isResultStale}
               >
                 AIで研究デザイン別に分類する（プロンプト＋結果をコピー）
               </button>

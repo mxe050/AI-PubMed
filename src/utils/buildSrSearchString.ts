@@ -14,11 +14,13 @@ const ELEMENT_ORDER: SrPicoElement[] = ["P", "I", "C", "O"];
 function formatTerm(t: SrTerm): string {
   const term = t.term.trim();
   if (!term) return "";
-  // 既に [tag] が含まれていればそのまま返す（ユーザー入力の自由度確保）
-  if (/\[[a-z]+\]/i.test(term)) return term;
+  // フィールドタグや Boolean 構文を含む完全検索式は、そのまま扱う。
+  if (/\[[^\]]+\]/.test(term) || /\b(?:AND|OR|NOT)\b|[()]/i.test(term)) {
+    return term;
+  }
 
   // 複数語の場合は引用符で囲む（PubMed の慣例）
-  const needsQuote = /\s/.test(term);
+  const needsQuote = /\s/.test(term) && !/^"[\s\S]*"$/.test(term);
   const body = needsQuote ? `"${term}"` : term;
   return `${body}${t.fieldTag}`;
 }

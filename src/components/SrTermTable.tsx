@@ -117,6 +117,12 @@ export function SrTermTable({ table, onChange }: Props) {
               </div>
             )}
 
+            <div
+              className="table-scroll sr-term-grid-scroll"
+              role="region"
+              aria-label={`${info.title}の検索語テーブル`}
+              tabIndex={0}
+            >
             <table className="sr-term-grid">
               <thead>
                 <tr>
@@ -135,6 +141,7 @@ export function SrTermTable({ table, onChange }: Props) {
                     <td>
                       <input
                         type="checkbox"
+                        aria-label={`${row.term || `${info.title} ${idx + 1}行目`}を検索式に含める`}
                         checked={row.enabled}
                         onChange={(e) =>
                           patchRow(el, idx, { enabled: e.target.checked })
@@ -144,6 +151,7 @@ export function SrTermTable({ table, onChange }: Props) {
                     <td>
                       <input
                         type="text"
+                        aria-label={`${info.title} ${idx + 1}行目の検索語`}
                         value={row.term}
                         onChange={(e) =>
                           patchRow(el, idx, { term: e.target.value })
@@ -154,6 +162,7 @@ export function SrTermTable({ table, onChange }: Props) {
                     <td>
                       <input
                         type="text"
+                        aria-label={`${info.title} ${idx + 1}行目の日本語訳`}
                         value={row.japanese}
                         onChange={(e) =>
                           patchRow(el, idx, { japanese: e.target.value })
@@ -163,6 +172,7 @@ export function SrTermTable({ table, onChange }: Props) {
                     </td>
                     <td>
                       <select
+                        aria-label={`${info.title} ${idx + 1}行目のフィールドタグ`}
                         value={row.fieldTag}
                         onChange={(e) =>
                           patchRow(el, idx, {
@@ -180,6 +190,7 @@ export function SrTermTable({ table, onChange }: Props) {
                     <td>
                       <input
                         type="text"
+                        aria-label={`${info.title} ${idx + 1}行目の選定理由`}
                         value={row.reason}
                         onChange={(e) =>
                           patchRow(el, idx, { reason: e.target.value })
@@ -213,6 +224,7 @@ export function SrTermTable({ table, onChange }: Props) {
                         type="button"
                         className="btn btn-secondary btn-xs"
                         onClick={() => deleteRow(el, idx)}
+                        aria-label={`${row.term || `${info.title} ${idx + 1}行目`}を削除`}
                         title="この行を削除"
                       >
                         ×
@@ -222,6 +234,7 @@ export function SrTermTable({ table, onChange }: Props) {
                 ))}
               </tbody>
             </table>
+            </div>
 
             <button
               type="button"

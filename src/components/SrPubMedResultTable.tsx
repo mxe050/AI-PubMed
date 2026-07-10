@@ -1,8 +1,4 @@
-// SR専用検索結果テーブル
-// EBM/topic 共用の PubMedResultTable とは異なり：
-// - MeSH カラム削除
-// - 「年」カラム削除し代わりに「著者年」（コクラン方式 "姓 年"）
-// - 詳細展開行は共用版と同等（抄録・MeSH全件・Pub Types・全著者）
+// SR 専用の PubMed 検索結果プレビュー。
 
 import { useState } from "react";
 import type { PubMedArticle, PubMedSearchResult } from "../types";
@@ -18,12 +14,17 @@ export function SrPubMedResultTable({ result }: Props) {
   return (
     <div className="pubmed-result-table sr-pubmed-result-table">
       <div className="result-summary">
+        <p><strong>検索結果総数：</strong> {result.count.toLocaleString()} 件</p>
         <p>
-          <strong>検索結果件数：</strong> {result.count.toLocaleString()} 件
+          <strong>プレビュー：</strong> {result.articles.length} 件
+          （Best Match 上位。全件取得ではありません）
         </p>
-        <p>
-          <strong>表示件数：</strong> {result.articles.length} 件（上位）
-        </p>
+        {result.warnings && result.warnings.length > 0 && (
+          <div className="sr-api-warning" role="alert">
+            <strong>PubMed からの検索警告</strong>
+            <ul>{result.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>
+          </div>
+        )}
         {result.queryTranslation && (
           <details>
             <summary>PubMed query translation</summary>
@@ -35,31 +36,30 @@ export function SrPubMedResultTable({ result }: Props) {
         </p>
       </div>
 
-      <table>
-        <thead>
-          <tr>
-            <th>選択</th>
-            <th>PMID</th>
-            <th>著者年</th>
-            <th>タイトル</th>
-            <th>雑誌</th>
-          </tr>
-        </thead>
-        <tbody>
-          {result.articles.map((article) => (
-            <ArticleRow
-              key={article.pmid}
-              article={article}
-              expanded={expandedPmid === article.pmid}
-              onExpand={() =>
-                setExpandedPmid(
-                  expandedPmid === article.pmid ? null : article.pmid
-                )
-              }
-            />
-          ))}
-        </tbody>
-      </table>
+      <div className="table-scroll" role="region" aria-label="PubMed検索結果プレビュー" tabIndex={0}>
+        <table>
+          <thead>
+            <tr>
+              <th>PMID</th>
+              <th>著者年</th>
+              <th>タイトル / 抄録</th>
+              <th>雑誌</th>
+            </tr>
+          </thead>
+          <tbody>
+            {result.articles.map((article) => (
+              <ArticleRow
+                key={article.pmid}
+                article={article}
+                expanded={expandedPmid === article.pmid}
+                onExpand={() =>
+                  setExpandedPmid(expandedPmid === article.pmid ? null : article.pmid)
+                }
+              />
+            ))}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
@@ -74,53 +74,60 @@ function ArticleRow({
   onExpand: () => void;
 }) {
   const authorYear = formatAuthorYear(article.authors, article.year);
+  const detailId = `sr-article-detail-${article.pmid}`;
+
   return (
     <>
-      <tr className={expanded ? "expanded" : ""} onClick={onExpand}>
-        <td onClick={(e) => e.stopPropagation()}>
-          <input type="checkbox" />
-        </td>
+      <tr className={expanded ? "expanded" : ""}>
         <td>
-          <a
-            href={`https://pubmed.ncbi.nlm.nih.gov/${article.pmid}/`}
-            target="_blank"
-            rel="noreferrer"
-            onClick={(e) => e.stopPropagation()}
-          >
+          <a href={`https://pubmed.ncbi.nlm.nih.gov/${article.pmid}/`} target="_blank" rel="noreferrer">
             {article.pmid}
           </a>
           {!article.verified && <span className="badge-unverified">未確認</span>}
         </td>
         <td>{authorYear}</td>
-        <td className="title-cell">{article.title}</td>
+        <td className="title-cell">
+          <button
+            type="button"
+            className="sr-article-expand-button"
+            onClick={onExpand}
+            aria-expanded={expanded}
+            aria-controls={detailId}
+          >
+            <span aria-hidden="true">{expanded ? "▾" : "▸"}</span>{" "}
+            {article.title || "（タイトルなし）"}
+          </button>
+        </td>
         <td>{article.journal}</td>
       </tr>
       {expanded && (
-        <tr className="detail-row">
-          <td colSpan={5}>
-            {article.abstractText && (
-              <div className="abstract">
-                <strong>抄録：</strong>
-                <p>{article.abstractText}</p>
-              </div>
+        <tr className="detail-row" id={detailId}>
+          <td colSpan={4}>
+            {article.abstractText ? (
+              <div className="abstract"><strong>抄録：</strong><p>{article.abstractText}</p></div>
+            ) : (
+              <p className="hint">抄録は取得できませんでした。</p>
             )}
             {article.meshTerms && article.meshTerms.length > 0 && (
-              <div className="mesh-full">
-                <strong>MeSH Terms：</strong>
-                <p>{article.meshTerms.join("; ")}</p>
-              </div>
+              <div className="mesh-full"><strong>MeSH Terms：</strong><p>{article.meshTerms.join("; ")}</p></div>
             )}
             {article.publicationTypes && article.publicationTypes.length > 0 && (
-              <div className="pub-types">
-                <strong>Publication Types：</strong>
-                <p>{article.publicationTypes.join("; ")}</p>
+              <div className="pub-types"><strong>Publication Types：</strong><p>{article.publicationTypes.join("; ")}</p></div>
+            )}
+            {article.commentsCorrections && article.commentsCorrections.length > 0 && (
+              <div className="comments-corrections">
+                <strong>訂正・撤回など：</strong>
+                <ul>
+                  {article.commentsCorrections.map((item, index) => (
+                    <li key={`${item.refType}-${item.pmid || index}`}>
+                      {item.refType}{item.pmid ? ` (PMID: ${item.pmid})` : ""}{item.note ? ` — ${item.note}` : ""}
+                    </li>
+                  ))}
+                </ul>
               </div>
             )}
             {article.authors && article.authors.length > 0 && (
-              <div className="authors">
-                <strong>著者：</strong>
-                <p>{article.authors.join(", ")}</p>
-              </div>
+              <div className="authors"><strong>著者：</strong><p>{article.authors.join(", ")}</p></div>
             )}
           </td>
         </tr>

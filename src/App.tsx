@@ -1,21 +1,38 @@
-import { useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import type { AppSettings } from "./types";
 import { loadSettings } from "./utils/settingsStorage";
-import { HowToUseTab } from "./components/HowToUseTab";
-import { FactCheckTab } from "./components/FactCheckTab";
 import { StrategyWorkflow } from "./components/StrategyWorkflow";
-import { EbmTab } from "./components/EbmTab";
-import { GradeExplainerTab } from "./components/GradeExplainerTab";
-import { PubMedToolTab } from "./components/PubMedToolTab";
-import { QuickEvidenceTab } from "./components/QuickEvidenceTab";
-import { SrTab } from "./components/SrTab";
-import { HarmsSearchTab } from "./components/HarmsSearchTab";
 import { topicInitialPrompt, topicFields } from "./prompts/topicExploration";
 import {
   counterEvidencePrompt,
   counterEvidenceFields,
 } from "./prompts/counterEvidence";
 import "./App.css";
+
+const HowToUseTab = lazy(() =>
+  import("./components/HowToUseTab").then((module) => ({ default: module.HowToUseTab }))
+);
+const FactCheckTab = lazy(() =>
+  import("./components/FactCheckTab").then((module) => ({ default: module.FactCheckTab }))
+);
+const QuickEvidenceTab = lazy(() =>
+  import("./components/QuickEvidenceTab").then((module) => ({ default: module.QuickEvidenceTab }))
+);
+const EbmTab = lazy(() =>
+  import("./components/EbmTab").then((module) => ({ default: module.EbmTab }))
+);
+const SrTab = lazy(() =>
+  import("./components/SrTab").then((module) => ({ default: module.SrTab }))
+);
+const PubMedToolTab = lazy(() =>
+  import("./components/PubMedToolTab").then((module) => ({ default: module.PubMedToolTab }))
+);
+const HarmsSearchTab = lazy(() =>
+  import("./components/HarmsSearchTab").then((module) => ({ default: module.HarmsSearchTab }))
+);
+const GradeExplainerTab = lazy(() =>
+  import("./components/GradeExplainerTab").then((module) => ({ default: module.GradeExplainerTab }))
+);
 
 type TabType =
   | "how_to_use"
@@ -42,6 +59,11 @@ const tabs: { key: TabType; label: string; kind: TabKind }[] = [
   { key: "grade_explainer", label: "GRADE-ADOLOPMENT解説", kind: "supp" },
 ];
 
+function tabFromHash(): TabType {
+  const value = window.location.hash.replace(/^#/, "") as TabType;
+  return tabs.some((tab) => tab.key === value) ? value : "how_to_use";
+}
+
 type TopicSearchMode = "normal" | "counter";
 
 interface TopicPrefill {
@@ -50,10 +72,33 @@ interface TopicPrefill {
 }
 
 export default function App() {
-  const [activeTab, setActiveTab] = useState<TabType>("how_to_use");
+  const [activeTab, setActiveTab] = useState<TabType>(tabFromHash);
+  const [visitedTabs, setVisitedTabs] = useState<Set<TabType>>(
+    () => new Set([tabFromHash()])
+  );
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
   const [topicMode, setTopicMode] = useState<TopicSearchMode>("normal");
   const [topicPrefill, setTopicPrefill] = useState<TopicPrefill | null>(null);
+
+  const showTab = useCallback((nextTab: TabType) => {
+    setActiveTab(nextTab);
+    setVisitedTabs((previous) => {
+      if (previous.has(nextTab)) return previous;
+      const next = new Set(previous);
+      next.add(nextTab);
+      return next;
+    });
+  }, []);
+
+  useEffect(() => {
+    window.history.replaceState(null, "", `#${activeTab}`);
+  }, [activeTab]);
+
+  useEffect(() => {
+    const syncFromHash = () => showTab(tabFromHash());
+    window.addEventListener("hashchange", syncFromHash);
+    return () => window.removeEventListener("hashchange", syncFromHash);
+  }, [showTab]);
 
   function sendEbmToTopicSearch(payload: {
     question: string;
@@ -71,11 +116,12 @@ export default function App() {
       key: Date.now(),
       values: { question: parts.join("\n\n") },
     });
-    setActiveTab("topic_exploration");
+    showTab("topic_exploration");
   }
 
   return (
     <div className="app">
+      <a className="skip-link" href="#main-content">本文へ移動</a>
       <header className="app-header">
         <h1>医療関係者のためのAI検索（PubMed・SR）</h1>
         <p className="app-subtitle">
@@ -94,12 +140,13 @@ export default function App() {
         </p>
       </header>
 
-      <nav className="tab-nav">
+      <nav className="tab-nav" aria-label="機能を選ぶ">
         {tabs.map((tab) => (
           <button
             key={tab.key}
             className={`tab-button tab-kind-${tab.kind} ${activeTab === tab.key ? "active" : ""}`}
-            onClick={() => setActiveTab(tab.key)}
+            onClick={() => showTab(tab.key)}
+            aria-pressed={activeTab === tab.key}
           >
             {tab.kind === "main" && <span className="tab-main-dot" aria-hidden="true">●</span>}
             {tab.label}
@@ -107,16 +154,16 @@ export default function App() {
         ))}
       </nav>
 
-      <main className="app-main">
+      <main className="app-main" id="main-content" tabIndex={-1}>
+        <Suspense fallback={<div className="tab-loading" role="status">機能を読み込んでいます…</div>}>
         <div className="tab-panel" hidden={activeTab !== "how_to_use"}>
-          <HowToUseTab
-            settings={settings}
-            onSettingsChange={setSettings}
-          />
+          {visitedTabs.has("how_to_use") && (
+            <HowToUseTab settings={settings} onSettingsChange={setSettings} />
+          )}
         </div>
 
         <div className="tab-panel" hidden={activeTab !== "fact_check"}>
-          <FactCheckTab settings={settings} />
+          {visitedTabs.has("fact_check") && <FactCheckTab settings={settings} />}
         </div>
 
         <div className="tab-panel" hidden={activeTab !== "topic_exploration"}>
@@ -274,34 +321,33 @@ export default function App() {
         </div>
 
         <div className="tab-panel" hidden={activeTab !== "quick_evidence"}>
-          <QuickEvidenceTab settings={settings} />
+          {visitedTabs.has("quick_evidence") && <QuickEvidenceTab settings={settings} />}
         </div>
 
         <div className="tab-panel" hidden={activeTab !== "ebm_search"}>
-          <EbmTab
-            settings={settings}
-            onPubMedFallbackToAi={sendEbmToTopicSearch}
-          />
+          {visitedTabs.has("ebm_search") && (
+            <EbmTab settings={settings} onPubMedFallbackToAi={sendEbmToTopicSearch} />
+          )}
         </div>
 
         <div className="tab-panel" hidden={activeTab !== "systematic_review"}>
-          <SrTab
-            settings={settings}
-            onNavigateToEbm={() => setActiveTab("ebm_search")}
-          />
+          {visitedTabs.has("systematic_review") && (
+            <SrTab settings={settings} onNavigateToEbm={() => showTab("ebm_search")} />
+          )}
         </div>
 
         <div className="tab-panel" hidden={activeTab !== "pubmed_tool"}>
-          <PubMedToolTab />
+          {visitedTabs.has("pubmed_tool") && <PubMedToolTab />}
         </div>
 
         <div className="tab-panel" hidden={activeTab !== "harms_search"}>
-          <HarmsSearchTab />
+          {visitedTabs.has("harms_search") && <HarmsSearchTab />}
         </div>
 
         <div className="tab-panel" hidden={activeTab !== "grade_explainer"}>
-          <GradeExplainerTab />
+          {visitedTabs.has("grade_explainer") && <GradeExplainerTab />}
         </div>
+        </Suspense>
       </main>
 
       <footer className="app-footer">
