@@ -248,6 +248,26 @@ body {
   font-weight: 700;
 }
 
+.filter-additional-sources {
+  margin: 7px 0;
+}
+
+.filter-additional-sources > span {
+  font-weight: 700;
+}
+
+.filter-additional-sources ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px 14px;
+  margin: 5px 0 0;
+  padding-left: 20px;
+}
+
+.filter-additional-sources li {
+  margin: 0;
+}
+
 .filter-caution,
 .date-range-error {
   color: #9a3412;
@@ -3678,6 +3698,267 @@ tr.unverified {
 .harms-search-tab {
   max-width: 100%;
 }
+.harms-builder {
+  margin: 0 0 18px;
+  padding: 18px 20px;
+  background: linear-gradient(180deg, #f8fbff 0%, #fff 100%);
+  border: 1px solid #bfdbfe;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+}
+.harms-builder-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 24px;
+  margin-bottom: 12px;
+}
+.harms-builder-heading h3 {
+  margin: 2px 0 0;
+  color: var(--color-primary);
+  font-size: 1.15rem;
+}
+.harms-builder-heading p {
+  flex: 0 1 560px;
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.86rem;
+  line-height: 1.65;
+}
+.harms-builder-kicker {
+  display: inline-block;
+  color: #1d4ed8;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+.harms-builder-callout {
+  margin: 0 0 14px;
+  padding: 10px 14px;
+  background: var(--color-info-bg);
+  border-left: 4px solid var(--color-primary);
+  border-radius: 4px;
+  color: var(--color-text);
+  font-size: 0.86rem;
+  line-height: 1.65;
+}
+.harms-builder-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+.harms-builder-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  min-width: 0;
+  color: var(--color-text);
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+.harms-builder-field-wide {
+  grid-column: 1 / -1;
+}
+.harms-builder-field textarea,
+.harms-builder-output textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 9px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 5px;
+  background: #fff;
+  color: var(--color-text);
+  font-family: 'SF Mono', 'Fira Code', Consolas, 'Courier New', monospace;
+  font-size: 0.82rem;
+  line-height: 1.5;
+  resize: vertical;
+}
+.harms-builder-field textarea:focus,
+.harms-builder-output textarea:focus {
+  outline: 2px solid rgba(26, 86, 219, 0.2);
+  border-color: var(--color-primary);
+}
+.harms-builder-field textarea:disabled {
+  background: #f1f5f9;
+  color: #94a3b8;
+  cursor: not-allowed;
+}
+.harms-builder-field small {
+  color: var(--color-text-secondary);
+  font-size: 0.76rem;
+  font-weight: 400;
+  line-height: 1.45;
+}
+.harms-required {
+  display: inline-block;
+  margin-left: 7px;
+  padding: 1px 6px;
+  border-radius: 10px;
+  background: var(--color-error-bg);
+  color: var(--color-error);
+  font-size: 0.68rem;
+  vertical-align: 1px;
+}
+.harms-builder-check {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--color-text);
+  font-size: 0.84rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.harms-builder-check input {
+  margin: 0;
+}
+.harms-builder-mode-fieldset,
+.harms-builder-type-fieldset {
+  margin: 15px 0 10px;
+  padding: 0;
+  border: 0;
+}
+.harms-builder-mode-fieldset legend,
+.harms-builder-type-fieldset legend {
+  margin-bottom: 7px;
+  color: var(--color-text);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+.harms-builder-modes {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.harms-builder-types {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+}
+.harms-builder-mode {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 10px;
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  background: #fff;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+.harms-builder-mode:hover {
+  border-color: var(--color-primary);
+}
+.harms-builder-mode.active {
+  border-color: var(--color-primary);
+  background: var(--color-info-bg);
+  color: var(--color-primary);
+  font-weight: 600;
+  box-shadow: 0 0 0 2px rgba(26, 86, 219, 0.08);
+}
+.harms-builder-mode input {
+  flex: 0 0 auto;
+  margin: 2px 0 0;
+}
+.harms-builder-mode-note {
+  margin: 7px 0 0;
+  padding: 8px 10px;
+  border-radius: 4px;
+  background: var(--color-info-bg);
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.55;
+}
+.harms-builder-mode-note.mode-rare {
+  background: var(--color-warning-bg);
+  color: #92400e;
+}
+.harms-builder-evidence-note {
+  margin: 7px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.55;
+}
+.harms-builder-evidence-note a {
+  color: var(--color-primary);
+}
+.harms-builder-animal-check {
+  flex-wrap: wrap;
+  margin: 8px 0 12px;
+}
+.harms-builder-animal-check code {
+  padding: 2px 5px;
+  border-radius: 3px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 0.75rem;
+  font-weight: 400;
+}
+.harms-builder-warning {
+  margin: 10px 0 12px;
+  padding: 10px 12px;
+  border: 1px solid var(--color-warning);
+  border-radius: 5px;
+  background: var(--color-warning-bg);
+  color: #92400e;
+  font-size: 0.84rem;
+  line-height: 1.6;
+}
+.harms-builder-output {
+  margin-top: 10px;
+}
+.harms-builder-output > label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--color-text);
+  font-size: 0.88rem;
+  font-weight: 700;
+}
+.harms-builder-output textarea {
+  min-height: 126px;
+  background: #0f172a;
+  color: #e2e8f0;
+  border-color: #334155;
+}
+.harms-builder-validation {
+  margin: 5px 0 0;
+  color: var(--color-error);
+  font-size: 0.78rem;
+}
+.harms-builder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 9px;
+}
+.harms-builder-source {
+  margin: 13px 0 0;
+  padding-top: 10px;
+  border-top: 1px dashed var(--color-border);
+  color: var(--color-text-secondary);
+  font-size: 0.77rem;
+  line-height: 1.6;
+}
+.harms-builder-source a {
+  color: var(--color-primary);
+}
+.harms-report-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 20px 0 12px;
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.harms-report-divider::before,
+.harms-report-divider::after {
+  content: "";
+  flex: 1;
+  height: 1px;
+  background: var(--color-border);
+}
 .harms-header {
   text-align: center;
   padding: 16px 0;
@@ -4100,5 +4381,23 @@ tr.unverified {
 
   .quick-evidence-mode-label {
     font-size: 0.72rem;
+  }
+
+  .harms-builder {
+    padding: 14px;
+  }
+
+  .harms-builder-heading {
+    display: block;
+  }
+
+  .harms-builder-heading p {
+    margin-top: 7px;
+  }
+
+  .harms-builder-fields,
+  .harms-builder-modes,
+  .harms-builder-types {
+    grid-template-columns: 1fr;
   }
 }

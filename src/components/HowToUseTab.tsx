@@ -341,8 +341,7 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
           <div className="strategy-card">
             <h4>害の検索</h4>
             <p>
-              診療ガイドライン作成における<strong>「害」の検索</strong>に特化した解説タブ。RCT だけでは害の評価が不十分である理由、Cochrane Handbook / PRISMA Harms / CONSORT Harms / GRADE に基づく実務的検索戦略、
-              薬剤・外科・医療機器それぞれの<strong>PubMed 検索式（コピーボタン付き）</strong>、自由診療や代替療法における「害がありそうなのに見つからない場合」の検討項目までを網羅。
+              診療ガイドライン作成における<strong>「害」の検索</strong>に特化。介入種別と目的を選び、具体的な害・対象集団を入力できる<strong>PubMed検索式ビルダー</strong>と、RCTだけでは不十分な理由、Cochrane Handbook / PRISMA Harms / CONSORT Harms / GRADE に基づく方法論をまとめています。薬剤・外科・医療機器の検証研究と、自由診療で「害がありそうなのに見つからない場合」の検討項目も掲載します。
             </p>
           </div>
 

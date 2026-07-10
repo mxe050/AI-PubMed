@@ -1,23 +1,96 @@
 // 「害の検索」タブ
-// ユーザー提供の長文レポートを、レイアウトのみ整えて掲載。
-// 内容は逐語的に保持し、見出し構造・コードブロック・参考文献リストで読みやすくする。
+// 実践用のPubMed検索式ビルダーと、方法論を詳述した長文レポートを掲載。
+// レポート本文は保持し、見出し構造・コードブロック・参考文献リストで読みやすくする。
 
 import { useState } from "react";
+import {
+  buildHarmsSearchQuery,
+  type HarmsInterventionType,
+  type HarmsSearchMode,
+} from "../utils/harmsSearch";
+import { openPubMedWithQuery } from "../utils/pubmedUrl";
+
+const HARMS_SEARCH_MODES: Array<{
+  key: HarmsSearchMode;
+  label: string;
+  description: string;
+}> = [
+  {
+    key: "known",
+    label: "既知の重要な害（推奨）",
+    description:
+      "害が分かっている場合は、診断名・症状名・検査異常などの具体語を優先します。害が空欄なら一般的な害用語で補います。",
+  },
+  {
+    key: "broad",
+    label: "未知の害・シグナル探索",
+    description:
+      "一般的な害のMeSH副標目と自由語を広くOR結合します。探索向けで、ノイズが増えても未知の表現を拾いたい場合に使います。",
+  },
+  {
+    key: "rare",
+    label: "稀・遅発性の重篤な害（補足）",
+    description:
+      "症例報告、観察研究、レジストリ、市販後監視などを追加します。この式だけで完結させず、研究デザインを限定しない主検索も必ず併用します。",
+  },
+];
+
+const HARMS_INTERVENTION_TYPES: Array<{
+  key: HarmsInterventionType;
+  label: string;
+  evidence: string;
+  sourceUrl: string;
+}> = [
+  {
+    key: "drug",
+    label: "薬剤",
+    evidence:
+      "感度重視モードはOvid MEDLINE検証セットで相対再現率90%。PubMed変換後の絶対感度ではありません。",
+    sourceUrl:
+      "https://eprints.whiterose.ac.uk/id/eprint/185209/3/Health_Info_Libraries_J_2022_Golder_Updated_generic_search_filters_for_finding_studies_of_adverse_drug_effects_in.pdf",
+  },
+  {
+    key: "surgery",
+    label: "手術・手技",
+    evidence:
+      "MEDLINE検証セットの相対再現率87%、具体的害を加えた後解析で93%。",
+    sourceUrl: "https://pmc.ncbi.nlm.nih.gov/articles/PMC6055664/",
+  },
+  {
+    key: "device",
+    label: "医療機器",
+    evidence:
+      "generic termsは検証セットで83%、具体的な故障・移動・感染等を加えた後解析で92%。",
+    sourceUrl: "https://pmc.ncbi.nlm.nih.gov/articles/PMC6853259/",
+  },
+  {
+    key: "other",
+    label: "その他・不明",
+    evidence:
+      "一般的な害語を使う未検証の実務式です。既知の重要文献で回収確認してください。",
+    sourceUrl:
+      "https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-19",
+  },
+];
+
+async function copyText(text: string) {
+  try {
+    await navigator.clipboard.writeText(text);
+  } catch {
+    const ta = document.createElement("textarea");
+    ta.value = text;
+    document.body.appendChild(ta);
+    ta.select();
+    document.execCommand("copy");
+    document.body.removeChild(ta);
+  }
+}
 
 /** 検索式コードブロック＋コピーボタンの共通子コンポーネント。 */
 function CodeBlockWithCopy({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
   async function handleCopy() {
-    try {
-      await navigator.clipboard.writeText(code);
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = code;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-    }
+    await copyText(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 1800);
   }
@@ -37,6 +110,37 @@ function CodeBlockWithCopy({ code }: { code: string }) {
 }
 
 export function HarmsSearchTab() {
+  const [intervention, setIntervention] = useState("");
+  const [population, setPopulation] = useState("");
+  const [specificHarm, setSpecificHarm] = useState("");
+  const [mode, setMode] = useState<HarmsSearchMode>("known");
+  const [interventionType, setInterventionType] =
+    useState<HarmsInterventionType>("other");
+  const [includePopulation, setIncludePopulation] = useState(false);
+  const [excludeAnimalOnly, setExcludeAnimalOnly] = useState(true);
+  const [builderCopied, setBuilderCopied] = useState(false);
+
+  const query = buildHarmsSearchQuery({
+    intervention,
+    population,
+    specificHarm,
+    mode,
+    interventionType,
+    includePopulation,
+    excludeAnimalOnly,
+  });
+  const activeMode = HARMS_SEARCH_MODES.find((item) => item.key === mode)!;
+  const activeInterventionType = HARMS_INTERVENTION_TYPES.find(
+    (item) => item.key === interventionType
+  )!;
+
+  async function handleBuilderCopy() {
+    if (!query) return;
+    await copyText(query);
+    setBuilderCopied(true);
+    setTimeout(() => setBuilderCopied(false), 1800);
+  }
+
   return (
     <div className="harms-search-tab">
       <header className="harms-header">
@@ -45,6 +149,195 @@ export function HarmsSearchTab() {
           RCT だけでは不十分である理由と、実務的検索戦略
         </p>
       </header>
+
+      <section className="harms-builder" aria-labelledby="harms-builder-title">
+        <div className="harms-builder-heading">
+          <div>
+            <span className="harms-builder-kicker">実践ツール</span>
+            <h3 id="harms-builder-title">PubMed「害」検索式ビルダー</h3>
+          </div>
+          <p>
+            介入（I）を検索の軸にし、対象集団（P）は必要なときだけ追加します。
+            RCTなどの研究デザインで一律に絞り込みません。
+          </p>
+        </div>
+
+        <div className="harms-builder-callout" role="note">
+          <strong>推奨は2本立て：</strong>
+          ①通常の「P AND I」を害語・研究デザインで絞らず検索し、②別に「I AND（汎用害語 OR 具体的害）」を検索します。
+          このビルダーは②を生成します。具体的な害が分かるなら、名称・旧称・略語・上位概念を追加してください。
+        </div>
+
+        <fieldset className="harms-builder-type-fieldset">
+          <legend>介入の種類（害フィルターを切り替えます）</legend>
+          <div className="harms-builder-types">
+            {HARMS_INTERVENTION_TYPES.map((item) => (
+              <label
+                key={item.key}
+                className={`harms-builder-mode${
+                  interventionType === item.key ? " active" : ""
+                }`}
+              >
+                <input
+                  type="radio"
+                  name="harms-intervention-type"
+                  value={item.key}
+                  checked={interventionType === item.key}
+                  onChange={() => setInterventionType(item.key)}
+                />
+                <span>{item.label}</span>
+              </label>
+            ))}
+          </div>
+          <p className="harms-builder-evidence-note">
+            {activeInterventionType.evidence}{" "}
+            <a
+              href={activeInterventionType.sourceUrl}
+              target="_blank"
+              rel="noreferrer"
+            >
+              根拠を開く
+            </a>
+          </p>
+        </fieldset>
+
+        <div className="harms-builder-fields">
+          <label className="harms-builder-field harms-builder-field-wide">
+            <span>
+              介入（I）<strong className="harms-required">必須</strong>
+            </span>
+            <textarea
+              value={intervention}
+              onChange={(event) => setIntervention(event.target.value)}
+              rows={2}
+              placeholder={'例："Bisphosphonates"[Mesh] OR bisphosphonate*[tiab]'}
+              aria-required="true"
+            />
+            <small>薬剤・手技・医療機器のMeSH語、一般名、商品名、略語などをORでまとめます。</small>
+          </label>
+
+          <label className="harms-builder-field">
+            <span>具体的な害（任意）</span>
+            <textarea
+              value={specificHarm}
+              onChange={(event) => setSpecificHarm(event.target.value)}
+              rows={3}
+              placeholder={'例："Osteonecrosis of the Jaw"[Mesh] OR MRONJ[tiab]'}
+            />
+            <small>分かっている害は generic な “safety” より具体語を優先します。</small>
+          </label>
+
+          <div className="harms-builder-field">
+            <label className="harms-builder-check">
+              <input
+                type="checkbox"
+                checked={includePopulation}
+                onChange={(event) => setIncludePopulation(event.target.checked)}
+              />
+              対象集団（P）を追加（任意・初期OFF）
+            </label>
+            <textarea
+              value={population}
+              onChange={(event) => setPopulation(event.target.value)}
+              rows={3}
+              disabled={!includePopulation}
+              placeholder={'例："Osteoporosis"[Mesh] OR osteoporosis[tiab]'}
+              aria-label="対象集団の検索ブロック"
+            />
+            <small>対象集団を必須にすると、より広い集団で報告された害を落とすことがあります。</small>
+          </div>
+        </div>
+
+        <fieldset className="harms-builder-mode-fieldset">
+          <legend>検索モード</legend>
+          <div className="harms-builder-modes">
+            {HARMS_SEARCH_MODES.map((item) => (
+              <label
+                key={item.key}
+                className={`harms-builder-mode${mode === item.key ? " active" : ""}`}
+              >
+                <input
+                  type="radio"
+                  name="harms-search-mode"
+                  value={item.key}
+                  checked={mode === item.key}
+                  onChange={() => setMode(item.key)}
+                />
+                <span>{item.label}</span>
+              </label>
+            ))}
+          </div>
+          <p className={`harms-builder-mode-note mode-${mode}`}>
+            {activeMode.description}
+          </p>
+        </fieldset>
+
+        <label className="harms-builder-check harms-builder-animal-check">
+          <input
+            type="checkbox"
+            checked={excludeAnimalOnly}
+            onChange={(event) => setExcludeAnimalOnly(event.target.checked)}
+          />
+          動物のみの研究を除外する
+          <code>NOT (animals[mh] NOT humans[mh])</code>
+        </label>
+
+        {mode === "rare" && (
+          <div className="harms-builder-warning" role="alert">
+            <strong>補足検索です。</strong>
+            まず「介入 AND 具体的な害」を研究デザイン制限なしで検索し、この式を追加で実行してください。
+            規制当局の安全性情報、試験登録、引用追跡も別途確認します。
+          </div>
+        )}
+
+        <div className="harms-builder-output">
+          <label htmlFor="harms-generated-query">生成されたPubMed検索式</label>
+          <textarea
+            id="harms-generated-query"
+            value={query}
+            readOnly
+            rows={8}
+            placeholder="介入（I）を入力すると検索式が生成されます。"
+          />
+          {!query && (
+            <p className="harms-builder-validation">介入（I）を入力してください。</p>
+          )}
+          <div className="harms-builder-actions">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => void handleBuilderCopy()}
+              disabled={!query}
+            >
+              {builderCopied ? "✓ コピーしました" : "検索式をコピー"}
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={() => void openPubMedWithQuery(query, "regular")}
+              disabled={!query}
+            >
+              PubMedで開く
+            </button>
+          </div>
+        </div>
+
+        <p className="harms-builder-source">
+          方法の考え方：
+          <a
+            href="https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-19"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Cochrane Handbook Chapter 19
+          </a>
+          。検索式は出発点であり、既存レビュー、規制当局情報、引用追跡、必要に応じて他データベースを組み合わせてください。
+        </p>
+      </section>
+
+      <div className="harms-report-divider" role="separator">
+        <span>方法論の詳しい解説</span>
+      </div>
 
       {/* 1. 害の検索が不可欠な理由 */}
       <section className="harms-section">
@@ -204,68 +497,54 @@ export function HarmsSearchTab() {
       {/* 9. 検索式の基本構造 */}
       <section className="harms-section">
         <h3>9. 実際の検索式の基本構造</h3>
-        <p>害の検索式は、基本的には以下の形になります［1,10］。</p>
-        <CodeBlockWithCopy
-          code={`(P：対象疾患・対象患者)
-AND
-(I：介入)
-AND
-(H：害フィルター または 特定害語)
-NOT
-(animals NOT humans)`}
-        />
         <p>
-          害のプロファイルが疾患を超えて共通すると考えられる場合は、P を省略して以下のようにします［1,10］。
+          害検索は、1本の万能式ではなく、通常検索Aと害専用検索Bの2本立てにします。Aでは害語を付けず、通常の有効性検索で回収したRCT等から害も抽出します。Bでは同じ介入が別疾患で使われた安全性研究も拾うため、原則としてPを必須にしません［1,10］。
         </p>
         <CodeBlockWithCopy
-          code={`(I：介入)
-AND
-(H：害フィルター または 特定害語)
-NOT
-(animals NOT humans)`}
+          code={`検索A（通常検索）：
+(P：対象疾患・対象患者) AND (I：介入)
+※害語なし、研究デザイン制限なし
+
+検索B（害専用）：
+(I：介入) AND ((汎用害フィルター) OR (事前指定した具体的な害))
+※原則Pなし、研究デザイン制限なし
+
+必要な場合だけ最後に：
+NOT (animals[mh] NOT humans[mh])`}
         />
         <p>
-          探索的に広く害を拾う場合は generic harm terms を使い、特定の害を拾う場合は specific harm terms を使います。Golder、Peryer、Loke は、generic terms と specific terms の両方を OR で組み合わせることを推奨しています［10］。
+          疾患を限定しないBが大きすぎる場合に限りPを追加します。ただし、Pを必須にすると別適応で報告された同一介入の害を落とし得ます。<code>humans[mh]</code>単独制限は未索引の最新論文を落とすため使いません。
+        </p>
+        <p>
+          診療ガイドラインでは、重大な害を事前指定するconfirmatory検索と、未知の害を探すexploratory検索を組み合わせるhybridが実用的です。汎用害語と具体的害語をORで組み合わせ、既知の重要文献が回収されるか確認します［1,10］。
         </p>
       </section>
 
       {/* 10. 汎用フィルター */}
       <section className="harms-section">
-        <h3>10. PubMed 用の汎用的な害フィルター例</h3>
+        <h3>10. 「全介入に万能な害フィルター」はない</h3>
         <p>
-          以下は、PubMed で実務的に使いやすい汎用フィルター例です。Golder らの Ovid MEDLINE 系フィルター、Cochrane Handbook、日本語での PubMed 変換例を踏まえたものですが、Ovid で検証された性能が PubMed でそのまま保証されるわけではありません［10,19,20］。実際に使用する場合は、既知の重要文献が拾えるかを必ず確認してください［10,18］。
+          薬剤、手術、医療機器では害の表現が異なります。薬剤用フィルターを非薬物介入へ転用すると性能が低下し、CADTH薬剤フィルターのMEDLINE相対再現率は薬剤88%に対し機器・手技67%でした［23］。介入種別が不明な場合だけ、次の一般語を出発点にします。
         </p>
         <CodeBlockWithCopy
           code={`(
   "adverse effects"[Subheading]
   OR "complications"[Subheading]
-  OR "drug effects"[Subheading]
   OR "poisoning"[Subheading]
   OR "toxicity"[Subheading]
-  OR safe[tiab]
+  OR "adverse effect*"[tiab]
+  OR "adverse event*"[tiab]
+  OR "adverse reaction*"[tiab]
+  OR "side effect*"[tiab]
+  OR harm*[tiab]
   OR safety[tiab]
-  OR "side effect"[tiab]
-  OR "side effects"[tiab]
   OR tolerability[tiab]
-  OR toxicity[tiab]
-  OR toxicities[tiab]
-  OR harmful[tiab]
-  OR harm[tiab]
-  OR harms[tiab]
-  OR complicat*[tiab]
-  OR (
-    adverse[tiab]
-    AND (
-      effect[tiab] OR effects[tiab]
-      OR reaction[tiab] OR reactions[tiab]
-      OR event[tiab] OR events[tiab]
-      OR outcome[tiab] OR outcomes[tiab]
-    )
-  )
+  OR toxic*[tiab]
+  OR complication*[tiab]
 )`}
         />
         <p>
-          このフィルターは高感度寄りですが、safety や risk を入れるとノイズが増えます。Golder、Peryer、Loke は、risk は “risk of bias” や “relative risk”、safety は “patient safety” などを拾うため、ノイズに注意すべきと述べています［10］。検索数が多すぎる場合は、risk を使わない、safety を外す、特定害語を追加する、P や I を精密化するなどの調整が必要です［10］。
+          これは未検証の汎用fallbackです。検索数を減らすために先に研究デザインで絞るのではなく、介入固有の具体的害を追加し、既知重要論文の回収を確認します。<em>safety</em>や<em>risk</em>は“patient safety”“risk of bias”も拾うため、特に低精度です［10］。
         </p>
       </section>
 
@@ -273,42 +552,60 @@ NOT
       <section className="harms-section">
         <h3>11. 薬剤の害検索</h3>
         <p>
-          薬剤の害検索では、介入名を広く作り、害フィルターを組み合わせます［10,19］。薬剤名は、一般名、商品名、薬剤クラス名、略語を含めます［10］。
+          薬剤名は一般名、商品名、薬剤クラス名、略語を含めます。Golderらの更新フィルターはOvid MEDLINE検証セットで相対再現率90%、具体的害をOR追加すると92%でした。これは絶対感度でも、PubMed変換後の検証値でもありません［22］。
         </p>
+        <h4>11.1 感度重視（薬剤・大量ノイズ）</h4>
         <CodeBlockWithCopy
           code={`(
-  "Drug Name"[Mesh]
-  OR genericname[tiab]
-  OR brandname[tiab]
-  OR class name[tiab]
-)
-AND
-(
   "adverse effects"[Subheading]
-  OR "poisoning"[Subheading]
-  OR "toxicity"[Subheading]
+  OR safe*[tiab]
   OR "drug effects"[Subheading]
-  OR safe[tiab]
-  OR safety[tiab]
-  OR "side effect"[tiab]
-  OR "side effects"[tiab]
-  OR tolerability[tiab]
+  OR adverse[tiab]
+  OR "complications"[Subheading]
+  OR "side effect*"[tiab]
+  OR complication*[tiab]
+  OR "chemically induced"[Subheading]
+  OR tolerated[tiab]
+  OR tolerance[tiab]
+  OR harm*[tiab]
   OR toxicity[tiab]
-  OR (
-    adverse[tiab]
-    AND (
-      effect[tiab] OR effects[tiab]
-      OR reaction[tiab] OR reactions[tiab]
-      OR event[tiab] OR events[tiab]
-      OR outcome[tiab] OR outcomes[tiab]
-    )
-  )
-)
-NOT
-("animals"[MeSH Terms] NOT "humans"[MeSH Terms])`}
+  OR risk[Title]
+  OR "Pregnancy Complications/drug therapy"[Mesh]
+  OR "Clinical Trial, Phase IV"[Publication Type]
+  OR "Drug Hypersensitivity"[Mesh]
+  OR tolerability[tiab]
+  OR "toxicity"[Subheading]
+  OR "Toxicology"[Mesh]
+  OR "drug induced"[tiab]
+  OR "negative effects"[tiab]
+)`}
         />
         <p>
-          薬剤では Embase の有用性が高く、MEDLINE だけに限定すべきではありません［1,10］。また、未公表データ、ClinicalTrials.gov、FDA、EMA、PMDA、企業臨床試験報告書などの確認が重要です［1,4,10,17］。
+          <code>safe*</code>、単独の<code>adverse</code>、<code>risk[Title]</code>、<code>"drug effects"[Subheading]</code>は特に低精度です。網羅性が必要な最終検索や、既知文献が実用型で漏れるときに使います［22］。
+        </p>
+        <h4>11.2 ノイズ抑制の実用型（更新後未検証）</h4>
+        <CodeBlockWithCopy
+          code={`(
+  "Drug-Related Side Effects and Adverse Reactions"[Mesh]
+  OR "Product Surveillance, Postmarketing"[Mesh]
+  OR "Clinical Trial, Phase IV"[Publication Type]
+  OR "Drug Hypersensitivity"[Mesh]
+  OR "adverse effect*"[tiab]
+  OR "adverse event*"[tiab]
+  OR "adverse reaction*"[tiab]
+  OR "side effect*"[tiab]
+  OR safety[tiab]
+  OR harm*[tiab]
+  OR toxic*[tiab]
+  OR tolerability[tiab]
+  OR pharmacovigilance[tiab]
+  OR postmarket*[tiab]
+  OR "drug induced"[tiab]
+  OR "treatment emergent"[tiab]
+)`}
+        />
+        <p>
+          実用型は低精度要因を減らしたアプリ独自の再構成で、感度・精度は未検証です。正式なガイドライン検索では感度重視式、具体的害、既知重要論文の回収確認を併用します。さらにEmbase、ClinicalTrials.gov、FDA・EMA・PMDA、臨床試験報告書等を確認します［1,4,10,17］。
         </p>
       </section>
 
@@ -324,14 +621,11 @@ NOT
         <p>PubMed 用の外科的介入向け実務例は以下です［14］。</p>
         <CodeBlockWithCopy
           code={`(
-  complicat*[tiab]
+  complication*[tiab]
   OR "adverse effects"[Subheading]
-  OR "complications"[Subheading]
   OR safe*[tiab]
+  OR "complications"[Subheading]
   OR "Postoperative Complications"[Mesh]
-  OR "Intraoperative Complications"[Mesh]
-  OR "procedure related"[tiab]
-  OR "procedure-related"[tiab]
 )`}
         />
         <p>さらに術式に応じて以下を追加します［14］。</p>
@@ -485,9 +779,10 @@ NOT
           <li>害アウトカムを critical、important、limited importance に分類する［5,7］。</li>
           <li>確認的、探索的、ハイブリッドのどの害レビューにするかを決める［1］。</li>
           <li>既存 SR、添付文書、FDA、EMA、PMDA、ClinicalTrials.gov、主要 RCT、主要観察研究でスコーピングする［1,10,17］。</li>
-          <li>P＋I＋害フィルター、または I＋害フィルターで検索式を作る［1,10］。</li>
-          <li>既知の重要文献が拾えるか確認する［10,18］。</li>
-          <li>検索数が多すぎる場合は、重大な害に限定する、特定害語を追加する、既存 SR 以降に限定する、規制情報を補助的に使うなど、実行可能性を考慮して調整する［1,10,14,16］。</li>
+          <li>検索A「P AND I（害語・デザイン制限なし）」と検索B「I AND（汎用害語 OR 具体的害）」を別々に作る［1,10］。</li>
+          <li>薬剤・手術・医療機器に合う害フィルターを選び、具体的害のMeSH、旧称、略語、患者表現、検査値異常をOR追加する［14,16,22,23］。</li>
+          <li>既知の重要文献が拾えるか確認し、検索式はPRESSで査読する［10,18］。</li>
+          <li>検索数が多すぎる場合は、重大な害に限定する、具体的害を追加する、既存 SR 以降に限定する、規制情報を補助的に使うなど、実行可能性を考慮して調整する。先に研究デザインで絞らない［1,10,14,16］。</li>
           <li>メタ分析可能なら行い、困難なら表形式・ナラティブ統合を行う［1,8］。</li>
           <li>EtD framework の「望ましくない効果」に反映し、益とのバランスをパネルで判断する［6,7］。</li>
         </ol>
@@ -691,6 +986,18 @@ NOT
             Schünemann H, Brożek J, Guyatt G, Oxman A, editors. <em>GRADE Handbook for grading quality of evidence and strength of recommendations</em>. GRADE Working Group. Updated 2013. Available from:{" "}
             <a href="https://gradepro.org/handbook/" target="_blank" rel="noreferrer">
               gradepro.org/handbook
+            </a>
+          </li>
+          <li>
+            Golder S, Farrah K, Mierzwinski-Urban M, Barker B, Rama A. Updated generic search filters for finding studies of adverse drug effects in Ovid MEDLINE and Embase may retrieve up to 90% of relevant studies. <em>Health Information &amp; Libraries Journal</em>. 2023;40(2):190–200. doi:10.1111/hir.12441.{" "}
+            <a href="https://eprints.whiterose.ac.uk/id/eprint/185209/" target="_blank" rel="noreferrer">
+              Open access manuscript
+            </a>
+          </li>
+          <li>
+            Farrah K, Mierzwinski-Urban M, Cimon K. Effectiveness of adverse effects search filters: drugs versus medical devices. <em>Journal of the Medical Library Association</em>. 2016;104(3):221–225. doi:10.3163/1536-5050.104.3.007.{" "}
+            <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC4915640/" target="_blank" rel="noreferrer">
+              PMC4915640
             </a>
           </li>
         </ol>

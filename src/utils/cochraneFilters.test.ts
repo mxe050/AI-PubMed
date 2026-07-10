@@ -3,7 +3,10 @@ import {
   ANIMAL_ONLY_EXCLUSION,
   COCHRANE_RCT_SENSITIVITY_MAX_EXPRESSION,
   GUIDELINE_OR_SR_SENSITIVITY_EXPRESSION,
+  GUIDELINE_PRACTICAL_EXPRESSION,
   GUIDELINE_SENSITIVITY_MAX_EXPRESSION,
+  PUBMED_SYSTEMATIC_SUBSET_EXPRESSION,
+  SYSTEMATIC_REVIEW_CURRENT_EXPRESSION,
   SYSTEMATIC_REVIEW_SENSITIVITY_EXPRESSION,
   appendAnimalOnlyExclusion,
   applyStudyDesignFilter,
@@ -48,37 +51,65 @@ describe("Cochrane RCT filter", () => {
     expect(nonRct?.caution).toContain("高感度");
   });
 
-  it("uses the validated CADTH broad guideline filter plus the current consensus type", () => {
+  it("uses the lower-noise current-vocabulary guideline filter by default", () => {
     const guideline = studyDesignFilters.find(
       (filter) => filter.key === "guideline"
     );
-    expect(guideline?.expression).toBe(GUIDELINE_SENSITIVITY_MAX_EXPRESSION);
+    expect(guideline?.expression).toBe(GUIDELINE_PRACTICAL_EXPRESSION);
+    expect(GUIDELINE_PRACTICAL_EXPRESSION).toContain(
+      '"consensus statement"[pt]'
+    );
+    expect(GUIDELINE_PRACTICAL_EXPRESSION).toContain(
+      '"recommendation statement"[ti]'
+    );
+    expect(GUIDELINE_PRACTICAL_EXPRESSION).toContain(
+      "NOT (protocol[ti] OR protocols[ti])"
+    );
+    expect(GUIDELINE_PRACTICAL_EXPRESSION).not.toContain('"Consensus"[mh]');
+    expect(GUIDELINE_PRACTICAL_EXPRESSION).not.toContain("[tiab]");
+    expect(guideline?.evidenceBadge).toContain("更新後未検証");
+  });
+
+  it("retains CADTH broad only as an explicitly noisy fallback", () => {
+    const broad = studyDesignFilters.find(
+      (filter) => filter.key === "guideline_broad"
+    );
+    expect(broad?.expression).toBe(GUIDELINE_SENSITIVITY_MAX_EXPRESSION);
     expect(GUIDELINE_SENSITIVITY_MAX_EXPRESSION).toContain(
       '"Guidelines as topic"[mh:noexp]'
     );
-    expect(GUIDELINE_SENSITIVITY_MAX_EXPRESSION).toContain(
-      '"consensus statement"[pt]'
-    );
-    expect(GUIDELINE_SENSITIVITY_MAX_EXPRESSION).toContain(
-      '"clinical guideline*"[tiab]'
-    );
-    expect(GUIDELINE_SENSITIVITY_MAX_EXPRESSION).not.toContain(
-      '"consensus development conference"[pt]'
-    );
-    expect(guideline?.evidenceBadge).toContain("感度98%");
-    expect(guideline?.caution).toContain("精度");
+    expect(broad?.label).toContain("大量ノイズ");
   });
 
-  it("uses the official PubMed systematic subset and ORs it with guidelines", () => {
+  it("supplements the old PubMed systematic subset for current and unindexed reviews", () => {
     const systematic = studyDesignFilters.find(
       (filter) => filter.key === "systematic_review"
     );
     const combined = studyDesignFilters.find(
       (filter) => filter.key === "guideline_or_sr"
     );
-    expect(SYSTEMATIC_REVIEW_SENSITIVITY_EXPRESSION).toBe("systematic[sb]");
-    expect(systematic?.expression).toBe(SYSTEMATIC_REVIEW_SENSITIVITY_EXPRESSION);
+    expect(PUBMED_SYSTEMATIC_SUBSET_EXPRESSION).toBe("systematic[sb]");
+    expect(SYSTEMATIC_REVIEW_SENSITIVITY_EXPRESSION).toBe(
+      SYSTEMATIC_REVIEW_CURRENT_EXPRESSION
+    );
+    expect(SYSTEMATIC_REVIEW_CURRENT_EXPRESSION).toContain(
+      '"meta-analysis"[pt]'
+    );
+    expect(SYSTEMATIC_REVIEW_CURRENT_EXPRESSION).toContain(
+      '"network meta-analysis"[pt]'
+    );
+    expect(SYSTEMATIC_REVIEW_CURRENT_EXPRESSION).toContain(
+      '"eligibility criteria"[tiab]'
+    );
+    expect(SYSTEMATIC_REVIEW_CURRENT_EXPRESSION).toContain(
+      '"scoping review"[pt]'
+    );
+    expect(SYSTEMATIC_REVIEW_CURRENT_EXPRESSION).toContain("scoping[ti]");
+    expect(systematic?.expression).toBe(SYSTEMATIC_REVIEW_CURRENT_EXPRESSION);
     expect(combined?.expression).toBe(GUIDELINE_OR_SR_SENSITIVITY_EXPRESSION);
-    expect(combined?.expression).toContain(GUIDELINE_SENSITIVITY_MAX_EXPRESSION);
+    expect(combined?.expression).toContain(GUIDELINE_PRACTICAL_EXPRESSION);
+    expect(combined?.expression).not.toContain(
+      '"Guidelines as topic"[mh:noexp]'
+    );
   });
 });

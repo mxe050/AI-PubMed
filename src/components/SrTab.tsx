@@ -481,6 +481,21 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
                 )}
               </p>
             )}
+            {designFilter.additionalSources &&
+              designFilter.additionalSources.length > 0 && (
+                <div className="filter-additional-sources">
+                  <span>関連する方法論・専用情報源：</span>
+                  <ul>
+                    {designFilter.additionalSources.map((source) => (
+                      <li key={source.url}>
+                        <a href={source.url} target="_blank" rel="noreferrer">
+                          {source.label}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
             {designFilter.caution && (
               <p className="filter-caution">注意：{designFilter.caution}</p>
             )}
