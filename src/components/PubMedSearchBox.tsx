@@ -4,6 +4,10 @@ import { esearchPubMed } from "../api/esearchPubMed";
 import { esummaryPubMed } from "../api/esummaryPubMed";
 import { efetchPubMed } from "../api/efetchPubMed";
 import { createNcbiRateLimiter } from "../utils/createNcbiRateLimiter";
+import {
+  buildKnownPmidBenchmarkQuery,
+  summarizeKnownPmidMatches,
+} from "../utils/knownPmidBenchmark";
 
 interface Props {
   settings: AppSettings;
@@ -11,6 +15,7 @@ interface Props {
   onResult: (result: PubMedSearchResult) => void;
   retmax?: number;
   buttonLabel?: string;
+  benchmarkPmids?: string[];
 }
 
 export function PubMedSearchBox({
@@ -19,6 +24,7 @@ export function PubMedSearchBox({
   onResult,
   retmax = 20,
   buttonLabel,
+  benchmarkPmids = [],
 }: Props) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,6 +37,39 @@ export function PubMedSearchBox({
       const limiter = createNcbiRateLimiter(settings);
 
       const search = await esearchPubMed(searchString, settings, limiter, retmax);
+
+      let knownPmidBenchmark: PubMedSearchResult["knownPmidBenchmark"];
+      const benchmarkQuery = buildKnownPmidBenchmarkQuery(
+        searchString,
+        benchmarkPmids
+      );
+      if (benchmarkQuery) {
+        try {
+          const benchmarkSearch = await esearchPubMed(
+            benchmarkQuery,
+            settings,
+            limiter,
+            benchmarkPmids.length
+          );
+          knownPmidBenchmark = summarizeKnownPmidMatches(
+            benchmarkPmids,
+            benchmarkSearch.idList,
+            benchmarkQuery,
+            benchmarkSearch.warnings
+          );
+        } catch (benchmarkError) {
+          knownPmidBenchmark = {
+            requestedPmids: benchmarkPmids,
+            matchedPmids: [],
+            missedPmids: benchmarkPmids,
+            benchmarkQuery,
+            error:
+              benchmarkError instanceof Error
+                ? benchmarkError.message
+                : "既知PMIDの照合に失敗しました",
+          };
+        }
+      }
 
       const summaries = await esummaryPubMed(
         search.idList,
@@ -67,6 +106,7 @@ export function PubMedSearchBox({
         idList: search.idList,
         queryTranslation: search.queryTranslation,
         warnings: search.warnings,
+        knownPmidBenchmark,
         articles: detailedArticles,
         fetchedAt: new Date().toISOString(),
         apiMode: settings.ncbiApiKey ? "user_api_key" : "no_api_key",

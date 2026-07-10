@@ -32,6 +32,7 @@ import { buildEbmClassificationCopyText } from "../utils/buildEbmClassificationC
 import { parseClassificationResponse } from "../utils/parseClassificationResponse";
 import { renderClassificationNewTab } from "../utils/renderClassificationNewTab";
 import { openPubMedWithQuery } from "../utils/pubmedUrl";
+import { parseKnownPmids } from "../utils/knownPmidBenchmark";
 import { PromptDisplay } from "./PromptDisplay";
 import { PubMedSearchBox } from "./PubMedSearchBox";
 import { SrTermTable } from "./SrTermTable";
@@ -78,6 +79,10 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
   const picoText = [picoP, picoI, picoC, picoO].some((v) => v.length > 0)
     ? [picoP, picoI, picoC, picoO].join("\n")
     : "";
+  const parsedKnownPmids = useMemo(
+    () => parseKnownPmids(knownPmids),
+    [knownPmids]
+  );
 
   // 検索式の派生値
   const baseSearchString = useMemo(
@@ -96,8 +101,13 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
     return appendAnimalOnlyExclusion(withDate);
   }, [baseSearchString, designFilter, fromDate, toDate]);
 
+  const currentBenchmarkKey = parsedKnownPmids.pmids.join(",");
+  const resultBenchmarkKey =
+    pubmedResult?.knownPmidBenchmark?.requestedPmids.join(",") ?? "";
   const isResultStale = Boolean(
-    pubmedResult && pubmedResult.query !== effectiveSearchString
+    pubmedResult &&
+      (pubmedResult.query !== effectiveSearchString ||
+        resultBenchmarkKey !== currentBenchmarkKey)
   );
 
   const perElement = useMemo(
@@ -353,6 +363,17 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
             onChange={(e) => setKnownPmids(e.target.value)}
             placeholder="例：33270928, 32865377, 32905714"
           />
+          {parsedKnownPmids.pmids.length > 0 && (
+            <p className="hint known-pmid-valid">
+              {parsedKnownPmids.pmids.length}件を検索後の回収確認に使用します。
+            </p>
+          )}
+          {parsedKnownPmids.invalidTokens.length > 0 && (
+            <p className="date-range-error" role="alert">
+              PMIDとして認識できない入力があります：
+              {parsedKnownPmids.invalidTokens.join(" / ")}
+            </p>
+          )}
         </div>
 
         <button className="btn btn-primary" onClick={generateInitialPrompt}>
@@ -441,7 +462,12 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
             ))}
           </div>
           <div className="filter-evidence-card" aria-live="polite">
-            <strong>{designFilter.label}</strong>
+            <div className="filter-evidence-heading">
+              <strong>{designFilter.label}</strong>
+              <span className="filter-evidence-badge">
+                {designFilter.evidenceBadge}
+              </span>
+            </div>
             <p>{designFilter.description}</p>
             {designFilter.source && (
               <p className="filter-source">
@@ -554,6 +580,7 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
             onResult={(r) => setPubmedResult(r)}
             retmax={100}
             buttonLabel="上位100件をプレビュー"
+            benchmarkPmids={parsedKnownPmids.pmids}
           />
           <button
             type="button"
@@ -603,7 +630,7 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
           <>
             {isResultStale && (
               <div className="sr-stale-warning" role="alert">
-                検索条件が前回の結果から変更されています。現在の検索式で再検索してから分類してください。
+                検索条件または既知PMIDが前回の結果から変更されています。現在の条件で再検索してから分類してください。
               </div>
             )}
             <div className="ebm-classification-bar">

@@ -68,9 +68,19 @@ export interface PubMedSearchResult {
   idList: string[];
   queryTranslation?: string;
   warnings?: string[];
+  knownPmidBenchmark?: KnownPmidBenchmarkResult;
   articles: PubMedArticle[];
   fetchedAt: string;
   apiMode: "no_api_key" | "user_api_key";
+  error?: string;
+}
+
+export interface KnownPmidBenchmarkResult {
+  requestedPmids: string[];
+  matchedPmids: string[];
+  missedPmids: string[];
+  benchmarkQuery: string;
+  warnings?: string[];
   error?: string;
 }
 

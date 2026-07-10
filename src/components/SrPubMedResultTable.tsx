@@ -25,6 +25,59 @@ export function SrPubMedResultTable({ result }: Props) {
             <ul>{result.warnings.map((warning) => <li key={warning}>{warning}</li>)}</ul>
           </div>
         )}
+        {result.knownPmidBenchmark && (
+          <div
+            className={`known-pmid-benchmark ${
+              result.knownPmidBenchmark.error ||
+              result.knownPmidBenchmark.missedPmids.length > 0
+                ? "has-misses"
+                : "all-matched"
+            }`}
+            role={
+              result.knownPmidBenchmark.error ||
+              result.knownPmidBenchmark.missedPmids.length > 0
+                ? "alert"
+                : "status"
+            }
+          >
+            <strong>
+              既知重要PMIDの回収：
+              {result.knownPmidBenchmark.matchedPmids.length} / {" "}
+              {result.knownPmidBenchmark.requestedPmids.length}件
+            </strong>
+            {result.knownPmidBenchmark.error ? (
+              <p>照合エラー：{result.knownPmidBenchmark.error}</p>
+            ) : result.knownPmidBenchmark.missedPmids.length > 0 ? (
+              <>
+                <p>
+                  未回収の既知論文があります。P/Iの同義語、MeSH、表記揺れを追加して再検索してください。
+                </p>
+                <ul>
+                  {result.knownPmidBenchmark.missedPmids.map((pmid) => (
+                    <li key={pmid}>
+                      <a
+                        href={`https://pubmed.ncbi.nlm.nih.gov/${pmid}/`}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        PMID {pmid}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ) : (
+              <p>入力した既知重要論文をすべて回収できています。</p>
+            )}
+            {result.knownPmidBenchmark.warnings &&
+              result.knownPmidBenchmark.warnings.length > 0 && (
+                <p>
+                  PubMed警告：
+                  {result.knownPmidBenchmark.warnings.join(" / ")}
+                </p>
+              )}
+          </div>
+        )}
         {result.queryTranslation && (
           <details>
             <summary>PubMed query translation</summary>
