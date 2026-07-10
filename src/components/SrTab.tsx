@@ -37,7 +37,6 @@ import { PubMedSearchBox } from "./PubMedSearchBox";
 import { SrTermTable } from "./SrTermTable";
 import { SrPubMedResultTable } from "./SrPubMedResultTable";
 import { SrStructuredQueryAccordion } from "./SrStructuredQueryAccordion";
-import { CpgSrSearchPanel } from "./CpgSrSearchPanel";
 
 interface Props {
   settings: AppSettings;
@@ -74,6 +73,7 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
   const [classificationAiResponse, setClassificationAiResponse] = useState("");
   const [classificationError, setClassificationError] = useState("");
   const [searchCopyMsg, setSearchCopyMsg] = useState("");
+  const [filterCopyMsg, setFilterCopyMsg] = useState("");
   const picoText = [picoP, picoI, picoC, picoO].some((v) => v.length > 0)
     ? [picoP, picoI, picoC, picoO].join("\n")
     : "";
@@ -150,6 +150,7 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
     setClassificationAiResponse("");
     setClassificationError("");
     setSearchCopyMsg("");
+    setFilterCopyMsg("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -198,6 +199,22 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
     }
     setSearchCopyMsg("コピーしました");
     setTimeout(() => setSearchCopyMsg(""), 1800);
+  }
+
+  async function copyFilterText(text: string, message: string) {
+    if (!text) return;
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setFilterCopyMsg(message);
+    setTimeout(() => setFilterCopyMsg(""), 2000);
   }
 
   async function copyClassificationPrompt() {
@@ -432,7 +449,7 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
 
         {/* フィルター */}
         <div className="ebm-filter-block">
-          <h4>研究デザインフィルター（任意）</h4>
+          <h4>文献タイプ／研究デザインフィルター（任意）</h4>
           <p className="hint">
             根拠は選択肢ごとに異なります。Cochrane の検証済み PubMed
             フィルターは RCT の感度最大版です。その他を Cochrane
@@ -490,6 +507,48 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
             {designFilter.caution && (
               <p className="filter-caution">注意：{designFilter.caution}</p>
             )}
+            {(designFilter.methodsTemplate || designFilter.references) && (
+              <details className="filter-reporting-details">
+                <summary>論文のMethods記載例・参考文献</summary>
+                {designFilter.methodsTemplate && (
+                  <div>
+                    <h5>Methods記載例</h5>
+                    <p>{designFilter.methodsTemplate}</p>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-xs"
+                      onClick={() => void copyFilterText(designFilter.methodsTemplate ?? "", "Methods記載例をコピーしました")}
+                    >
+                      Methods記載例をコピー
+                    </button>
+                  </div>
+                )}
+                {designFilter.references && designFilter.references.length > 0 && (
+                  <div>
+                    <h5>参考文献（Vancouver形式）</h5>
+                    <ol>
+                      {designFilter.references.map((reference) => (
+                        <li key={reference.url}>
+                          {reference.citation}{" "}
+                          <a href={reference.url} target="_blank" rel="noreferrer">原典</a>
+                        </li>
+                      ))}
+                    </ol>
+                    <button
+                      type="button"
+                      className="btn btn-secondary btn-xs"
+                      onClick={() => void copyFilterText(
+                        designFilter.references?.map((reference) => reference.citation).join("\n") ?? "",
+                        "参考文献をコピーしました"
+                      )}
+                    >
+                      参考文献をコピー
+                    </button>
+                  </div>
+                )}
+              </details>
+            )}
+            {filterCopyMsg && <p role="status" aria-live="polite" className="ebm-copy-feedback">{filterCopyMsg}</p>}
             <details>
               <summary>検索式への追加内容</summary>
               <code className="filter-expression">
@@ -498,13 +557,6 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
             </details>
           </div>
         </div>
-
-        <div className="safety-note" role="note">
-          <strong>CPG/SR専用検索では日付制限を使用しません。</strong>
-          旧版・原版・focused updateを含む全年代を検索し、版と有効性は取得後に判定します。
-        </div>
-
-        <CpgSrSearchPanel settings={settings} topicQuery={baseSearchString} />
 
         {/* 検索式（自動生成・読み取り専用） */}
         <div className="form-group">
@@ -555,6 +607,23 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
             retmax={100}
             buttonLabel="上位100件をプレビュー"
             benchmarkPmids={parsedKnownPmids.pmids}
+            queryKind={
+              designKey === "guideline"
+                ? "cpg"
+                : designKey === "systematic_review"
+                  ? "sr"
+                  : "general"
+            }
+            retrievalSource={
+              designKey === "guideline"
+                ? "CPG"
+                : designKey === "systematic_review"
+                  ? "SR"
+                  : undefined
+            }
+            allowFullIdExport={
+              designKey === "guideline" || designKey === "systematic_review"
+            }
           />
           <button
             type="button"

@@ -14,10 +14,27 @@ describe('intervention study-design filters', () => {
     );
   });
 
-  it('does not mix CPG or SR document filters into design filters', () => {
+  it('offers one simple practical CPG and SR choice without a combined option', () => {
     expect(studyDesignFilters.map((filter) => filter.key)).toEqual([
-      'none', 'rct', 'non_rct',
+      'none', 'guideline', 'systematic_review', 'rct', 'non_rct',
     ]);
+    expect(studyDesignFilters.map((filter) => filter.key)).not.toContain('guideline_or_sr');
+  });
+
+  it('keeps the practical CPG expression free of excluded document types', () => {
+    const guideline = studyDesignFilters.find((filter) => filter.key === 'guideline')!;
+    expect(guideline.expression).toBe('("practice guideline"[pt] OR guideline*[ti])');
+    expect(guideline.expression).not.toMatch(/consensus|position statement|practice parameter/i);
+    expect(guideline.references?.some((reference) => reference.citation.includes('Lunny C'))).toBe(true);
+    expect(guideline.methodsTemplate).toContain('出版年制限は用いなかった');
+  });
+
+  it('keeps the practical SR expression simple and reports its provenance', () => {
+    const systematic = studyDesignFilters.find((filter) => filter.key === 'systematic_review')!;
+    expect(systematic.expression).toContain('systematic[sb]');
+    expect(systematic.expression).toContain('"meta-analysis"[pt]');
+    expect(systematic.expression).not.toContain('search*[tiab]');
+    expect(systematic.references?.some((reference) => reference.citation.includes('Escobar Liquitay'))).toBe(true);
   });
 
   it('adds animal-only exclusion exactly once and after the design block', () => {
@@ -37,4 +54,3 @@ describe('intervention study-design filters', () => {
     expect(nonRct?.caution).toContain('検証済み式');
   });
 });
-

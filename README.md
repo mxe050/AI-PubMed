@@ -14,7 +14,7 @@ PubMedでPMID・タイトル等を確認できることは、論文内容や推�
 
 ## CPG / SR検索の安全原則
 
-- CPGとSRは独立した検索式・API呼び出しとして実行し、同じPMIDが両方で得られても検索元を保持します。
+- CPGとSRは研究デザイン欄の別々の選択肢として提供し、1回の検索で1種類だけ適用します。査読用には各検索を別々に実行・報告します。
 - CPG/SR検索には出版年・登録年・相対日付の制限を使用しません。
 - 最新CPGは検索後に、発行機関のcurrent / superseded / archived情報、明示的な置換関係、版番号等で判定します。最大出版年だけでは判定しません。
 - consensus statement、position statement、practice parameter、appropriate use criteria等は、正式なCPGの代替語としてCPG_FILTERへ含めません。

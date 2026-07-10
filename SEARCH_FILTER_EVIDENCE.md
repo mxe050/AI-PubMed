@@ -5,7 +5,7 @@
 ## 重要な前提
 
 - CPG/SR検索には日付制限を使用しない。最新CPGは全年代の候補取得後に版・有効性を判定する。
-- CPGとSRは独立して実行し、各レコードの検索元を保持する。
+- CPGとSRは同じ簡潔な選択欄に置くが、1回の検索では1種類だけ選び、査読用には別々の検索として報告する。
 - consensus statement等は正式CPGの代替語として検索しない。
 - 公開済みフィルターから改変した式に、原研究の感度・precisionを転用しない。
 - focused updateは基礎ガイドラインを自動的に全面置換しない。状態不明は `needs_manual_review` とする。
@@ -17,6 +17,12 @@
 `CPG_QUERY = (TOPIC_QUERY) AND (("practice guideline"[pt] OR guideline*[ti]))`
 
 `SR_QUERY = (TOPIC_QUERY) AND (((systematic[sb] OR "meta-analysis"[pt] OR "meta-analysis"[ti] OR "meta-analyses"[ti] OR "meta analysis"[ti] OR "meta analyses"[ti] OR metaanaly*[ti]) NOT (protocol*[ti] OR "scoping review"[pt] OR "scoping review*"[ti])))`
+
+## GRADE-ADOLOPMENT Guidance 39の再確認
+
+Step 3は、既存のsource guidelineまたはrecommendation sourceの検索・評価を要求する。recommendation map等から開始する場合、初期検索は広く、複数データベース、ウェブサイト、ガイドライン開発者への照会を組み合わせるとしている。したがってPubMedフィルターは補完手段であり、単独でGRADE-ADOLOPMENTのsource guideline探索を完結させるものではない。Guidance 39はISSG Guidelines Resourceを参考文献44として引用している。
+
+本アプリでは画面を簡潔にするため、PubMed用CPGフィルターはCPG-1だけを通常選択肢として提示する。専用情報源併用、改変式であること、既報性能を転用しないことをMethods記載例へ含める。
 
 ## Evidence table
 
@@ -48,5 +54,5 @@ PubMed HelpはPublication Typeが階層化され、検索時に下位Publication
 - NLM MeSH Browser 2026. Meta-Analysis / Network Meta-Analysis.
 - NCBI. E-utilities Usage Guidelines and API Keys.
 - Lunny C, et al. J Clin Epidemiol. 2020;117:109-116. DOI: 10.1016/j.jclinepi.2019.09.022.
-- Escobar Liquitay CM, et al. Cochrane Database Syst Rev. 2023;MR000054.
-
+- Klugar M, Lotfi T, Darzi AJ, et al; GRADE Working Group. GRADE guidance 39: using GRADE-ADOLOPMENT to adopt, adapt or create contextualized recommendations from source guidelines and evidence syntheses. J Clin Epidemiol. 2024;174:111494. DOI: 10.1016/j.jclinepi.2024.111494.
+- Escobar Liquitay CM, Garegnani L, Garrote V, Solà I, Franco JVA. Search strategies (filters) to identify systematic reviews in MEDLINE and Embase. Cochrane Database Syst Rev. 2023;9:MR000054. DOI: 10.1002/14651858.MR000054.pub2.

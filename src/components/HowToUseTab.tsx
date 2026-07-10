@@ -34,8 +34,8 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
         <h3>30秒で分かるCPG / SR検索</h3>
         <ol>
           <li>システマティックレビュー画面でTOPIC_QUERYを作成します。</li>
-          <li>CPGとSRの検索式を別々に構文検査します。</li>
-          <li>CPG、SRを独立してPubMed APIで実行し、Query Translationと警告を確認します。</li>
+          <li>文献タイプ／研究デザインフィルターから「診療ガイドライン」または「SR / メタ解析」を1つ選びます。</li>
+          <li>表示された根拠・Methods記載例・参考文献を確認してPubMed検索を実行します。</li>
           <li>既知PMIDがあればCPG集合とSR集合へ分けて回収を確認します。</li>
           <li>CPGは全年代の候補を取得後、発行機関の版・置換・有効性情報を人間が確認します。</li>
         </ol>
