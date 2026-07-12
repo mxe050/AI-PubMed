@@ -56,7 +56,8 @@ export function SrPubMedDetailsChecker({ settings, query }: Props) {
         createNcbiRateLimiter(settings),
         0,
         0,
-        controller.signal
+        controller.signal,
+        { useHistory: false }
       );
       if (!controller.signal.aborted) {
         setChecked({ query: snapshot, result });
@@ -65,10 +66,15 @@ export function SrPubMedDetailsChecker({ settings, query }: Props) {
       if ((cause as { name?: string }).name === "AbortError") return;
       const message =
         cause instanceof Error ? cause.message : "PubMed APIの確認に失敗しました";
+      const normalizedMessage = message.toLowerCase();
       setError(
         message.includes("429") || message.toLowerCase().includes("rate")
           ? "PubMed APIの利用上限に達しました。少し待ってから再実行してください。"
-          : `PubMed APIでDetails相当を確認できませんでした：${message}`
+          : normalizedMessage.includes("failed to fetch") ||
+              normalizedMessage.includes("network") ||
+              normalizedMessage.includes("load failed")
+            ? "PubMed APIへ接続できませんでした。一時的な通信障害、PubMed側の混雑、またはブラウザの通信制限が考えられます。少し待って再実行してください。"
+            : `PubMed APIの補助確認を完了できませんでした。検索式の誤りとは限りません。技術情報：${message}`
       );
     } finally {
       if (controllerRef.current === controller) {
@@ -97,9 +103,11 @@ export function SrPubMedDetailsChecker({ settings, query }: Props) {
     <div className="sr-pubmed-details-checker">
       <div className="sr-pubmed-details-heading">
         <div>
-          <h4>PubMed Advanced Search の Details相当を確認</h4>
+          <h4>PubMed APIでDetails相当を補助確認</h4>
           <p>
-            PubMed APIで Query Translation、警告、エラーを確認します。論文データは取得しないため、上位100件のプレビューより先に実行できます。
+            PubMed ESearch APIが返す Query Translation、警告、エラー、該当件数を確認します。
+            論文データは取得せず、NCBI Historyサーバーへ検索結果セットを保存しないため、上位100件のプレビューより先に実行できます。
+            ただし、Web版Advanced SearchのDetailsと完全に同一ではありません。
           </p>
         </div>
         <button
@@ -108,13 +116,18 @@ export function SrPubMedDetailsChecker({ settings, query }: Props) {
           onClick={() => void checkDetails()}
           disabled={!query.trim() || loading}
         >
-          {loading ? "PubMedで確認中…" : "PubMed APIでDetails相当を確認"}
+          {loading ? "PubMedで確認中…" : "PubMed APIで補助確認"}
         </button>
       </div>
 
       {error && (
         <div className="sr-pubmed-details-alert" role="alert">
-          {error}
+          <strong>APIによる補助確認を完了できませんでした</strong>
+          <p>{error}</p>
+          <p>
+            検索式は変更されていません。再実行しても解消しない場合は、下の
+            「PubMed Advanced Search で開く」からWeb版のDetailsを確認してください。
+          </p>
         </div>
       )}
 
@@ -130,8 +143,12 @@ export function SrPubMedDetailsChecker({ settings, query }: Props) {
             assessment.status === "warning") && (
             <div className="sr-pubmed-details-alert" role="alert">
               <strong>
-                PubMedのDetailsでは、この種類の警告・エラーが赤字で表示されます。検索式を確認・修正してください。
+                API通信は成功しました。PubMedが次の警告・エラーを返しました。
               </strong>
+              <p>
+                この赤い表示は、ボタンの故障ではなく、PubMedが検索式内の語句・フィールド・構文に確認事項を検出したことを示します。
+                内容を修正して、もう一度補助確認してください。
+              </p>
               {assessment.errors.length > 0 && (
                 <div>
                   <span>エラー</span>
@@ -199,7 +216,9 @@ export function SrPubMedDetailsChecker({ settings, query }: Props) {
             )}
           </div>
           <p className="hint">
-            これはPubMedによる解釈結果であり、妥当性が自動保証された「修正済み正解」ではありません。警告がある場合は語句・フィールドタグ・括弧を修正し、再確認してください。
+            これはPubMed ESearch APIによる補助的な解釈結果であり、妥当性が自動保証された「修正済み正解」ではありません。
+            警告がある場合は語句・フィールドタグ・括弧を修正し、再確認してください。
+            最終版は必ずWeb版PubMed Advanced SearchのDetailsでも確認してください。
           </p>
         </div>
       )}

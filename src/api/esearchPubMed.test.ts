@@ -57,4 +57,35 @@ describe("esearchPubMed", () => {
     expect(result.warningList).toEqual(["missing phrase"]);
     expect(result.errorList).toEqual(["bad field"]);
   });
+
+  it("can skip NCBI History storage for a translation-only check", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          esearchresult: {
+            count: "42",
+            idlist: [],
+            querytranslation: '"hypertension"[Title/Abstract]',
+          },
+        }),
+        { status: 200 }
+      )
+    );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await esearchPubMed(
+      "hypertension[tiab]",
+      defaultSettings,
+      immediateLimiter,
+      0,
+      0,
+      undefined,
+      { useHistory: false }
+    );
+
+    const [, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit];
+    const body = new URLSearchParams(init.body as string);
+    expect(body.get("retmax")).toBe("0");
+    expect(body.has("usehistory")).toBe(false);
+  });
 });

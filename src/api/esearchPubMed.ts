@@ -13,6 +13,15 @@ export interface ESearchResult {
   queryKey?: string;
 }
 
+export interface ESearchOptions {
+  /**
+   * Store the result set on NCBI's History server.
+   * Keep this enabled for follow-up record requests, but disable it for
+   * translation/count-only checks.
+   */
+  useHistory?: boolean;
+}
+
 function collectMessages(value: unknown): string[] {
   if (!value || typeof value !== "object") return [];
   return Object.values(value as Record<string, unknown>).flatMap((item) =>
@@ -30,7 +39,8 @@ export async function esearchPubMed(
   limiter: NcbiRateLimiter,
   retmax = 20,
   retstart = 0,
-  signal?: AbortSignal
+  signal?: AbortSignal,
+  options: ESearchOptions = {}
 ): Promise<ESearchResult> {
   const url = buildNcbiUrl(
     "esearch.fcgi",
@@ -47,8 +57,10 @@ export async function esearchPubMed(
     retmax: String(retmax),
     retstart: String(retstart),
     sort: "relevance",
-    usehistory: "y",
   });
+  if (options.useHistory !== false) {
+    body.set("usehistory", "y");
+  }
 
   const res = await ncbiFetch(url, limiter, {
       method: "POST",

@@ -581,9 +581,42 @@ export function SrPreparationWorkflow({
       {consultation && (
         <section id="sr-definition-selection" className="workflow-section">
           <h2>Step 3：採用する定義・根拠を選ぶ</h2>
-          <p className="hint">
-            チェックした候補だけを次段へ渡します。複数定義の併用も、「この候補だけ採用」も可能です。AIが提示したPMID・DOI・本文は、最終採用前に必ず原典で再確認してください。
-          </p>
+          <div className="sr-step3-guide" role="note">
+            <p className="sr-step3-guide-lead">
+              <strong>ここでは、次の適格基準作成に使う定義を人が決めます。</strong>
+              AIが並べた候補をそのまま採用する画面ではありません。P・I・C・Oごとに、定義の範囲と根拠を確認して選びます。
+            </p>
+            <ol>
+              <li>
+                <strong>候補の中身を読む</strong>
+                <span>
+                  「定義」「操作的基準」「採用する理由」「限界・影響」を順に読み、実際のスクリーニングで同じ判定を再現できるか確認します。
+                </span>
+              </li>
+              <li>
+                <strong>採用する候補へチェックする</strong>
+                <span>
+                  PとIは最低1候補ずつ必要です。C・Oはレビュー課題に必要な場合だけ選びます。
+                  複数候補を併用する場合は複数チェックし、1候補に決める場合は「この候補だけ採用」を使います。
+                </span>
+              </li>
+              <li>
+                <strong>原典を確認してから次へ進む</strong>
+                <span>
+                  「原典」リンクからPMID・DOI・対象集団・定義内容を確認します。必要なら定義文と操作的基準をこの画面で修正します。
+                </span>
+              </li>
+            </ol>
+            <div className="sr-step3-selection-meaning">
+              <strong>チェックの意味：</strong>
+              チェックした候補、その操作的基準、根拠文献だけが次の「適格基準作成プロンプト」へ渡ります。
+              チェックを外した候補は次の工程に使われません。
+            </div>
+            <p className="sr-step3-ai-caution">
+              「AI推奨候補」は比較を始めるための参考表示であり、妥当性や採用を保証するものではありません。
+              根拠文献がない候補や「unverified」と表示された候補は、原典を確認できるまで採用しないでください。
+            </p>
+          </div>
           <SrDefinitionSelector
             consultation={consultation}
             onChange={handleConsultationChange}
