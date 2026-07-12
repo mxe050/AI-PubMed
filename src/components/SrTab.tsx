@@ -291,6 +291,28 @@ export function SrTab({ settings }: Props) {
           </div>
         )}
 
+        <div className="sr-concept-selection-guide" role="note">
+          <div className="sr-guide-heading">
+            <span>感度を守る</span>
+            <h3>C（比較対照）は、明確でも検索式へ入れないことがあります</h3>
+          </div>
+          <p>
+            Cは適格基準として重要でも、論文のタイトル・抄録や索引に十分書かれていないことがあります。
+            CをANDで追加すると検索漏れが増えるため、まずPとIを中心に検索し、Cはスクリーニングで確認する方法を検討してください。
+          </p>
+          <ul>
+            <li>
+              <strong>Cを入れない方がよいことが多い場面：</strong>
+              もともと文献が少ない領域、新しい治療法、比較対照の表現が研究ごとに異なる場合。
+            </li>
+            <li>
+              <strong>キー論文が見つからないとき：</strong>
+              Pを狭くしすぎていないか、Cを追加したことが原因でないかを最初に見直します。
+              例えば、本来は「顎欠損」全体が対象なのに、症例の多い「上顎欠損」だけをPにしていないか確認します。
+            </li>
+          </ul>
+        </div>
+
         <SrTermTable table={termTable} onChange={setTermTable} />
 
         {/* フィルター */}
@@ -421,11 +443,35 @@ export function SrTab({ settings }: Props) {
               background: "#f8fafc",
             }}
           />
-          <div className="sr-search-string-tools">
-            <p className="sr-search-string-warning">
-              ⚠ <strong>下のDetails相当確認を実行し、必要なら検索式を修正してください。</strong>{" "}
-              各検索語が想定通り MeSH／フリーテキストに展開されているかを確認します。PubMedから警告・エラーが返された場合は赤字で表示されます。
-            </p>
+        </div>
+
+        <div
+          className="sr-details-required-card"
+          role="note"
+          aria-labelledby="sr-details-required-title"
+        >
+          <div className="sr-guide-heading">
+            <span>必須確認</span>
+            <h3 id="sr-details-required-title">
+              PubMedで実際に検索し、Advanced Search BuilderのDetailsを開いてください
+            </h3>
+          </div>
+          <p>
+            検索式が完成したら、アプリ内の確認だけで終えず、最終版をPubMedで実際に検索します。
+          </p>
+          <ol>
+            <li>下の「PubMed Advanced Search で開く」から検索を実行する。</li>
+            <li>Advanced Search BuilderのHistoryで、実行した検索式のDetailsを開く。</li>
+            <li>
+              <strong>Warningsが表示されていないことを必ず確認する。</strong>
+              あわせて、各語が意図したMeSH・自由語・フィールドタグとして解釈されているかを確認する。
+            </li>
+          </ol>
+          <p className="sr-details-warning-explanation">
+            Warningsには、構文エラー、見つからない語、無効なフィールドタグなどが示されます。
+            1件でも表示された場合は、検索式を修正してからもう一度検索してください。
+          </p>
+          <div className="sr-guidance-links">
             <a
               className="btn btn-secondary btn-xs sr-mesh-link-btn"
               href="https://www.ncbi.nlm.nih.gov/mesh/"
@@ -433,6 +479,14 @@ export function SrTab({ settings }: Props) {
               rel="noreferrer"
             >
               MeSHの確認（NCBI MeSH）
+            </a>
+            <a
+              className="btn btn-secondary btn-xs sr-mesh-link-btn"
+              href="https://pubmed.ncbi.nlm.nih.gov/help/#viewing-the-search-details"
+              target="_blank"
+              rel="noreferrer"
+            >
+              PubMed Help：Search Details
             </a>
           </div>
         </div>
@@ -504,6 +558,78 @@ export function SrTab({ settings }: Props) {
           自動的に検索式をクリップボードにコピーし、Advanced Search 画面（空の状態）を開きます。
           そのまま貼り付けて検索してください。
         </p>
+
+        <section
+          className="sr-after-search-guide"
+          aria-labelledby="sr-after-search-title"
+        >
+          <div className="sr-guide-heading">
+            <span>検索式完成後</span>
+            <h3 id="sr-after-search-title">確定前と論文記載前に行う3つの作業</h3>
+          </div>
+          <div className="sr-after-search-grid">
+            <article>
+              <span className="sr-guide-number">1</span>
+              <h4>キー論文が回収できるか確認</h4>
+              <p>
+                事前に用意したキー論文が検索結果に含まれるか確認し、含まれなければ検索式を調整します。
+                ただし、キー論文だけに合う式へ過度に調整せず、他の適格研究も広く拾える感度を保ちます。
+              </p>
+              <p>
+                見つからない場合は、Pの定義を狭めすぎていないか、Cを入れたことが原因でないか、
+                MeSH・自由語・フィールドタグに漏れがないかを順に確認します。
+              </p>
+            </article>
+            <article>
+              <span className="sr-guide-number">2</span>
+              <h4>検索期間（出版年制限）の根拠を確認</h4>
+              <p>
+                原則として、都合のよい年数で出版年を制限しません。
+                疾患概念、診断定義、介入、または診療実態が過去とは明確に異なり、
+                それ以前の研究が適格になり得ないと説明できる場合に限って期間制限を検討します。
+              </p>
+              <p>
+                制限する場合は、開始年・終了年、使用した日付フィールド、根拠となる承認日・定義改訂・論文等を記録し、論文で理由を説明します。
+              </p>
+            </article>
+            <article>
+              <span className="sr-guide-number">3</span>
+              <h4>P・I・必要時のみC・研究デザインを分けて実行</h4>
+              <p>
+                上の一括検索式だけを保存して終わらず、P、I、必要な場合のみC、研究デザインフィルターを
+                PubMed Advanced SearchのHistoryへ別々の行として登録し、最後にANDで結合します。
+              </p>
+              <p>
+                各概念内の類義語はORでまとめます。Oは通常、検索式へ含めずスクリーニングで確認します。
+              </p>
+            </article>
+          </div>
+          <div className="sr-reporting-reminder">
+            <strong>論文・補足資料に残すもの</strong>
+            <p>
+              データベースとプラットフォーム、P・I・C・研究デザインの各行、最後のAND結合式、検索日、各行の件数、
+              使用した期間制限・フィルターとその理由を、実際に実行したとおり保存して記載します。
+            </p>
+          </div>
+          <p className="sr-guidance-sources">
+            方法論の確認：{" "}
+            <a
+              href="https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-04"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Cochrane Handbook Chapter 4
+            </a>
+            {" / "}
+            <a
+              href="https://systematicreviewsjournal.biomedcentral.com/articles/10.1186/s13643-020-01542-z"
+              target="_blank"
+              rel="noreferrer"
+            >
+              PRISMA-S
+            </a>
+          </p>
+        </section>
 
         {/* 構造化検索式アコーディオン */}
         <SrStructuredQueryAccordion

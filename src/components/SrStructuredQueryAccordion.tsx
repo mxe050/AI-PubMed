@@ -23,12 +23,14 @@ export function SrStructuredQueryAccordion({
   return (
     <details className="sr-structured-accordion">
       <summary>
-        <strong>構造化検索式（P/I/C/D を個別にコピー）</strong>
+        <strong>
+          論文記載用：P / I / C / 研究デザインを分けた検索式（個別コピー）
+        </strong>
       </summary>
       <p className="hint">
-        Cochrane 等の SR では、P・I・C・研究デザインをそれぞれ個別に PubMed
-        Advanced Search で検索し、最後に AND
-        で結合する方法を使います。以下から各ブロックを個別にコピーできます。
+        ここは実行・報告用の行別ブロックです。P、I、必要な場合のみC、研究デザインを
+        PubMed Advanced SearchのHistoryへ個別に登録し、最後にANDで結合してください。
+        Oは通常、最終検索式には含めません。以下から各ブロックを個別にコピーできます。
       </p>
 
       {(["P", "I", "C", "O"] as SrPicoElement[]).map((el) => (

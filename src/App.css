@@ -3542,6 +3542,21 @@ tr.unverified {
   margin: 3px 0;
 }
 
+.sr-key-paper-intro {
+  margin: 6px 0 9px;
+  padding: 11px 13px;
+  border-left: 4px solid #2563eb;
+  border-radius: 7px;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.sr-key-paper-intro p {
+  margin: 5px 0 0;
+}
+
 .sr-methodology-references {
   margin: 8px 0 14px;
   padding: 9px 12px;
@@ -3921,6 +3936,54 @@ tr.unverified {
   margin-top: 14px;
 }
 
+.sr-concept-selection-guide {
+  margin: 12px 0 16px;
+  padding: 14px 16px;
+  border: 1px solid #fcd34d;
+  border-left: 5px solid #d97706;
+  border-radius: 9px;
+  background: #fffbeb;
+  color: #78350f;
+}
+
+.sr-concept-selection-guide p,
+.sr-concept-selection-guide ul {
+  margin: 8px 0 0;
+  font-size: 0.86rem;
+  line-height: 1.65;
+}
+
+.sr-concept-selection-guide ul {
+  padding-left: 22px;
+}
+
+.sr-concept-selection-guide li + li {
+  margin-top: 6px;
+}
+
+.sr-guide-heading {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.sr-guide-heading > span {
+  flex: 0 0 auto;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #d97706;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.sr-guide-heading h3 {
+  margin: 0;
+  color: inherit;
+  font-size: 0.98rem;
+  line-height: 1.45;
+}
+
 @media (max-width: 760px) {
   .sr-workflow-map ol {
     grid-template-columns: 1fr;
@@ -3950,20 +4013,126 @@ tr.unverified {
   }
 }
 
-/* 検索式直下の警告＋MeSHボタン */
-.sr-search-string-tools {
+/* 最終検索式の実行・確認・報告ガイド */
+.sr-details-required-card {
+  margin: 10px 0 16px;
+  padding: 15px 16px;
+  border: 2px solid #f59e0b;
+  border-radius: 10px;
+  background: #fffbeb;
+  color: #78350f;
+}
+
+.sr-details-required-card > p,
+.sr-details-required-card ol {
+  margin: 9px 0 0;
+  font-size: 0.87rem;
+  line-height: 1.65;
+}
+
+.sr-details-required-card ol {
+  padding-left: 24px;
+}
+
+.sr-details-required-card li + li {
+  margin-top: 5px;
+}
+
+.sr-details-warning-explanation {
+  padding: 9px 11px;
+  border-radius: 7px;
+  background: #fef2f2;
+  color: #991b1b;
+  font-weight: 650;
+}
+
+.sr-guidance-links {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 10px;
-  margin-top: 6px;
+  gap: 8px;
+  margin-top: 11px;
 }
-.sr-search-string-warning {
-  margin: 0;
-  color: var(--color-error);
-  font-size: 0.86rem;
-  line-height: 1.5;
-  flex: 1 1 320px;
+
+.sr-after-search-guide {
+  margin: 18px 0 14px;
+  padding: 16px;
+  border: 2px solid #93c5fd;
+  border-radius: 11px;
+  background: #f8fbff;
+  color: #1e3a8a;
+}
+
+.sr-after-search-guide .sr-guide-heading > span {
+  background: #2563eb;
+}
+
+.sr-after-search-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 11px;
+  margin-top: 13px;
+}
+
+.sr-after-search-grid article {
+  position: relative;
+  padding: 13px;
+  border: 1px solid #bfdbfe;
+  border-radius: 9px;
+  background: #fff;
+  color: var(--color-text);
+}
+
+.sr-guide-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 25px;
+  height: 25px;
+  border-radius: 50%;
+  background: #2563eb;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.sr-after-search-grid h4 {
+  margin: 8px 0 5px;
+  color: #1e3a8a;
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.sr-after-search-grid p {
+  margin: 5px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.62;
+}
+
+.sr-reporting-reminder {
+  margin-top: 12px;
+  padding: 11px 13px;
+  border-left: 4px solid #2563eb;
+  border-radius: 7px;
+  background: #eff6ff;
+  color: #1e3a8a;
+}
+
+.sr-reporting-reminder p {
+  margin: 5px 0 0;
+  font-size: 0.84rem;
+  line-height: 1.6;
+}
+
+.sr-guidance-sources {
+  margin: 10px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.78rem;
+}
+
+.sr-guidance-sources a {
+  color: var(--color-primary);
+  text-decoration: underline;
 }
 
 .sr-pubmed-details-checker {
@@ -4083,6 +4252,15 @@ tr.unverified {
 }
 
 @media (max-width: 760px) {
+  .sr-guide-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .sr-after-search-grid {
+    grid-template-columns: 1fr;
+  }
+
   .sr-pubmed-details-heading {
     align-items: flex-start;
     flex-direction: column;

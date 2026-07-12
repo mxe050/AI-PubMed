@@ -504,7 +504,22 @@ export function SrPreparationWorkflow({
         </div>
 
         <div className="form-group">
-          <label htmlFor="sr-known-pmids">既知重要論文のPMID（任意・回収ベンチマーク）</label>
+          <label htmlFor="sr-known-pmids">
+            キー論文のPMID（ある場合は必ず入力・回収確認用）
+          </label>
+          <div className="sr-key-paper-intro" role="note">
+            <strong>
+              キー論文とは、「最終検索式で必ず見つけたい」と事前に分かっている重要論文です。
+            </strong>
+            <p>
+              領域の専門家が把握している代表的研究があれば、PMIDをここへ入力してください。
+              司書・情報専門家へ検索式作成を依頼する場合も、依頼時にキー論文を共有することが重要です。
+            </p>
+            <p>
+              キー論文を事前に特定できない領域もあります。その場合は無理に作らず空欄で進め、
+              既存レビュー、引用追跡、専門家への確認から候補を探します。
+            </p>
+          </div>
           <textarea
             id="sr-known-pmids"
             rows={2}
