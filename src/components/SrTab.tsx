@@ -26,6 +26,7 @@ import { renderClassificationNewTab } from "../utils/renderClassificationNewTab"
 import { openPubMedWithQuery } from "../utils/pubmedUrl";
 import { parseKnownPmids } from "../utils/knownPmidBenchmark";
 import { PubMedSearchBox } from "./PubMedSearchBox";
+import { SrPubMedDetailsChecker } from "./SrPubMedDetailsChecker";
 import { SrTermTable } from "./SrTermTable";
 import { SrPubMedResultTable } from "./SrPubMedResultTable";
 import { SrStructuredQueryAccordion } from "./SrStructuredQueryAccordion";
@@ -422,8 +423,8 @@ export function SrTab({ settings }: Props) {
           />
           <div className="sr-search-string-tools">
             <p className="sr-search-string-warning">
-              ⚠ <strong>PubMed Advanced Search Builder の Details を確認して、検索式を修正してください。</strong>{" "}
-              各検索語が想定通り MeSH／フリーテキストに展開されているかを必ず確認してください。
+              ⚠ <strong>下のDetails相当確認を実行し、必要なら検索式を修正してください。</strong>{" "}
+              各検索語が想定通り MeSH／フリーテキストに展開されているかを確認します。PubMedから警告・エラーが返された場合は赤字で表示されます。
             </p>
             <a
               className="btn btn-secondary btn-xs sr-mesh-link-btn"
@@ -435,6 +436,11 @@ export function SrTab({ settings }: Props) {
             </a>
           </div>
         </div>
+
+        <SrPubMedDetailsChecker
+          settings={settings}
+          query={effectiveSearchString}
+        />
 
         {/* 検索ボタン群 */}
         <div className="sr-preview-notice" role="note">

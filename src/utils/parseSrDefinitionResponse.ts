@@ -1,3 +1,5 @@
+import type { SrEligibilityReference } from "./parseSrEligibilityResponse";
+
 export type SrDefinitionElement = "P" | "I" | "C" | "O";
 
 export interface SrDefinitionSource {
@@ -197,4 +199,56 @@ export function buildSelectedDefinitionContext(
     null,
     2
   );
+}
+
+function referenceKey(source: SrDefinitionSource): string {
+  if (source.pmid.trim()) return `pmid:${source.pmid.trim().toLowerCase()}`;
+  if (source.doi.trim()) return `doi:${source.doi.trim().toLowerCase()}`;
+  if (source.url.trim()) return `url:${source.url.trim().toLowerCase()}`;
+  return `citation:${source.citation.trim().toLowerCase().replace(/\s+/g, " ")}`;
+}
+
+/**
+ * Step 3で実際に選択された定義候補からだけ、根拠文献を取り出す。
+ * 適格基準を作る外部AIの出力は信頼源にせず、同一文献はoptionIdsをまとめる。
+ */
+export function collectSelectedDefinitionReferences(
+  consultation: SrDefinitionConsultation
+): SrEligibilityReference[] {
+  const references = new Map<string, SrEligibilityReference>();
+
+  for (const option of consultation.options.filter((item) => item.selected)) {
+    for (const source of option.sources) {
+      if (!source.citation && !source.pmid && !source.doi && !source.url) continue;
+      const key = referenceKey(source);
+      const existing = references.get(key);
+      if (existing) {
+        if (!existing.optionIds.includes(option.id)) {
+          existing.optionIds.push(option.id);
+        }
+        if (!existing.citation && source.citation) existing.citation = source.citation;
+        if (!existing.pmid && source.pmid) existing.pmid = source.pmid;
+        if (!existing.doi && source.doi) existing.doi = source.doi;
+        if (!existing.url && source.url) existing.url = source.url;
+        if (
+          existing.verifiedWith.toLowerCase() === "unverified" &&
+          source.verifiedWith
+        ) {
+          existing.verifiedWith = source.verifiedWith;
+        }
+        continue;
+      }
+
+      references.set(key, {
+        optionIds: [option.id],
+        citation: source.citation,
+        pmid: source.pmid,
+        doi: source.doi,
+        url: source.url,
+        verifiedWith: source.verifiedWith || "unverified",
+      });
+    }
+  }
+
+  return Array.from(references.values());
 }

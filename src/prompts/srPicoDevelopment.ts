@@ -112,6 +112,9 @@ O: {{o}}
 
 - 採用されていない定義を混ぜない
 - 新しい書誌情報を作らず、根拠は上記のoption idと文献だけに限定する
+- definitionReferences には、採用した option の sources に記載された書誌情報だけを一字一句変更せず転記する
+- definitionReferences の各文献に、その根拠を使用した option id を optionIds として付ける。同じ文献が複数 option にある場合は1件にまとめ、optionIds を併記する
+- 上記 sources にない文献を、知識や推測で補わない。採用定義に文献がなければ definitionReferences は空配列にする
 - P、I、Cを、研究報告から判定できる操作的基準にする
 - Oを研究の採否条件にするかは慎重に判断し、検索漏れにつながる場合は採否条件にしない
 - 研究デザインは名称だけでなく、比較群、介入開始時点、割付方法、追跡、効果推定等の特徴で記載する
@@ -137,7 +140,17 @@ O: {{o}}
   "screeningQuestions": ["査読者がYes/No/Unclearで判定できる質問"],
   "methodsText": "論文Methodsに使用できる適格基準の文章",
   "searchNotes": ["検索式には入れない概念、未解決点、感度維持の注意"],
-  "sourceOptionIds": ["P1", "I1"]
+  "sourceOptionIds": ["P1", "I1"],
+  "definitionReferences": [
+    {
+      "optionIds": ["P1"],
+      "citation": "採用した定義候補のsourcesにある完全な書誌情報をそのまま転記",
+      "pmid": "sourcesにある値をそのまま転記。なければ空文字",
+      "doi": "sourcesにある値をそのまま転記。なければ空文字",
+      "url": "sourcesにある値をそのまま転記。なければ空文字",
+      "verifiedWith": "sourcesにある値をそのまま転記"
+    }
+  ]
 }
 ===ELIGIBILITY_JSON_END===
 `;

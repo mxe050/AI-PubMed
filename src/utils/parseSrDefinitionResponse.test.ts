@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { parseSrDefinitionResponse } from "./parseSrDefinitionResponse";
+import {
+  collectSelectedDefinitionReferences,
+  parseSrDefinitionResponse,
+} from "./parseSrDefinitionResponse";
 
 describe("parseSrDefinitionResponse", () => {
   it("parses definition candidates and keeps the recommended choice selected", () => {
@@ -40,5 +43,82 @@ describe("parseSrDefinitionResponse", () => {
       "===DEFINITION_JSON_START==={bad===DEFINITION_JSON_END==="
     );
     expect(result.ok).toBe(false);
+  });
+
+  it("collects evidence only from selected options and deduplicates shared papers", () => {
+    const result = collectSelectedDefinitionReferences({
+      questionInterpretation: "",
+      decisionPoints: [],
+      options: [
+        {
+          id: "P1",
+          element: "P",
+          title: "P definition",
+          definition: "Adults",
+          operationalCriteria: [],
+          rationale: "",
+          limitations: [],
+          recommended: true,
+          selected: true,
+          sources: [
+            {
+              citation: "Shared paper",
+              pmid: "123",
+              doi: "",
+              url: "https://pubmed.ncbi.nlm.nih.gov/123/",
+              verifiedWith: "PubMed",
+            },
+          ],
+        },
+        {
+          id: "I1",
+          element: "I",
+          title: "I definition",
+          definition: "Intervention",
+          operationalCriteria: [],
+          rationale: "",
+          limitations: [],
+          recommended: true,
+          selected: true,
+          sources: [
+            {
+              citation: "Shared paper",
+              pmid: "123",
+              doi: "10.1000/shared",
+              url: "https://pubmed.ncbi.nlm.nih.gov/123/",
+              verifiedWith: "PubMed",
+            },
+          ],
+        },
+        {
+          id: "P2",
+          element: "P",
+          title: "Unselected",
+          definition: "Other adults",
+          operationalCriteria: [],
+          rationale: "",
+          limitations: [],
+          recommended: false,
+          selected: false,
+          sources: [
+            {
+              citation: "Unselected paper",
+              pmid: "999",
+              doi: "",
+              url: "",
+              verifiedWith: "PubMed",
+            },
+          ],
+        },
+      ],
+    });
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toMatchObject({
+      optionIds: ["P1", "I1"],
+      citation: "Shared paper",
+      pmid: "123",
+      doi: "10.1000/shared",
+    });
   });
 });

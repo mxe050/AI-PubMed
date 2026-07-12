@@ -44,6 +44,35 @@ function formatList(items: string[], emptyLabel = "指定なし"): string {
     : `・${emptyLabel}`;
 }
 
+function formatDefinitionReferences(criteria: SrEligibilityCriteria): string {
+  if (criteria.definitionReferences.length === 0) {
+    return "・根拠文献未確認（採用前に定義候補の原典を確認してください）";
+  }
+
+  return criteria.definitionReferences
+    .map((reference, index) => {
+      const elements = Array.from(
+        new Set(
+          reference.optionIds
+            .map((id) => id.trim().charAt(0).toUpperCase())
+            .filter((element) => ["P", "I", "C", "O"].includes(element))
+        )
+      );
+      const identifiers = [
+        reference.pmid ? `PMID: ${reference.pmid}` : "",
+        reference.doi ? `doi: ${reference.doi}` : "",
+        reference.url ? `URL: ${reference.url}` : "",
+      ].filter(Boolean);
+      const citation = reference.citation || "書誌情報未記載";
+      return `${index + 1}. ${citation}${
+        elements.length > 0 ? `\n   定義との対応: ${elements.join(" / ")}` : ""
+      }${
+        identifiers.length > 0 ? `\n   ${identifiers.join(" / ")}` : ""
+      }`;
+    })
+    .join("\n");
+}
+
 function buildShareText(
   criteria: SrEligibilityCriteria,
   question: string
@@ -82,6 +111,9 @@ ${criteria.methodsText || "未作成"}
 
 【検索設計上の注意点】
 ${formatList(criteria.searchNotes, "特記事項なし")}
+
+【採用したPICO定義の根拠文献】
+${formatDefinitionReferences(criteria)}
 
 ※本案は共同研究者間で確認し、プロトコル登録・スクリーニング開始・論文投稿前に、採用した定義と原典を再確認してください。`;
 }
@@ -126,7 +158,7 @@ export function SrEligibilitySummary({ criteria, onChange, question = "" }: Prop
           <div>
             <h3>共同研究者への共有・論文草案への貼り付け用</h3>
             <p>
-              PICOと選択基準を一つの文書にまとめています。メール、会議資料、プロトコル・論文草案へそのまま貼り付けられます。
+              PICO、選択基準、採用した定義の根拠文献を一つの文書にまとめています。メール、会議資料、プロトコル・論文草案へそのまま貼り付けられます。
             </p>
           </div>
           <span>一括表示</span>
@@ -155,6 +187,28 @@ export function SrEligibilitySummary({ criteria, onChange, question = "" }: Prop
             <> 採用定義ID：{criteria.sourceOptionIds.join(" / ")}。</>
           )}
         </p>
+
+        <div className="sr-eligibility-reference-note">
+          <strong>共有文書へ引き継いだ定義の根拠文献</strong>
+          {criteria.definitionReferences.length > 0 ? (
+            <ol>
+              {criteria.definitionReferences.map((reference, index) => (
+                <li key={`${reference.pmid || reference.doi || reference.url || reference.citation}-${index}`}>
+                  {reference.optionIds.length > 0 && (
+                    <>［{reference.optionIds.join(" / ")}］</>
+                  )}
+                  {reference.citation || "書誌情報未記載"}
+                  {reference.pmid && <>（PMID: {reference.pmid}）</>}
+                </li>
+              ))}
+            </ol>
+          ) : (
+            <p>採用した定義候補に根拠文献がありません。Step 3へ戻って原典を確認してください。</p>
+          )}
+          <p className="hint">
+            ここにはStep 3で選択した定義候補の文献だけを表示します。適格基準作成AIが新たに挙げた文献は採用しません。
+          </p>
+        </div>
 
         <div className="sr-final-pico-grid">
           {(["p", "i", "c", "o"] as const).map((key) => (

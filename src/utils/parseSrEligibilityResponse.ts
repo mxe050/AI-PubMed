@@ -1,3 +1,12 @@
+export interface SrEligibilityReference {
+  optionIds: string[];
+  citation: string;
+  pmid: string;
+  doi: string;
+  url: string;
+  verifiedWith: string;
+}
+
 export interface SrEligibilityCriteria {
   p: string;
   i: string;
@@ -12,6 +21,7 @@ export interface SrEligibilityCriteria {
   methodsText: string;
   searchNotes: string[];
   sourceOptionIds: string[];
+  definitionReferences: SrEligibilityReference[];
 }
 
 export interface ParseSrEligibilityResult {
@@ -28,6 +38,28 @@ function asStringArray(value: unknown): string[] {
   return Array.isArray(value)
     ? value.map(asString).filter((item) => item.length > 0)
     : [];
+}
+
+function asDefinitionReferences(value: unknown): SrEligibilityReference[] {
+  if (!Array.isArray(value)) return [];
+
+  return value
+    .filter((item) => item && typeof item === "object")
+    .map((item) => {
+      const reference = item as Record<string, unknown>;
+      return {
+        optionIds: asStringArray(reference.optionIds),
+        citation: asString(reference.citation),
+        pmid: asString(reference.pmid),
+        doi: asString(reference.doi),
+        url: asString(reference.url),
+        verifiedWith: asString(reference.verifiedWith) || "unverified",
+      };
+    })
+    .filter(
+      (reference) =>
+        reference.citation || reference.pmid || reference.doi || reference.url
+    );
 }
 
 function stripCodeFence(value: string): string {
@@ -79,6 +111,7 @@ export function parseSrEligibilityResponse(text: string): ParseSrEligibilityResu
     methodsText: asString(value.methodsText),
     searchNotes: asStringArray(value.searchNotes),
     sourceOptionIds: asStringArray(value.sourceOptionIds),
+    definitionReferences: asDefinitionReferences(value.definitionReferences),
   };
 
   if (!criteria.p || !criteria.i) {

@@ -9,6 +9,7 @@ import { srInitialPrompt } from "../prompts/systematicReview";
 import { parsePicoFromAiResponse } from "../utils/parsePicoFromAiResponse";
 import {
   buildSelectedDefinitionContext,
+  collectSelectedDefinitionReferences,
   parseSrDefinitionResponse,
   type SrDefinitionConsultation,
 } from "../utils/parseSrDefinitionResponse";
@@ -285,17 +286,31 @@ export function SrPreparationWorkflow({
       });
       return;
     }
-    setEligibility(result.criteria);
+    const trustedReferences = consultation
+      ? collectSelectedDefinitionReferences(consultation)
+      : [];
+    const trustedCriteria: SrEligibilityCriteria = {
+      ...result.criteria,
+      sourceOptionIds:
+        consultation?.options
+          .filter((option) => option.selected)
+          .map((option) => option.id) ?? result.criteria.sourceOptionIds,
+      definitionReferences: trustedReferences,
+    };
+    setEligibility(trustedCriteria);
     onPicoChange({
-      p: result.criteria.p,
-      i: result.criteria.i,
-      c: result.criteria.c,
-      o: result.criteria.o,
+      p: trustedCriteria.p,
+      i: trustedCriteria.i,
+      c: trustedCriteria.c,
+      o: trustedCriteria.o,
     });
     resetAfterEligibility();
     setEligibilityFeedback({
       kind: "ok",
-      text: "最終PICO・適格基準を一括文書にまとめました。必要な場合は個別編集欄を開いて修正できます。",
+      text:
+        trustedReferences.length > 0
+          ? `最終PICO・適格基準を一括文書にまとめ、採用定義の根拠文献${trustedReferences.length}件を引き継ぎました。`
+          : "最終PICO・適格基準をまとめましたが、採用した定義候補に根拠文献がありません。原典確認後に採用してください。",
     });
     setTimeout(() => {
       document

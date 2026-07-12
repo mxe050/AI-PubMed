@@ -3853,6 +3853,24 @@ tr.unverified {
   font-weight: 650;
 }
 
+.sr-eligibility-reference-note {
+  margin: 14px 0;
+  padding: 11px 13px;
+  border-left: 4px solid #2563eb;
+  border-radius: 6px;
+  background: #eff6ff;
+  font-size: 0.84rem;
+}
+
+.sr-eligibility-reference-note ol {
+  margin: 8px 0;
+  padding-left: 22px;
+}
+
+.sr-eligibility-reference-note li + li {
+  margin-top: 5px;
+}
+
 .sr-criteria-editor-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3925,7 +3943,8 @@ tr.unverified {
   .sr-definition-group-heading,
   .sr-definition-card-heading,
   .sr-selection-action,
-  .sr-share-ready-heading {
+  .sr-share-ready-heading,
+  .sr-pubmed-details-heading {
     align-items: flex-start;
     flex-direction: column;
   }
@@ -3945,6 +3964,129 @@ tr.unverified {
   font-size: 0.86rem;
   line-height: 1.5;
   flex: 1 1 320px;
+}
+
+.sr-pubmed-details-checker {
+  margin: 10px 0 16px;
+  padding: 14px;
+  border: 1px solid #93c5fd;
+  border-radius: 10px;
+  background: #f8fbff;
+}
+
+.sr-pubmed-details-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.sr-pubmed-details-heading h4 {
+  margin: 0 0 4px;
+  color: #1e3a8a;
+  font-size: 0.96rem;
+}
+
+.sr-pubmed-details-heading p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.sr-pubmed-details-result {
+  margin-top: 13px;
+  padding-top: 13px;
+  border-top: 1px solid #bfdbfe;
+}
+
+.sr-pubmed-details-result > label {
+  display: block;
+  margin: 8px 0 5px;
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.sr-pubmed-details-result textarea {
+  width: 100%;
+  resize: vertical;
+  border-color: #93c5fd;
+  background: #fff;
+  font-family: "SF Mono", "Fira Code", Consolas, "Courier New", monospace;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.sr-pubmed-details-alert,
+.sr-pubmed-details-info,
+.sr-pubmed-details-ok,
+.sr-pubmed-details-stale {
+  margin: 9px 0;
+  padding: 10px 12px;
+  border-radius: 7px;
+  font-size: 0.83rem;
+  line-height: 1.55;
+}
+
+.sr-pubmed-details-alert {
+  border: 1px solid #fca5a5;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.sr-pubmed-details-alert ul {
+  margin: 4px 0 0;
+  padding-left: 21px;
+}
+
+.sr-pubmed-details-alert div {
+  margin-top: 7px;
+}
+
+.sr-pubmed-details-alert div > span {
+  font-weight: 750;
+}
+
+.sr-pubmed-details-info,
+.sr-pubmed-details-stale {
+  border: 1px solid #fcd34d;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.sr-pubmed-details-ok {
+  border: 1px solid #86efac;
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.sr-pubmed-details-meta {
+  margin-top: 9px;
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 650;
+}
+
+.sr-pubmed-details-copy-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.sr-copy-translated-query {
+  border-width: 2px;
+  border-color: #1d4ed8;
+  color: #1d4ed8;
+  font-weight: 750;
+}
+
+@media (max-width: 760px) {
+  .sr-pubmed-details-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
 }
 
 .sr-copy-search-button {
