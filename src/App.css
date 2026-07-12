@@ -4089,23 +4089,6 @@ tr.unverified {
   }
 }
 
-.sr-copy-search-button {
-  border-width: 2px;
-  font-weight: 800;
-}
-
-.sr-copy-search-button:not(:disabled) {
-  border-color: var(--color-error);
-  background: #fff1f2;
-  color: var(--color-error);
-}
-
-.sr-copy-search-button:not(:disabled):hover {
-  border-color: #991b1b;
-  background: #fee2e2;
-  color: #991b1b;
-}
-
 /* MeSH リンクボタン（共通） */
 .sr-mesh-link-btn {
   text-decoration: none;

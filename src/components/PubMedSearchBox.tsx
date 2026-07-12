@@ -17,6 +17,7 @@ interface Props {
   onResult: (result: PubMedSearchResult) => void;
   retmax?: number;
   buttonLabel?: string;
+  buttonVariant?: "primary" | "secondary";
   benchmarkPmids?: string[];
   queryKind?: QueryKind;
   retrievalSource?: "CPG" | "SR";
@@ -29,6 +30,7 @@ export function PubMedSearchBox({
   onResult,
   retmax = 20,
   buttonLabel,
+  buttonVariant = "primary",
   benchmarkPmids = [],
   queryKind = "general",
   retrievalSource,
@@ -242,7 +244,7 @@ export function PubMedSearchBox({
   return (
     <div className="pubmed-search-box">
       <button
-        className="btn btn-primary"
+        className={`btn btn-${buttonVariant}`}
         onClick={runSearch}
         disabled={!searchString || loading}
       >

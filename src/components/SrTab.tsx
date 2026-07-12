@@ -447,16 +447,36 @@ export function SrTab({ settings }: Props) {
           <strong>アプリ内表示は Best Match 上位100件のプレビューです。</strong>
           <span>
             システマティックレビューの全件スクリーニングではありません。全件確認・保存は
-            「PubMed 検索結果で開く」を使用してください。
+            「PubMed Advanced Search で開く」を使用してください。
           </span>
         </div>
         <div className="button-group">
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={() => {
+              if (!effectiveSearchString) return;
+              void openPubMedWithQuery(effectiveSearchString, "advanced");
+            }}
+            disabled={!effectiveSearchString}
+          >
+            PubMed Advanced Search で開く（外部）
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary"
+            onClick={copySearchString}
+            disabled={!effectiveSearchString}
+          >
+            {searchCopyMsg || "検索式をコピー"}
+          </button>
           <PubMedSearchBox
             settings={settings}
             searchString={effectiveSearchString}
             onResult={(r) => setPubmedResult(r)}
             retmax={100}
             buttonLabel="上位100件をプレビュー"
+            buttonVariant="secondary"
             benchmarkPmids={parsedKnownPmids.pmids}
             queryKind={
               designKey === "guideline"
@@ -478,36 +498,6 @@ export function SrTab({ settings }: Props) {
               designKey === "guideline_or_systematic_review"
             }
           />
-          <button
-            type="button"
-            className="btn btn-secondary sr-copy-search-button"
-            onClick={copySearchString}
-            disabled={!effectiveSearchString}
-          >
-            {searchCopyMsg || "検索式をコピー（推奨）"}
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => {
-              if (!effectiveSearchString) return;
-              void openPubMedWithQuery(effectiveSearchString, "advanced");
-            }}
-            disabled={!effectiveSearchString}
-          >
-            PubMed Advanced Search で開く（外部）
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={() => {
-              if (!effectiveSearchString) return;
-              void openPubMedWithQuery(effectiveSearchString, "regular");
-            }}
-            disabled={!effectiveSearchString}
-          >
-            PubMed 検索結果で開く（外部）
-          </button>
         </div>
         <p className="hint" style={{ fontSize: "0.78rem" }}>
           ※ 検索式が長すぎる場合、URLに入りきらないことがあります。その場合は本アプリが
