@@ -111,13 +111,14 @@ export function StrategyWorkflow({
           <div className="prompt-recommendation-banner">
             <h4>📌 質問ズレ/PubMed検索漏れプロンプト</h4>
             <p>
-              PubMedのタイトル・抄録検索では届かない、
+              最初に検索方向を大きく変える確認質問を1つ返し、その後、
+              PubMedのタイトル・抄録検索では届きにくい
               <strong>
                 本文内証拠（Discussion / Methods / Results / Limitations / Table /
                 Figure / 参考文献）
               </strong>
-              に批判・比較・改変・限界・代替分類への言及を持つ論文を意図的に拾い上げるためのプロンプトです。
-              地域名タイトル・地域誌・非英語圏著者・低被引用などを除外せず、複合バイアス3要因以上を最優先で全文取得します。
+              を探索します。支持・反対・限定・修正を中立に確認し、書誌確認済み、
+              全文証拠確認済み、探索手掛かりを分けて表示させます。
             </p>
             <p className="hint">
               回答は必ず{" "}
@@ -141,7 +142,8 @@ export function StrategyWorkflow({
 
           <p className="warning-text">
             ⚠
-            結果はAI訓練知識からの想起と外部AIによる検索を含みますが、網羅的検索ではありません。重要な判断にはPubMedや原文での確認を併用してください。
+            外部AIがWeb・全文を利用できない場合は、検索結果ではなく検索手順だけが返ることがあります。
+            回答は網羅的検索ではないため、必ず「AI出力ファクトチェック」と原文確認を併用してください。
           </p>
         </section>
       )}

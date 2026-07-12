@@ -298,11 +298,11 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
           <div className="strategy-card">
             <h4>● 質問ズレ/PubMed検索漏れ</h4>
             <p>
-              PubMedの抄録だけでは届かない<strong>本文内証拠</strong>
+              検索方向を大きく変える確認質問を1つ返した後、PubMedの抄録だけでは届きにくい<strong>本文内証拠</strong>
               （Discussion・Methods・Limitations・Table・Figure・参考文献にある批判・比較・改変・限界・代替分類への言及）を持つ論文を意図的に拾い上げるためのプロンプトを生成します。
             </p>
             <p>
-              <strong>通常検索 / 反証検索</strong>の2モード切替で、確証バイアスを防ぎながら包括的な文献レビューが可能です。
+              通常検索も支持側へ寄せず、支持・反対・限定・修正を中立に探索します。必要に応じて<strong>反証検索</strong>で反対側をさらに深掘りできます。
             </p>
           </div>
 

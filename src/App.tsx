@@ -174,7 +174,7 @@ export default function App() {
                 aria-selected={topicMode === "normal"}
                 className={`topic-mode-btn ${topicMode === "normal" ? "active" : ""}`}
                 onClick={() => setTopicMode("normal")}
-                title="既存のプロンプトを使い、ユーザーの仮説を支持・裏付ける論文を探します"
+                title="質問の意味を確認し、支持・反対・限定・修正を中立に探索します"
               >
                 📖 通常検索
               </button>
@@ -203,6 +203,9 @@ export default function App() {
 
             {topicMode === "normal" && (
               <p className="topic-mode-normal-intro">
+                質問の意味を一度確認してから、支持・反対・条件付き限定・原典との差を
+                <strong>中立に探索</strong>します。入力欄は1つのままです。
+                <br />
                 <strong>
                   💡 Geminiの高速モードなどでは、「開始します・そのままお待ちください。」で止まるため、「続けて」と入力してください。
                 </strong>
@@ -246,7 +249,7 @@ export default function App() {
                     <p>
                       各論文には <strong>反証の種類</strong>（直接反論／条件付き限定／別解釈／再現失敗／方法論批判／エビデンス不十分）と
                       <strong>反証の強さ</strong>（強い／中程度／弱い）が付記されます。
-                      反証が見つかっても研究の質が下がるわけではありません。むしろ、通常検索（支持側）と反証検索（反対側）の両方の結果を比較することで、より包括的な文献レビューになります。
+                      反証が見つかっても研究の質が下がるわけではありません。通常検索の中立探索に加え、反証検索で反対側を深掘りすることで、より包括的な文献レビューになります。
                     </p>
                     <details className="topic-example-box">
                       <summary>
@@ -269,7 +272,8 @@ export default function App() {
                       PubMedのタイトル・抄録検索では見落とされる、本文内証拠（Discussion
                       / Methods / Results / Limitations / Table / Figure /
                       参考文献にある批判・比較・改変・限界・代替分類への言及）を持つ論文を探します。
-                      地域名タイトル・地域誌・非英語圏著者・低被引用などを除外せず、見落としリスクの高い論文を意図的に拾い上げます。
+                      仮説を支持する論文だけに寄せず、反対・限定・修正・原典との差も同時に確認します。
+                      地域名タイトル・地域誌・非英語圏著者・低被引用などを機械的に除外しません。
                     </p>
                     <details className="topic-example-box">
                       <summary>
@@ -291,22 +295,21 @@ export default function App() {
                           のタイトル・抄録検索では拾えません。
                         </li>
                         <li>
-                          このプロンプトでは Opus 4.7
-                          でもヒットせず、「Winter / Pell &amp; Gregory
+                          単純な評価語だけではヒットしにくいため、「Winter / Pell &amp; Gregory
                           の下顎第三大臼歯分類を、<strong>分類そのものを誤解</strong>
                           して使っている論文があることが記載されている、英語の論文を探して。
                           例えば、ある別の基準として、
                           <em>イロハニが原文なのに、誤解してイロニと思い込んで使っている</em>
                           例が記載されている論文を探して。」とすると
-                          <strong>ドンピシャでヒットします</strong>。
-                          このプロンプトの変換は、このような
+                          といった関係表現へ置き換えると、発見可能性が上がります。
+                          このプロンプトは、このような
                           <strong>揺らぎを網羅した検索</strong>
                           ができるように調整しています。
                         </li>
                         <li>
                           このような疑問は臨床疑問として PICO
-                          形式にできないため、PubMed より <strong>AIで直接検索</strong>
-                          する方が便利です。
+                          形式にしにくいため、PubMed検索に加えて、全文検索・引用追跡ができる
+                          <strong>AIやWeb検索を補完的に使う</strong>と有用です。
                         </li>
                       </ol>
                     </details>
