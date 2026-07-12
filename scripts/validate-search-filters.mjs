@@ -7,6 +7,7 @@ const SR_EXCLUSIONS = '(protocol*[ti] OR "scoping review"[pt] OR "scoping review
 const SR_SENSITIVITY = '((search*[tiab] OR medline[tiab] OR pubmed[tiab] OR embase[tiab] OR cochrane[tiab] OR scopus[tiab] OR "web of science"[tiab] OR "data sources"[tiab]) AND ("study selection"[tiab] OR "selection criteria"[tiab] OR "eligibility criteria"[tiab] OR "inclusion criteria"[tiab] OR "exclusion criteria"[tiab]))';
 const SR_UMBRELLA = '("umbrella review*"[ti] OR "overview of reviews"[ti] OR "review of reviews"[ti])';
 const SR_RAPID = '("rapid review*"[ti])';
+const CONTROLLED_NRS_SENSITIVITY = '(cohort[all] OR (control[all] AND study[all]) OR (control[tw] AND group*[tw]) OR epidemiologic studies[mh] OR program[tw] OR clinical trial[pt] OR comparative stud*[all] OR evaluation studies[all] OR statistics as topic[mh] OR survey*[tw] OR follow-up*[all] OR time factors[all] OR ci[tw]) NOT ((animals[mh:noexp] NOT humans[mh:noexp]) OR comment[pt] OR editorial[pt] OR review[pt] OR meta analysis[pt] OR case report[tw] OR consensus[mh] OR guideline[pt] OR history[sh])';
 
 const args = new Map();
 for (let index = 2; index < process.argv.length; index += 2) {
@@ -26,6 +27,8 @@ async function knownPmids(path) {
 
 const knownCpg = await knownPmids(args.get('--known-cpg'));
 const knownSr = await knownPmids(args.get('--known-sr'));
+const knownNrs = await knownPmids(args.get('--known-nrs'));
+const knownCpgOrSr = [...new Set([...knownCpg, ...knownSr])];
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -74,9 +77,11 @@ const candidates = [
   { id: 'CPG-2', query: q(CPG_2), known: knownCpg, baseline: 'CPG-1', limitation: '形式的簡素化・未検証候補' },
   { id: 'SR_CORE', query: q(SR_CORE), known: knownSr, baseline: null, limitation: '候補式全体の性能は未検証' },
   { id: 'SR_DEFAULT', query: q(`(${SR_CORE} NOT ${SR_EXCLUSIONS})`), known: knownSr, baseline: 'SR_CORE', limitation: 'scoping review/protocolの限定除外' },
+  { id: 'CPG_OR_SR_DEFAULT', query: q(`(${CPG_1} OR (${SR_CORE} NOT ${SR_EXCLUSIONS}))`), known: knownCpgOrSr, baseline: null, limitation: '二つの実用型候補式のOR結合・全体性能は未検証' },
   { id: 'SR_SENSITIVITY_EXTENSION_NOT_CORE', query: q(`(${SR_SENSITIVITY} NOT ${SR_CORE})`), known: knownSr, baseline: null, contribution: true, limitation: '適格率・precision・NNSは人手判定なしでは算出不可' },
   { id: 'SR_UMBRELLA_EXTENSION_NOT_CORE', query: q(`(${SR_UMBRELLA} NOT ${SR_CORE})`), known: knownSr, baseline: null, contribution: true, limitation: 'プロトコルで適格な場合のみ使用' },
   { id: 'SR_RAPID_EXTENSION_NOT_CORE', query: q(`(${SR_RAPID} NOT ${SR_CORE})`), known: knownSr, baseline: null, contribution: true, limitation: 'プロトコルで適格な場合のみ使用' },
+  { id: 'CONTROLLED_NRS_SENSITIVITY', query: q(CONTROLLED_NRS_SENSITIVITY), known: knownNrs, baseline: null, limitation: 'Waffenschmidt 2020の検証値は別トピックへ自動適用不可。包括的NRSI検索では補助検索として使用' },
 ];
 
 const results = new Map();
@@ -134,7 +139,7 @@ const rows = [...results.values()].map((item) => {
     ? item.retrieved / item.known.length
     : '';
   return [
-    item.id, '2026-07-11', topic, item.query, item.translation, item.count,
+    item.id, '2026-07-12', topic, item.query, item.translation, item.count,
     knownTotal, item.retrieved, recall, item.added ?? '', item.lost ?? '',
     item.contribution && item.status === 'executed' ? item.count : item.added ?? '',
     item.excludedKnown ?? '', executedAt,

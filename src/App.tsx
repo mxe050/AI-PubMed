@@ -335,7 +335,7 @@ export default function App() {
 
         <div className="tab-panel" hidden={activeTab !== "systematic_review"}>
           {visitedTabs.has("systematic_review") && (
-            <SrTab settings={settings} onNavigateToEbm={() => showTab("ebm_search")} />
+            <SrTab settings={settings} />
           )}
         </div>
 

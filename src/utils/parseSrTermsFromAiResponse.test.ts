@@ -22,4 +22,23 @@ describe("parseSrTermsFromAiResponse", () => {
     expect(result.terms?.O[0].enabled).toBe(false);
     expect(result.warnings.join(" ")).toContain("C/O");
   });
+
+  it("extracts practical search-table advice from the dedicated block", () => {
+    const result = parseSrTermsFromAiResponse(`
+===SEARCH_ADVICE_START===
+- PとIを検索の主軸にする
+・Oは既定でOFFにする
+===SEARCH_ADVICE_END===
+===TERMS_START===
+[P]
+検索語: heart failure | 日本語訳: 心不全 | フィールドタグ: [tiab] | 選定理由: 疾患
+[I]
+検索語: dapagliflozin | 日本語訳: ダパグリフロジン | フィールドタグ: [tiab] | 選定理由: 介入
+===TERMS_END===`);
+
+    expect(result.advice).toEqual([
+      "PとIを検索の主軸にする",
+      "Oは既定でOFFにする",
+    ]);
+  });
 });

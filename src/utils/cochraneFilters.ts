@@ -1,6 +1,6 @@
 // Intervention study-design filters for PubMed.
 // CPG and SR are document-type filters rather than intervention designs. They
-// remain separate choices and are never merged into one convenience filter.
+// remain available separately; a convenience OR-combination is also provided.
 
 import { CPG_FILTER, buildSrFilter } from '../search/cpgSrFilters';
 
@@ -8,6 +8,7 @@ export type StudyDesignFilterKey =
   | 'none'
   | 'guideline'
   | 'systematic_review'
+  | 'guideline_or_systematic_review'
   | 'rct'
   | 'non_rct';
 
@@ -41,11 +42,22 @@ export const NLM_SYSTEMATIC_FILTER_URL =
   'https://www.nlm.nih.gov/bsd/pubmed_subsets/sysreviews_strategy.html';
 export const COCHRANE_SR_FILTER_REVIEW_URL =
   'https://doi.org/10.1002/14651858.MR000054.pub2';
+export const WAFFENSCHMIDT_CONTROLLED_NRS_URL =
+  'https://pubmed.ncbi.nlm.nih.gov/32472632/';
+export const HAUSNER_NRS_FILTER_VALIDATION_URL =
+  'https://pubmed.ncbi.nlm.nih.gov/30563471/';
 export const ANIMAL_ONLY_EXCLUSION = '(animals[mh] NOT humans[mh])';
 
 /** Cochrane Highly Sensitive Search Strategy, sensitivity-maximizing PubMed format. */
 export const COCHRANE_RCT_SENSITIVITY_MAX_EXPRESSION =
   '(randomized controlled trial[pt] OR controlled clinical trial[pt] OR randomized[tiab] OR placebo[tiab] OR drug therapy[sh] OR randomly[tiab] OR trial[tiab] OR groups[tiab])';
+
+/**
+ * Waffenschmidt et al. filter with the best sensitivity for controlled NRS.
+ * Kept in the published PubMed syntax so users can report the actual hedge.
+ */
+export const WAFFENSCHMIDT_CONTROLLED_NRS_SENSITIVITY_EXPRESSION =
+  '(cohort[all] OR (control[all] AND study[all]) OR (control[tw] AND group*[tw]) OR epidemiologic studies[mh] OR program[tw] OR clinical trial[pt] OR comparative stud*[all] OR evaluation studies[all] OR statistics as topic[mh] OR survey*[tw] OR follow-up*[all] OR time factors[all] OR ci[tw]) NOT ((animals[mh:noexp] NOT humans[mh:noexp]) OR comment[pt] OR editorial[pt] OR review[pt] OR meta analysis[pt] OR case report[tw] OR consensus[mh] OR guideline[pt] OR history[sh])';
 
 export const studyDesignFilters: StudyDesignFilter[] = [
   {
@@ -123,6 +135,47 @@ export const studyDesignFilters: StudyDesignFilter[] = [
     ],
   },
   {
+    key: 'guideline_or_systematic_review',
+    label: '診療ガイドライン＋SR/メタ解析（実用型）',
+    description:
+      '実用型の診療ガイドライン候補式とSR／メタ解析候補式をOR結合し、上位二つの文書種別を一度に探索します。個別検索の選択肢もそのまま残しています。',
+    expression: `(${CPG_FILTER} OR ${buildSrFilter()})`,
+    source:
+      'Lunny et al.、NLM systematic[sb]、Cochrane Methodology Reviewを参照した二つの目的適合型ブロックのOR結合',
+    sourceUrl: NLM_SYSTEMATIC_FILTER_URL,
+    caution:
+      'OR結合後の完全一致式は外部検証済みではありません。ガイドライン専用情報源・発行機関サイト、他の書誌データベース、引用追跡を代替しません。',
+    evidenceBadge: '実用型2式の結合・未検証',
+    methodsTemplate:
+      'PubMedを開始年から検索日まで検索した。トピック検索式に、診療ガイドライン候補ブロック（"practice guideline"[pt] OR guideline*[ti]）と、NLM Systematic Review subsetを中心とするSR／メタ解析候補ブロックをOR結合した文書種別フィルターをAND結合した。この結合式は目的適合型の改変式であり外部検証されていないため、既報の性能値は転用しなかった。ガイドライン専用情報源、他の書誌データベース、発行機関ウェブサイトおよび引用追跡で補完した。',
+    references: [
+      {
+        citation:
+          'Lunny C, Salzwedel DM, Liu T, et al. Validation of five search filters for retrieval of clinical practice guidelines produced low precision. J Clin Epidemiol. 2020;117:109-116. doi:10.1016/j.jclinepi.2019.09.022.',
+        url: LUNNY_GUIDELINE_FILTER_URL,
+      },
+      {
+        citation:
+          'National Library of Medicine. Search strategy used to create the PubMed Systematic Reviews filter [Internet]. Bethesda (MD): NLM; last modified 2018 Dec [cited YYYY Mon DD].',
+        url: NLM_SYSTEMATIC_FILTER_URL,
+      },
+      {
+        citation:
+          'Escobar Liquitay CM, Garegnani L, Garrote V, Solà I, Franco JVA. Search strategies (filters) to identify systematic reviews in MEDLINE and Embase. Cochrane Database Syst Rev. 2023;9:MR000054. doi:10.1002/14651858.MR000054.pub2.',
+        url: COCHRANE_SR_FILTER_REVIEW_URL,
+      },
+      {
+        citation:
+          'Klugar M, Lotfi T, Darzi AJ, et al; GRADE Working Group. GRADE guidance 39: using GRADE-ADOLOPMENT to adopt, adapt or create contextualized recommendations from source guidelines and evidence syntheses. J Clin Epidemiol. 2024;174:111494. doi:10.1016/j.jclinepi.2024.111494.',
+        url: GRADE_ADOLOPMENT_GUIDANCE_URL,
+      },
+    ],
+    additionalSources: [
+      { label: 'GRADE Guidance 39', url: GRADE_ADOLOPMENT_GUIDANCE_URL },
+      { label: 'ISSG Guidelines filters', url: ISSG_GUIDELINE_FILTERS_URL },
+    ],
+  },
+  {
     key: 'rct',
     label: 'RCT（Cochrane 感度最大）',
     description:
@@ -146,23 +199,43 @@ export const studyDesignFilters: StudyDesignFilter[] = [
   },
   {
     key: 'non_rct',
-    label: '非RCT（感度最大：デザインで絞らない）',
+    label: '比較群あり非RCT候補（感度優先）',
     description:
-      '非ランダム化研究はデザイン名と索引が一貫しないため、既定では方法論フィルターを追加しません。',
-    expression: '',
+      'Waffenschmidtらがcontrolled non-randomized studiesを対象に開発・検証したPubMedフィルターのうち、感度最大の式を使います。比較群を持つ非ランダム化研究の候補を減らして探すための任意フィルターです。',
+    expression: WAFFENSCHMIDT_CONTROLLED_NRS_SENSITIVITY_EXPRESSION,
     source:
-      'Cochrane Handbook, Chapter 24 §24.3.1.1（NRSI検索フィルターの限界）',
-    sourceUrl: COCHRANE_CHAPTER_24_URL,
+      'Waffenschmidt et al. 2020（controlled NRS用・感度最大フィルター）',
+    sourceUrl: WAFFENSCHMIDT_CONTROLLED_NRS_URL,
     caution:
-      '「非RCTを同定する検証済み式」ではありません。研究デザインはスクリーニング時に判定します。',
-    evidenceBadge: 'Cochraneの注意に沿った広い検索',
+      '非RCTだけを確定する分類器ではなく、RCTや対象外デザインも残ります。また、検証時でも約7.6%を見逃しており、別領域へ性能をそのまま一般化できません。包括的なNRSIレビューでは「フィルターなし」を主検索とし、本式は補助的な絞り込み・感度分析に限定してください。Cochraneはデザイン名の索引語による制限を推奨していません。',
+    evidenceBadge: '検証時 感度92.42%・特異度79.67%',
     methodsTemplate:
-      '非ランダム化研究については、方法論フィルターによる検索漏れを避けるため研究デザインによる制限を適用せず、スクリーニング時に研究デザインを判定した。',
+      '比較群を持つ非ランダム化研究の候補検索には、Waffenschmidtらが開発・検証したPubMed用controlled NRSフィルターの感度最大版を補助的に使用した（開発研究における感度92.42%、特異度79.67%、精度68.49%）。本フィルターは研究デザインを確定するものではないため、適格性は事前に定めたデザイン特徴に基づき全文で判定した。主検索では方法論フィルターを適用せず、本式による検索は補完的に実施した。',
     references: [
       {
         citation:
-          'Reeves BC, Deeks JJ, Higgins JPT, et al. Chapter 24: Including non-randomized studies on intervention effects. In: Cochrane Handbook for Systematic Reviews of Interventions. Version 6.5.1. Cochrane; 2025.',
+          'Waffenschmidt S, Navarro-Ruan T, Hobson N, Hausner E, Sauerland S, Haynes RB. Development and validation of study filters for identifying controlled non-randomized studies in PubMed and Ovid MEDLINE. Res Synth Methods. 2020;11(5):617-626. doi:10.1002/jrsm.1425. PMID:32472632.',
+        url: WAFFENSCHMIDT_CONTROLLED_NRS_URL,
+      },
+      {
+        citation:
+          'Hausner E, Metzendorf MI, Richter B, Lotz F, Waffenschmidt S. Study filters for non-randomized studies of interventions consistently lacked sensitivity upon external validation. BMC Med Res Methodol. 2018;18(1):171. doi:10.1186/s12874-018-0625-4. PMID:30563471.',
+        url: HAUSNER_NRS_FILTER_VALIDATION_URL,
+      },
+      {
+        citation:
+          'Reeves BC, Deeks JJ, Higgins JPT, Shea B, Tugwell P, Wells GA. Chapter 24: Including non-randomized studies on intervention effects. In: Higgins JPT, Thomas J, Chandler J, et al, eds. Cochrane Handbook for Systematic Reviews of Interventions. Version 6.5. Cochrane; 2024.',
         url: COCHRANE_CHAPTER_24_URL,
+      },
+    ],
+    additionalSources: [
+      {
+        label: 'Cochrane Handbook Chapter 24（NRSIはデザイン特徴で定義）',
+        url: COCHRANE_CHAPTER_24_URL,
+      },
+      {
+        label: 'ISSG Search Filters Resource: Non-randomized studies',
+        url: 'https://sites.google.com/a/york.ac.uk/issg-search-filters-resource/home/non-randomized-studies',
       },
     ],
   },

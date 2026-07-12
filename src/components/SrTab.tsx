@@ -2,21 +2,14 @@
 // 旧 StrategyWorkflow.tsx の sr-revision モードを完全に置き換える。
 //
 // ワークフロー:
-//   Step 1: PICO入力（既存 srFields の P/I/C/O を個別state化）
-//   Step 2: 類語提案プロンプト表示
-//   Step 3: AI回答貼り付け → 検索語テーブルに反映
-//   Step 4: インタラクティブ検索語テーブル + 研究デザインフィルター
+//   Step 1-6: PICO案 → 定義・原典 → 適格基準 → 類義語
+//   Step 7: インタラクティブ検索語テーブル + 研究デザインフィルター
 //           + PubMed検索 + 結果テーブル + 構造化検索式
 //           + AI分類プロンプトコピー + 分類結果表示（新タブ）
 
 import { useMemo, useState } from "react";
 import type { AppSettings, PubMedSearchResult } from "../types";
-import { buildPrompt } from "../utils/buildPrompt";
-import { srInitialPrompt } from "../prompts/systematicReview";
-import {
-  parseSrTermsFromAiResponse,
-  type SrTermsByElement,
-} from "../utils/parseSrTermsFromAiResponse";
+import type { SrTermsByElement } from "../utils/parseSrTermsFromAiResponse";
 import {
   buildSrSearchString,
   buildSrSearchStringPerElement,
@@ -32,20 +25,21 @@ import { parseClassificationResponse } from "../utils/parseClassificationRespons
 import { renderClassificationNewTab } from "../utils/renderClassificationNewTab";
 import { openPubMedWithQuery } from "../utils/pubmedUrl";
 import { parseKnownPmids } from "../utils/knownPmidBenchmark";
-import { PromptDisplay } from "./PromptDisplay";
 import { PubMedSearchBox } from "./PubMedSearchBox";
 import { SrTermTable } from "./SrTermTable";
 import { SrPubMedResultTable } from "./SrPubMedResultTable";
 import { SrStructuredQueryAccordion } from "./SrStructuredQueryAccordion";
+import {
+  SrPreparationWorkflow,
+  type SrPicoValue,
+} from "./SrPreparationWorkflow";
 
 interface Props {
   settings: AppSettings;
-  /** 「EBMタブで学習」リンクで遷移するためのコールバック（任意） */
-  onNavigateToEbm?: () => void;
 }
 
 const EMPTY_TABLE: SrTermsByElement = { P: [], I: [], C: [], O: [] };
-export function SrTab({ settings, onNavigateToEbm }: Props) {
+export function SrTab({ settings }: Props) {
   const [picoP, setPicoP] = useState("");
   const [picoI, setPicoI] = useState("");
   const [picoC, setPicoC] = useState("");
@@ -53,16 +47,13 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
   const [question, setQuestion] = useState("");
   const [knownPmids, setKnownPmids] = useState("");
 
-  const [initialPrompt, setInitialPrompt] = useState("");
-  const [aiResponse, setAiResponse] = useState("");
-  const [parseMsg, setParseMsg] = useState<{
-    kind: "ok" | "error";
-    text: string;
-  } | null>(null);
-
   const [termTable, setTermTable] = useState<SrTermsByElement>(EMPTY_TABLE);
+  const [searchAdvice, setSearchAdvice] = useState<string[]>([]);
+  const [termWarnings, setTermWarnings] = useState<string[]>([]);
+  const [preparationKey, setPreparationKey] = useState(0);
+  const [manualSearchOpen, setManualSearchOpen] = useState(false);
 
-  // Step 4 filters
+  // Step 7 filters
   const [designKey, setDesignKey] = useState<StudyDesignFilterKey>("none");
 
   // PubMed result + classification
@@ -74,9 +65,6 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
   const [classificationError, setClassificationError] = useState("");
   const [searchCopyMsg, setSearchCopyMsg] = useState("");
   const [filterCopyMsg, setFilterCopyMsg] = useState("");
-  const picoText = [picoP, picoI, picoC, picoO].some((v) => v.length > 0)
-    ? [picoP, picoI, picoC, picoO].join("\n")
-    : "";
   const parsedKnownPmids = useMemo(
     () => parseKnownPmids(knownPmids),
     [knownPmids]
@@ -107,30 +95,7 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
     () => buildSrSearchStringPerElement(termTable),
     [termTable]
   );
-
-  function generateInitialPrompt() {
-    if (!picoP.trim() || !picoI.trim()) {
-      alert("最低限 P と I を入力してください。");
-      return;
-    }
-    const prompt = buildPrompt(srInitialPrompt, {
-      p: picoP || "未入力",
-      i: picoI || "未入力",
-      c: picoC || "未入力",
-      o: picoO || "未入力",
-      question: question || "未入力",
-      knownPmids: knownPmids || "なし",
-    });
-    setInitialPrompt(prompt);
-  }
-
-  function setPicoFromText(value: string) {
-    const lines = value.split(/\r?\n/);
-    setPicoP(lines[0] ?? "");
-    setPicoI(lines[1] ?? "");
-    setPicoC(lines[2] ?? "");
-    setPicoO(lines.slice(3).join("\n"));
-  }
+  const hasTermRows = Object.values(termTable).some((rows) => rows.length > 0);
 
   function clearAll() {
     if (!confirm("入力内容・取得結果をすべてクリアして最初からやり直しますか？")) return;
@@ -140,10 +105,11 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
     setPicoO("");
     setQuestion("");
     setKnownPmids("");
-    setInitialPrompt("");
-    setAiResponse("");
-    setParseMsg(null);
     setTermTable({ P: [], I: [], C: [], O: [] });
+    setSearchAdvice([]);
+    setTermWarnings([]);
+    setPreparationKey((value) => value + 1);
+    setManualSearchOpen(false);
     setDesignKey("none");
     setPubmedResult(null);
     setClassificationCopyMsg("");
@@ -154,35 +120,35 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
-  function applyTermsFromAi() {
-    setParseMsg(null);
-    const result = parseSrTermsFromAiResponse(aiResponse);
-    if (!result.ok || !result.terms) {
-      setParseMsg({
-        kind: "error",
-        text: `フォーマットが認識できませんでした：${result.reason}。手動でStep 4のテーブルに検索語を入力してください。`,
-      });
-      return;
-    }
-    setTermTable(result.terms);
-    const total =
-      result.terms.P.length +
-      result.terms.I.length +
-      result.terms.C.length +
-      result.terms.O.length;
-    const warnNote =
-      result.warnings.length > 0
-        ? `（警告: ${result.warnings.join(" / ")}）`
-        : "";
-    setParseMsg({
-      kind: "ok",
-      text: `${total} 件の検索語を Step 4 のテーブルに反映しました。${warnNote}`,
-    });
+  function setPico(value: SrPicoValue) {
+    setPicoP(value.p);
+    setPicoI(value.i);
+    setPicoC(value.c);
+    setPicoO(value.o);
+  }
+
+  function handleTermsReady(
+    terms: SrTermsByElement,
+    advice: string[],
+    warnings: string[]
+  ) {
+    setTermTable(terms);
+    setSearchAdvice(advice);
+    setTermWarnings(warnings);
+    setPubmedResult(null);
     setTimeout(() => {
       document
-        .getElementById("sr-step-4")
+        .getElementById("sr-step-search")
         ?.scrollIntoView({ behavior: "smooth" });
     }, 80);
+  }
+
+  function invalidatePreparedSearch() {
+    setTermTable({ P: [], I: [], C: [], O: [] });
+    setSearchAdvice([]);
+    setTermWarnings([]);
+    setPubmedResult(null);
+    setManualSearchOpen(false);
   }
 
   async function copySearchString() {
@@ -271,179 +237,58 @@ export function SrTab({ settings, onNavigateToEbm }: Props) {
       </header>
       <div className="strategy-description">
         <p>
-          PICOに基づくSR、メタ解析、診療ガイドライン用の効果検索に使います。
-          AIに類語を網羅的に提案させ、その結果を本アプリのインタラクティブな検索語テーブルで
-          チェック ON/OFF・行追加しながら、リアルタイムに PubMed 検索式を組み立てます。
-          最終的に PubMed で検索して結果を取得し、AI に研究デザイン別の分類を依頼します。
+          このタブだけで、レビュー疑問のPICO案、定義と原典の比較、操作的な適格基準、
+          類義語候補、PubMed検索式、既知論文の回収確認まで順に作成できます。
+          AIは候補作成に使い、定義・根拠・検索語は画面上で人が選択・編集してから次へ渡します。
         </p>
         <p className="sr-existing-sr-tip">
-          既存のシステマティックレビューの検索式を参考にすることを推奨します。
+          既存SRの完全な検索式がある場合は、Step 6へ出典とともに貼り付けて再利用できます。
         </p>
-        <p className="ai-format-warning" role="alert">
-          高モデルで回答すると、複数の回答が得られ、自動抽出ができない場合がありますので、手動で入力してください。
+        <p className="ai-format-warning" role="note">
+          AIが提示した文献・PMID・DOI・MeSHは原典で照合してください。本機能は情報専門家による検索戦略設計・PRESSレビューを代替しません。
         </p>
       </div>
 
-      {/* Step 1: PICO入力 */}
-      <section className="workflow-section">
-        <h2>Step 1: PICO入力</h2>
+      <SrPreparationWorkflow
+        key={preparationKey}
+        question={question}
+        onQuestionChange={setQuestion}
+        pico={{ p: picoP, i: picoI, c: picoC, o: picoO }}
+        onPicoChange={setPico}
+        knownPmids={knownPmids}
+        onKnownPmidsChange={setKnownPmids}
+        onTermsReady={handleTermsReady}
+        onSearchInputsChanged={invalidatePreparedSearch}
+      />
 
-        <div className="sr-prisma-note">
-          <h4>📋 PRISMA より：SR における PICO の重要性</h4>
-          <ul>
-            <li>
-              <strong>PRISMA 2020</strong> は SR の報告ガイドラインで、検索の<strong>透明性・再現性</strong>のために PICO 定義を必須としています。
-            </li>
-            <li>
-              <strong>PICO は適格基準・検索戦略・データ抽出すべての基盤</strong>です。曖昧なまま検索を始めると後戻りが極めて困難になります。
-            </li>
-            <li>
-              <strong>PRISMA-S（検索版）</strong>は検索式・データベース・検索日を全て記録することを求めており、PICO の明確化はその前提です。
-            </li>
-          </ul>
-          <p className="hint" style={{ margin: "4px 0 0" }}>
-            参考：
-            <a
-              href="https://www.prisma-statement.org/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              PRISMA Statement (prisma-statement.org)
-            </a>
-          </p>
-        </div>
+      {/* Step 7: インタラクティブ検索語テーブル + 検索 + 分類 */}
+      {hasTermRows || manualSearchOpen ? (
+      <section id="sr-step-search" className="workflow-section">
+        <h2>Step 7：検索語テーブル → PubMed検索 → AI分類</h2>
 
-        <div className="sr-pico-imperative">
-          <p style={{ margin: "4px 0" }}>
-            <strong>PICO作成に不安がある方は、</strong>
-            {onNavigateToEbm ? (
-              <button
-                type="button"
-                className="link-button"
-                onClick={onNavigateToEbm}
-              >
-                「EBMのための検索」タブ
-              </button>
-            ) : (
-              <span>「EBMのための検索」タブ</span>
-            )}
-            <strong>で学習してください。</strong>
-            EBMタブには PICO 初心者向けの解説と、AIに PICO 案を考えてもらう機能があります。
-          </p>
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="sr-question">臨床疑問（CQ・自然な日本語でOK）</label>
-          <textarea
-            id="sr-question"
-            rows={2}
-            value={question}
-            onChange={(e) => setQuestion(e.target.value)}
-            placeholder="例：高齢の心不全患者にSGLT2阻害薬を加えると、標準治療単独に比べて心不全入院や全死亡が減るか"
-          />
-        </div>
-
-        <div className="form-group">
-          <label htmlFor="sr-pico">
-            P/I/C/O（1行ずつ、P → I → C → O の順。P/Iは必須）
-            <span className="required">*</span>
-          </label>
-          <textarea
-            id="sr-pico"
-            required
-            aria-required="true"
-            rows={5}
-            value={picoText}
-            onChange={(e) => setPicoFromText(e.target.value)}
-            placeholder={`例：
-60歳以上、HFrEF（LVEF≦40%）、外来通院中
-SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフロジン10mg/日）の標準治療への追加
-標準治療（ACE-I/ARB/β遮断薬/MRA）のみ。Cが不要なCQでは空行でOK。
-心不全入院、全死亡、心血管死、QOL（KCCQ）`}
-          />
-        </div>
-        <div className="form-group">
-          <label htmlFor="sr-known-pmids">既知重要論文の PMID（任意・ベンチマーク用）</label>
-          <textarea
-            id="sr-known-pmids"
-            rows={1}
-            value={knownPmids}
-            onChange={(e) => setKnownPmids(e.target.value)}
-            placeholder="例：33270928, 32865377, 32905714"
-          />
-          {parsedKnownPmids.pmids.length > 0 && (
-            <p className="hint known-pmid-valid">
-              {parsedKnownPmids.pmids.length}件を検索後の回収確認に使用します。
+        {searchAdvice.length > 0 && (
+          <div className="sr-search-advice" role="note">
+            <h4>今回の検索表を調整するためのAI助言</h4>
+            <ul>
+              {searchAdvice.map((item, index) => (
+                <li key={`${item}-${index}`}>{item}</li>
+              ))}
+            </ul>
+            <p className="hint">
+              AI助言は候補です。MeSH Database、PubMed Search Details、既知重要論文の回収、PRESSレビューで人が検証してください。
             </p>
-          )}
-          {parsedKnownPmids.invalidTokens.length > 0 && (
-            <p className="date-range-error" role="alert">
-              PMIDとして認識できない入力があります：
-              {parsedKnownPmids.invalidTokens.join(" / ")}
-            </p>
-          )}
-        </div>
-
-        <button className="btn btn-primary" onClick={generateInitialPrompt}>
-          類語提案プロンプトを生成
-        </button>
-      </section>
-
-      {/* Step 2: AIプロンプト */}
-      {initialPrompt && (
-        <section className="workflow-section">
-          <h2>Step 2: AI用プロンプト（類語提案）</h2>
-          <p className="hint">
-            このプロンプトをコピーして ChatGPT / Claude / Gemini などに貼り付けてください。
-            AI は P/I/C/O 各要素の検索語を <code>===TERMS_START===</code> 〜
-            <code>===TERMS_END===</code> 形式で出力します。
-          </p>
-          <PromptDisplay prompt={initialPrompt} />
-        </section>
-      )}
-
-      {/* Step 3: AI回答貼り付け → テーブル反映 */}
-      {initialPrompt && (
-        <section className="workflow-section">
-          <h2>Step 3: AI回答の貼り付け → 検索語テーブルに反映</h2>
-          <p className="hint">
-            AIから返ってきた回答全体を貼り付け、「検索語テーブルに反映」を押してください。
-            <code>===TERMS_START===</code> ブロックがパースされ、Step 4 の P/I/C/O テーブルに自動投入されます。
-          </p>
-          <textarea
-            value={aiResponse}
-            onChange={(e) => setAiResponse(e.target.value)}
-            rows={10}
-            placeholder="AIから返ってきた類語提案回答全体をここに貼り付け..."
-            style={{ width: "100%" }}
-          />
-          <div className="step3-action">
-            <button
-              className="btn btn-primary"
-              onClick={applyTermsFromAi}
-              disabled={!aiResponse.trim()}
-            >
-              検索語テーブルに反映
-            </button>
-            {parseMsg && (
-              <p
-                className={
-                  parseMsg.kind === "ok"
-                    ? "pico-autofill-ok"
-                    : "pico-autofill-err"
-                }
-              >
-                {parseMsg.kind === "ok" ? "✅ " : "⚠ "}
-                {parseMsg.text}
-              </p>
-            )}
           </div>
-        </section>
-      )}
-
-      {/* Step 4: インタラクティブ検索語テーブル + 検索 + 分類 */}
-      <section id="sr-step-4" className="workflow-section">
-        <h2>Step 4: 検索語テーブル → PubMed検索 → AI分類</h2>
+        )}
+        {termWarnings.length > 0 && (
+          <div className="sr-term-warnings" role="status">
+            <strong>自動反映時の確認事項：</strong>
+            <ul>
+              {termWarnings.map((warning, index) => (
+                <li key={`${warning}-${index}`}>{warning}</li>
+              ))}
+            </ul>
+          </div>
+        )}
 
         <SrTermTable table={termTable} onChange={setTermTable} />
 
@@ -622,7 +467,9 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
                   : undefined
             }
             allowFullIdExport={
-              designKey === "guideline" || designKey === "systematic_review"
+              designKey === "guideline" ||
+              designKey === "systematic_review" ||
+              designKey === "guideline_or_systematic_review"
             }
           />
           <button
@@ -727,6 +574,21 @@ SGLT2阻害薬（ダパグリフロジン10mg/日 または エンパグリフ�
           </>
         )}
       </section>
+      ) : (
+        <section id="sr-step-search" className="workflow-section sr-search-collapsed">
+          <h2>Step 7：検索語テーブル → PubMed検索 → AI分類</h2>
+          <p>
+            Step 6でAIの類義語回答を読み込むと、ここに検索語テーブルが自動表示されます。
+          </p>
+          <button
+            type="button"
+            className="btn btn-secondary btn-sm"
+            onClick={() => setManualSearchOpen(true)}
+          >
+            上級者：検索語を手入力して開始
+          </button>
+        </section>
+      )}
     </div>
   );
 }

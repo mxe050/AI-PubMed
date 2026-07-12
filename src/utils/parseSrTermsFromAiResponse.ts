@@ -40,6 +40,8 @@ export interface ParseSrTermsResult {
   terms?: SrTermsByElement;
   reason?: string;
   warnings: string[];
+  /** AIが提示した、今回の検索表を調整するための実務的な注意点。 */
+  advice: string[];
 }
 
 const TAG_NORMALIZE: Record<string, SrFieldTag> = {
@@ -134,31 +136,49 @@ function termsFromSearchString(text: string): ParseSrTermsResult | null {
     warnings: [
       "===TERMS_START=== ブロックがないため、AI回答内のPubMed検索式全体をStep 4へ反映しました",
     ],
+    advice: parseSearchAdvice(text),
   };
+}
+
+function parseSearchAdvice(text: string): string[] {
+  const block = text.match(
+    /===\s*SEARCH_ADVICE_START\s*===([\s\S]*?)===\s*SEARCH_ADVICE_END\s*===/i
+  );
+  if (!block) return [];
+  return block[1]
+    .split(/\r?\n/)
+    .map((line) => line.replace(/^\s*[-*・]\s*/, "").trim())
+    .filter((line) => line.length > 0);
 }
 
 export function parseSrTermsFromAiResponse(
   text: string
 ): ParseSrTermsResult {
   const warnings: string[] = [];
+  const normalized = (text || "")
+    .normalize("NFKC")
+    .replace(/[\u200B-\u200D\uFEFF]/g, "");
+  const advice = parseSearchAdvice(normalized);
   if (!text || !text.trim()) {
     return {
       ok: false,
       warnings,
+      advice,
       reason: "AI回答が空です",
     };
   }
 
-  const blockMatch = text.match(
-    /===\s*TERMS_START\s*===([\s\S]*?)===\s*TERMS_END\s*===/
+  const blockMatch = normalized.match(
+    /===\s*TERMS_START\s*===([\s\S]*?)===\s*TERMS_END\s*===/i
   );
   if (!blockMatch) {
-    const fromSearchString = termsFromSearchString(text);
+    const fromSearchString = termsFromSearchString(normalized);
     if (fromSearchString) return fromSearchString;
 
     return {
       ok: false,
       warnings,
+      advice,
       reason:
         "===TERMS_START=== と ===TERMS_END=== で囲まれたブロックが見つかりません",
     };
@@ -174,6 +194,10 @@ export function parseSrTermsFromAiResponse(
   let unparsed = 0;
 
   for (const line of lines) {
+    if (/^\[?\s*FINAL[_\s-]*SEARCH\s*\]?\s*$/i.test(line)) {
+      current = null;
+      continue;
+    }
     // 見出し検出: [P] / [I] / [C] / [O]、または "P", "I", "C", "O" 単独
     const headerMatch = line.match(/^\[?\s*([PICOpico])\s*\]?\s*$/);
     if (headerMatch) {
@@ -209,6 +233,7 @@ export function parseSrTermsFromAiResponse(
     return {
       ok: false,
       warnings,
+      advice,
       reason:
         "ブロックは見つかりましたが、検索語を1件もパースできませんでした",
     };
@@ -224,5 +249,5 @@ export function parseSrTermsFromAiResponse(
     );
   }
 
-  return { ok: true, terms, warnings };
+  return { ok: true, terms, warnings, advice };
 }

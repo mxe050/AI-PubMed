@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ANIMAL_ONLY_EXCLUSION,
   COCHRANE_RCT_SENSITIVITY_MAX_EXPRESSION,
+  WAFFENSCHMIDT_CONTROLLED_NRS_SENSITIVITY_EXPRESSION,
   appendAnimalOnlyExclusion,
   applyStudyDesignFilter,
   studyDesignFilters,
@@ -14,11 +15,15 @@ describe('intervention study-design filters', () => {
     );
   });
 
-  it('offers one simple practical CPG and SR choice without a combined option', () => {
+  it('offers separate CPG/SR choices plus one practical combined choice', () => {
     expect(studyDesignFilters.map((filter) => filter.key)).toEqual([
-      'none', 'guideline', 'systematic_review', 'rct', 'non_rct',
+      'none', 'guideline', 'systematic_review', 'guideline_or_systematic_review', 'rct', 'non_rct',
     ]);
-    expect(studyDesignFilters.map((filter) => filter.key)).not.toContain('guideline_or_sr');
+    const combined = studyDesignFilters.find(
+      (filter) => filter.key === 'guideline_or_systematic_review'
+    );
+    expect(combined?.expression).toContain('practice guideline');
+    expect(combined?.expression).toContain('systematic[sb]');
   });
 
   it('keeps the practical CPG expression free of excluded document types', () => {
@@ -48,9 +53,13 @@ describe('intervention study-design filters', () => {
     expect(appendAnimalOnlyExclusion(query)).toBe(query);
   });
 
-  it('does not claim a restricting non-RCT hedge', () => {
+  it('uses the published sensitivity-maximizing controlled-NRS hedge with caveats', () => {
     const nonRct = studyDesignFilters.find((filter) => filter.key === 'non_rct');
-    expect(nonRct?.expression).toBe('');
-    expect(nonRct?.caution).toContain('検証済み式');
+    expect(nonRct?.expression).toBe(
+      WAFFENSCHMIDT_CONTROLLED_NRS_SENSITIVITY_EXPRESSION
+    );
+    expect(nonRct?.evidenceBadge).toContain('92.42%');
+    expect(nonRct?.caution).toContain('フィルターなし');
+    expect(nonRct?.caution).toContain('RCT');
   });
 });
