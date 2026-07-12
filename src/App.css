@@ -4135,6 +4135,158 @@ tr.unverified {
   text-decoration: underline;
 }
 
+.sr-too-many-results-guide {
+  margin: 18px 0 16px;
+  padding: 17px;
+  border: 2px solid #d6b56d;
+  border-radius: 11px;
+  background: #fffdf7;
+  color: var(--color-text);
+}
+
+.sr-too-many-results-guide .sr-guide-heading > span {
+  background: #8a5b12;
+}
+
+.sr-too-many-results-guide .sr-guide-heading h3 {
+  color: #6b450f;
+}
+
+.sr-too-many-lead {
+  margin: 11px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.7;
+}
+
+.sr-key-paper-safety {
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-left: 5px solid #2563eb;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1e3a8a;
+}
+
+.sr-key-paper-safety p,
+.sr-too-many-warning p,
+.sr-no-key-paper-note p {
+  margin: 5px 0 0;
+  font-size: 0.84rem;
+  line-height: 1.65;
+}
+
+.sr-too-many-steps {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 11px;
+  margin: 13px 0 0;
+  padding: 0;
+  list-style: none;
+  counter-reset: sr-too-many-step;
+}
+
+.sr-too-many-steps > li {
+  position: relative;
+  counter-increment: sr-too-many-step;
+  min-width: 0;
+  padding: 14px 14px 14px 50px;
+  border: 1px solid #ead7ad;
+  border-radius: 9px;
+  background: #fff;
+}
+
+.sr-too-many-steps > li::before {
+  content: counter(sr-too-many-step);
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: #8a5b12;
+  color: #fff;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.sr-too-many-steps h4 {
+  margin: 1px 0 6px;
+  color: #6b450f;
+  font-size: 0.91rem;
+  line-height: 1.45;
+}
+
+.sr-too-many-steps p {
+  margin: 5px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  line-height: 1.65;
+}
+
+.sr-too-many-steps .sr-app-safety-note {
+  margin-top: 9px;
+  padding: 8px 10px;
+  border-radius: 7px;
+  background: #f0fdf4;
+  color: #166534;
+  font-weight: 650;
+}
+
+.sr-too-many-warning,
+.sr-no-key-paper-note {
+  margin-top: 12px;
+  padding: 11px 13px;
+  border-radius: 8px;
+}
+
+.sr-too-many-warning {
+  border: 1px solid #f0b9b9;
+  background: #fff7f7;
+  color: #991b1b;
+}
+
+.sr-no-key-paper-note {
+  border: 1px solid #d1d5db;
+  background: #f8fafc;
+  color: #334155;
+}
+
+.sr-too-many-sources {
+  margin-top: 12px;
+  border-top: 1px solid #ead7ad;
+  padding-top: 11px;
+  color: var(--color-text-secondary);
+  font-size: 0.79rem;
+}
+
+.sr-too-many-sources summary {
+  cursor: pointer;
+  color: #6b450f;
+  font-weight: 750;
+}
+
+.sr-too-many-sources ol {
+  margin: 9px 0 0;
+  padding-left: 22px;
+}
+
+.sr-too-many-sources li {
+  line-height: 1.6;
+}
+
+.sr-too-many-sources li + li {
+  margin-top: 7px;
+}
+
+.sr-too-many-sources a {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
 .sr-pubmed-details-checker {
   margin: 10px 0 16px;
   padding: 14px;
@@ -4258,6 +4410,10 @@ tr.unverified {
   }
 
   .sr-after-search-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .sr-too-many-steps {
     grid-template-columns: 1fr;
   }
 

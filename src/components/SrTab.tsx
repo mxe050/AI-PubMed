@@ -631,6 +631,127 @@ export function SrTab({ settings }: Props) {
           </p>
         </section>
 
+        <section
+          className="sr-too-many-results-guide"
+          aria-labelledby="sr-too-many-results-title"
+        >
+          <div className="sr-guide-heading">
+            <span>検索結果が多すぎるとき</span>
+            <h3 id="sr-too-many-results-title">感度を保ちながら見直す順序</h3>
+          </div>
+          <p className="sr-too-many-lead">
+            システマティックレビューでは、関係する研究を見落とさないことが優先されます。
+            そのため、件数が多いだけで検索式が悪いとは限りません。次の順に一か所ずつ見直し、
+            変更前後の件数と変更内容を記録してください。
+          </p>
+          <div className="sr-key-paper-safety" role="note">
+            <strong>最初に守ること：変更するたびにキー論文を再確認</strong>
+            <p>
+              以下の調整を行うたびに、事前に決めたキー論文が検索結果から消えていないか確認します。
+              ただし、キー論文だけに合うように検索式を作り替えることは避け、まだ知らない適格研究も拾える幅を保ちます。
+            </p>
+          </div>
+          <ol className="sr-too-many-steps">
+            <li>
+              <h4>類義語を一語ずつ点検する</h4>
+              <p>
+                各語を個別に検索し、曖昧な略語、意味の広すぎる語、過度な前方一致などが大量の無関係文献を拾っていないか確認します。
+                外すのは、主に無関係な文献だけを増やし、除いてもキー論文や既知の適格文献を失わないと確認できた語に限ります。
+              </p>
+            </li>
+            <li>
+              <h4>無関係な文献が入った理由を調べる</h4>
+              <p>
+                検索結果から明らかな非該当文献をいくつか開き、どの語・概念ブロックが一致したかを確認します。
+                PubMedのDetailsも見て、MeSHへの自動変換、フィールドタグ、括弧、AND／ORの組み方に意図しない展開がないか修正します。
+              </p>
+            </li>
+            <li>
+              <h4>定義・概念ブロックを再確認する</h4>
+              <p>
+                PやIの定義を絞るのは、適格基準そのものを明確にできる場合に限ります。
+                件数を減らす目的だけで、プロトコルにない狭い定義を後から追加しません。
+                Cを加えると感度が下がり得るため、Cは検索式へ入れずスクリーニングで判断する方法も再検討します。
+              </p>
+            </li>
+            <li>
+              <h4>必要な研究デザインだけ、検証済みフィルターを検討する</h4>
+              <p>
+                適格な研究デザインが事前に決まっている場合は、根拠と限界が示された検証済みフィルターを選びます。
+                独自に作った語を追加して件数だけを減らすのではなく、フィルターで失われる可能性のある研究を確認します。
+              </p>
+            </li>
+            <li>
+              <h4>AIは「原因の候補を出す点検役」として使う</h4>
+              <p>
+                検索式と、関連文献・無関係文献の例をAIへ示し、ノイズの原因となった語と修正候補を説明させる方法はあります。
+                ただし、AIの修正式をそのまま採用せず、語、MeSH、タグ、括弧、論理演算子、引用文献を人が一つずつPubMedで確認します。
+              </p>
+              <p className="sr-app-safety-note">
+                このアプリでは、人が選んだ類義語から検索式を規則どおりに組み立てる部分にAIを使用していません。
+                AIが最終検索式を自動的に書き換えることはありません。
+              </p>
+            </li>
+            <li>
+              <h4>第三者レビューを行い、それでも絞れなければスクリーニングする</h4>
+              <p>
+                司書・医学情報検索の専門家や共同研究者に、PRESSの項目に沿って検索式を確認してもらいます。
+                既存レビューの採用論文や引用文献の追跡で見つかった適格文献も、検索式の確認用に加えます。
+                安全に除ける根拠がなければ、感度を下げるよりも広い検索結果をスクリーニングする方が確実です。
+              </p>
+            </li>
+          </ol>
+          <div className="sr-too-many-warning" role="note">
+            <strong>件数を減らすためだけに行わないこと</strong>
+            <p>
+              根拠のない出版年・言語制限、安易なNOT検索、検索対象フィールドの安易な限定は、適格研究を失うおそれがあります。
+              使用する場合はレビュー課題に基づく理由を決め、失われる文献を検証して記録します。
+            </p>
+          </div>
+          <div className="sr-no-key-paper-note">
+            <strong>キー論文がない場合</strong>
+            <p>
+              何を失ったかを確認できる基準がないため、件数だけを理由に検索式を狭めるのは危険です。
+              まず専門家レビューと検索結果の一部を実際に確認し、それでも安全に除ける根拠がなければ、広い結果をスクリーニングします。
+            </p>
+          </div>
+          <details className="sr-too-many-sources">
+            <summary>この手順の根拠文献（論文の参考文献に記載できます）</summary>
+            <ol>
+              <li>
+                Lefebvre C, Glanville J, Briscoe S, Featherstone R, Littlewood A, Metzendorf M-I, Noel-Storr A, Paynter R, Rader T, Thomas J, Wieland LS. Chapter 4: Searching for and selecting studies [last updated March 2025]. In: Higgins JP, Thomas J, Chandler J, et al, eds. <em>Cochrane Handbook for Systematic Reviews of Interventions</em>. Version 6.5.1. Cochrane; 2025.{" "}
+                <a
+                  href="https://www.cochrane.org/authors/handbooks-and-manuals/handbook/current/chapter-04"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Chapter 4を開く
+                </a>
+              </li>
+              <li>
+                Bramer WM, de Jonge GB, Rethlefsen ML, Mast F, Kleijnen J. A systematic approach to searching: an efficient and complete method to develop literature searches. <em>J Med Libr Assoc</em>. 2018;106(4):531-541. doi:10.5195/jmla.2018.283.{" "}
+                <a
+                  href="https://pubmed.ncbi.nlm.nih.gov/30271302/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  PubMed（PMID: 30271302）
+                </a>
+              </li>
+              <li>
+                McGowan J, Sampson M, Salzwedel DM, Cogo E, Foerster V, Lefebvre C. PRESS Peer Review of Electronic Search Strategies: 2015 Guideline Statement. <em>J Clin Epidemiol</em>. 2016;75:40-46. doi:10.1016/j.jclinepi.2016.01.021.{" "}
+                <a
+                  href="https://pubmed.ncbi.nlm.nih.gov/27005575/"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  PubMed（PMID: 27005575）
+                </a>
+              </li>
+            </ol>
+          </details>
+        </section>
+
         {/* 構造化検索式アコーディオン */}
         <SrStructuredQueryAccordion
           perElement={perElement}
