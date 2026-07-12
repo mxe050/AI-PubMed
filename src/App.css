@@ -3774,6 +3774,85 @@ tr.unverified {
   box-shadow: 0 5px 18px rgb(15 23 42 / 10%);
 }
 
+.sr-share-ready-card {
+  margin: 12px 0;
+  padding: 16px;
+  border: 2px solid var(--color-primary);
+  border-radius: 10px;
+  background: #eff6ff;
+}
+
+.sr-share-ready-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.sr-share-ready-heading h3 {
+  margin: 0 0 4px;
+  color: var(--color-primary);
+  font-size: 1rem;
+}
+
+.sr-share-ready-heading p {
+  margin: 0;
+  color: var(--color-text-secondary);
+  font-size: 0.84rem;
+  line-height: 1.55;
+}
+
+.sr-share-ready-heading > span {
+  flex: 0 0 auto;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--color-primary);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.sr-share-document {
+  padding: 16px;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.sr-share-document pre {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+  color: var(--color-text);
+  font-family: inherit;
+  font-size: 0.88rem;
+  line-height: 1.7;
+  user-select: text;
+}
+
+.sr-share-copy-action {
+  margin: 12px 0 16px;
+}
+
+.sr-copy-criteria-btn {
+  min-width: 220px;
+  font-weight: 700;
+}
+
+.sr-eligibility-edit-details {
+  margin-top: 12px;
+  padding: 11px 13px;
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.sr-eligibility-edit-details > summary {
+  cursor: pointer;
+  font-weight: 650;
+}
+
 .sr-criteria-editor-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3845,7 +3924,8 @@ tr.unverified {
 
   .sr-definition-group-heading,
   .sr-definition-card-heading,
-  .sr-selection-action {
+  .sr-selection-action,
+  .sr-share-ready-heading {
     align-items: flex-start;
     flex-direction: column;
   }
@@ -3865,6 +3945,23 @@ tr.unverified {
   font-size: 0.86rem;
   line-height: 1.5;
   flex: 1 1 320px;
+}
+
+.sr-copy-search-button {
+  border-width: 2px;
+  font-weight: 800;
+}
+
+.sr-copy-search-button:not(:disabled) {
+  border-color: var(--color-error);
+  background: #fff1f2;
+  color: var(--color-error);
+}
+
+.sr-copy-search-button:not(:disabled):hover {
+  border-color: #991b1b;
+  background: #fee2e2;
+  color: #991b1b;
 }
 
 /* MeSH リンクボタン（共通） */

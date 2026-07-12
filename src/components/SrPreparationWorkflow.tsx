@@ -295,7 +295,7 @@ export function SrPreparationWorkflow({
     resetAfterEligibility();
     setEligibilityFeedback({
       kind: "ok",
-      text: "最終PICO・適格基準・Methods記載案を読み込みました。各欄は直接編集できます。",
+      text: "最終PICO・適格基準を一括文書にまとめました。必要な場合は個別編集欄を開いて修正できます。",
     });
     setTimeout(() => {
       document
@@ -607,11 +607,12 @@ export function SrPreparationWorkflow({
         <section id="sr-final-eligibility" className="workflow-section">
           <h2>Step 5：最終PICO・適格基準を確認する</h2>
           <p className="hint">
-            全欄を直接編集できます。ここで確定した内容が次の類義語提案へ渡されます。Oを採否条件や検索語に含める場合は、アウトカム未報告研究を落とさないか再検討してください。
+            共同研究者への提示や論文草案への貼り付けに使えるよう、PICOと選択基準を一つの文書として表示します。修正が必要な場合だけ、下の個別編集欄を開いてください。
           </p>
           <SrEligibilitySummary
             criteria={eligibility}
             onChange={handleEligibilityChange}
+            question={question}
           />
         </section>
       )}
@@ -625,9 +626,9 @@ export function SrPreparationWorkflow({
           </div>
         )}
         <label className="sr-existing-strategy-label">
-          既存システマティックレビューの検索式（任意）
+          既存システマティックレビューの検索式（あれば入力／なくても空欄で進めます）
           <span className="hint">
-            データベース名、検索日、出典・DOI/PMIDも一緒に貼ると、どの語を再利用したか追跡しやすくなります。内容は盲目的に複製せず候補語として検証します。
+            検索式が手元にない場合は、何も入力せず下の「類義語提案プロンプトを生成」を押してください。見つかっている場合だけ、データベース名、検索日、出典・DOI/PMIDと一緒に貼り付けてください。内容は盲目的に複製せず候補語として検証します。
           </span>
           <textarea
             rows={8}
@@ -636,7 +637,7 @@ export function SrPreparationWorkflow({
               setExistingSearchStrategy(event.target.value);
               resetAfterEligibility();
             }}
-            placeholder="例：既存SRの完全なPubMed検索式、出典、最終検索日を貼り付け..."
+            placeholder="空欄でも進めます。既存SRの検索式がある場合だけ、出典・最終検索日と一緒に貼り付け..."
           />
         </label>
         <button

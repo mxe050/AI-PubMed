@@ -474,11 +474,11 @@ export function SrTab({ settings }: Props) {
           />
           <button
             type="button"
-            className="btn btn-secondary"
+            className="btn btn-secondary sr-copy-search-button"
             onClick={copySearchString}
             disabled={!effectiveSearchString}
           >
-            {searchCopyMsg || "検索式をコピー"}
+            {searchCopyMsg || "検索式をコピー（推奨）"}
           </button>
           <button
             type="button"
