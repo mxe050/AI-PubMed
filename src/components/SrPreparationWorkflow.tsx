@@ -446,7 +446,7 @@ export function SrPreparationWorkflow({
           />
         </div>
 
-        <details className="pico-brainstorm-section">
+        <details className="pico-brainstorm-section" open>
           <summary>
             <strong>PICOが思いつかない場合：AIに案を考えてもらうプロンプトを生成</strong>
           </summary>
