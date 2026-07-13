@@ -98,7 +98,7 @@ export function StrategyWorkflow({
           <button className="btn btn-primary" onClick={handleGeneratePrompt}>
             プロンプトを生成
           </button>
-          <button className="btn btn-secondary" onClick={handleClear}>
+          <button className="btn btn-reset" onClick={handleClear}>
             🗑 すべてクリア
           </button>
         </div>

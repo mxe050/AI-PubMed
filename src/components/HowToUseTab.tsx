@@ -30,6 +30,31 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
         </a>
       </header>
 
+      <section className="how-to-quick-start" aria-labelledby="quick-start-title">
+        <div className="how-to-quick-start-heading">
+          <span>まずここから</span>
+          <h3 id="quick-start-title">目的を選ぶと、必要な画面へ移動できます</h3>
+        </div>
+        <div className="how-to-quick-start-grid">
+          <a href="#quick_evidence">
+            <strong>短時間で調べたい</strong>
+            <span>疑問からAI用プロンプトを作る</span>
+          </a>
+          <a href="#fact_check">
+            <strong>AI回答を確かめたい</strong>
+            <span>PMID・書誌・主張をPubMedで照合</span>
+          </a>
+          <a href="#topic_exploration">
+            <strong>質問のズレ・検索漏れを探したい</strong>
+            <span>支持・反対・限定・本文内証拠を探索</span>
+          </a>
+          <a href="#systematic_review">
+            <strong>SRの検索式を作りたい</strong>
+            <span>PICOから適格基準・検索語・検証へ</span>
+          </a>
+        </div>
+      </section>
+
       <section className="how-to-use-section">
         <h3>30秒で分かるCPG / SR検索</h3>
         <ol>
@@ -65,6 +90,9 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
           </p>
         </div>
 
+        <details className="how-to-collapsible">
+          <summary>設計思想とAI依存リスクの背景を読む</summary>
+          <div className="how-to-collapsible-body">
         <h4>AIに頼り切ることの弊害（最新研究より）</h4>
         <p className="hint">
           AIへの過度な依存が認知能力や思考プロセスに与える影響について、研究が始まっています。
@@ -141,11 +169,16 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
             AIに頼り切らず、AIを<strong>「使い倒す」</strong>スタンスです。
           </p>
         </div>
+          </div>
+        </details>
       </section>
 
       {/* コラム：OpenEvidence について */}
       <section className="how-to-use-section open-evidence-column">
         <h3>📖 コラム：OpenEvidence について</h3>
+        <details className="how-to-collapsible">
+          <summary>批判的検討と参考資料を読む</summary>
+          <div className="how-to-collapsible-body">
         <p>
           近年、医療情報の世界で <strong>OpenEvidence（オープンエビデンス）</strong>
           が急速に浸透しています。NEJM・JAMA 本文の直接引用、ハルシネーションの少なさ、回答速度といった点で従来の生成AIに対する明確な優位性があり、米国医師の <strong>40% 超</strong>が日常的に使用するとされます。一方で、参照データベースが限られること、情報の最新性、利益相反の構造など、無視できない論点も指摘されています。本コラムは、批判的検討を含む資料を整理したものです。
@@ -269,6 +302,8 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
             」という方向に収斂しており、片手間で使うことの危うさを補助線として浮かび上がらせています。
           </p>
         </div>
+          </div>
+        </details>
       </section>
 
       <section className="how-to-use-section">
@@ -278,7 +313,9 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
           「EBMのための検索」（PICO学習付き）から始めるのがおすすめです。
         </p>
 
-        <div className="strategy-cards">
+        <details className="how-to-collapsible">
+          <summary>9タブの詳しい説明を読む</summary>
+          <div className="strategy-cards how-to-collapsible-body">
           <div className="strategy-card">
             <h4>🛠 使い方・設定</h4>
             <p>
@@ -368,16 +405,20 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
               実際の検索作業は他タブで行います。
             </p>
           </div>
-        </div>
+          </div>
+        </details>
       </section>
 
       <section className="how-to-use-section">
         <h3>使えるAIサービスについて</h3>
         <p className="hint">
           本アプリで生成したプロンプトは、以下のAIサービスのいずれかに貼り付けて利用します。
-          無料版でも利用できますが、医学文献検索の用途では有料版のほうが精度が高い傾向があります。
+          利用できるモデルや機能は頻繁に変わるため、サービス名よりも「Web検索の有無」「出典表示」「長文処理」を確認してください。
         </p>
 
+        <details className="how-to-collapsible">
+          <summary>AIサービスの比較と共通の注意を読む</summary>
+          <div className="how-to-collapsible-body">
         <table className="ai-services-table">
           <thead>
             <tr>
@@ -401,14 +442,14 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
                 </a>
               </td>
               <td>
-                GPT-5 mini相当などが利用可。
-                日々の使用回数や長文・推論機能に制限あり。
+                利用回数、選べるモデル、Web検索、長文処理にはプランごとの制限があります。
+                使用時点の画面で機能を確認してください。
               </td>
               <td>
-                ChatGPT Plus（月額約 $20）でGPT-5など上位モデル、推論機能、長文処理が安定。
+                上位モデルや追加機能を利用できる場合がありますが、名称・料金・上限は変更されます。
               </td>
               <td>
-                医学文献の構造化、PICO分解、検索式生成に強い。日本語の医学用語にも対応。
+                PICO分解や文章の構造化に使えます。Web検索の有無を確認し、提示された文献はPubMedと原典で照合します。
               </td>
             </tr>
             <tr>
@@ -424,13 +465,13 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
                 </a>
               </td>
               <td>
-                Claude 4.5 Sonnetなどが利用可。日々の使用量・長文に制限あり。
+                利用回数、長文処理、検索機能などの上限はプランと時期により異なります。
               </td>
               <td>
-                Claude Pro（月額約 $20）でClaude 4.7 Opus等の最上位モデル、長文処理、Projects機能が安定。
+                上位モデルや長文向け機能を利用できる場合があります。最新の仕様はサービス画面で確認してください。
               </td>
               <td>
-                長文の抄録一括解釈、論理的な構造化、ニュアンスを汲んだ統合回答に強い。本アプリの「統合プロンプト」（抄録を多数含む）はClaudeとの相性が良い。
+                長い資料の整理に使えます。入力上限を超える場合は分割し、引用・数値・結論を原典と照合します。
               </td>
             </tr>
             <tr>
@@ -446,13 +487,13 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
                 </a>
               </td>
               <td>
-                Gemini 2.5 Flashなどが無料で利用可。
+                利用できるモデル、検索連携、利用回数はプランと時期により異なります。
               </td>
               <td>
-                Gemini Advanced（Google One AI Premium、月額約 ¥2,900）でGemini 2.5 Pro、長文処理、Deep Researchが利用可。
+                上位モデル、長文処理、調査機能を利用できる場合があります。実行前に選択中の機能を確認してください。
               </td>
               <td>
-                Webアクセス連動の最新情報取得に強い。Google検索・Scholar検索と組み合わせやすい。
+                検索連携を使える場合も、出典が質問と一致するか、PubMed収載情報と原典本文で確認します。
               </td>
             </tr>
             <tr>
@@ -460,12 +501,11 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
                 <strong>その他</strong>
               </td>
               <td colSpan={2}>
-                Perplexity（出典付き回答が標準）、Microsoft
-                Copilot、DeepSeek、Mistral
-                Le Chat等も利用可能。プロンプトはAIサービスを問わず使えます。
+                Perplexity、Microsoft Copilot、DeepSeek、Mistral Le Chat等でも、
+                長いプロンプトを扱えるサービスであれば利用できます。
               </td>
               <td>
-                出典付き回答が標準のサービス（Perplexityなど）はファクトチェック工程と相性が良い。
+                出典リンクが表示されても正しさは保証されません。書誌・本文・検索日を同じ手順で確認します。
               </td>
             </tr>
           </tbody>
@@ -477,7 +517,7 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
             <li>
               <strong>ハルシネーション対策</strong>：いずれのAIも、PMIDや論文タイトルを誤って提示することがあります。本アプリのファクトチェック機能（PMID実在確認＋抄録取得）を必ず利用してください。
               <div className="hallucination-low-model-note">
-                ⚠ 無料の低モデルでは、ハルシネーションのチェックができない場合もあります。
+                ⚠ モデル、検索設定、利用上限によって、出典確認や長文処理が途中で不完全になる場合があります。
               </div>
             </li>
             <li>
@@ -488,6 +528,8 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
             </li>
           </ul>
         </div>
+          </div>
+        </details>
       </section>
 
       <section className="how-to-use-section">

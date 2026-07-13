@@ -75,8 +75,9 @@ export function HallucinationStrategiesTable() {
       {/* フィルター */}
       <div className="hs-filter-bar">
         <div className="hs-filter-group">
-          <label>カテゴリ：</label>
+          <label htmlFor="hs-category-filter">カテゴリ：</label>
           <select
+            id="hs-category-filter"
             value={selectedCategory}
             onChange={(e) => setSelectedCategory(e.target.value)}
           >
@@ -90,8 +91,9 @@ export function HallucinationStrategiesTable() {
         </div>
 
         <div className="hs-filter-group">
-          <label>プロバイダ：</label>
+          <label htmlFor="hs-provider-filter">プロバイダ：</label>
           <select
+            id="hs-provider-filter"
             value={selectedProvider}
             onChange={(e) =>
               setSelectedProvider(e.target.value as HsProvider | "all")

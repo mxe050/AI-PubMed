@@ -102,18 +102,10 @@ export function SrPubMedDetailsChecker({ settings, query }: Props) {
   return (
     <div className="sr-pubmed-details-checker">
       <div className="sr-pubmed-details-heading">
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={() => void checkDetails()}
-          disabled={!query.trim() || loading}
-        >
-          {loading ? "PubMedで確認中…" : "PubMed APIで補助確認"}
-        </button>
         <div>
           <h4>PubMed APIでDetails相当を補助確認</h4>
           <p className="sr-pubmed-details-instruction">
-            このボタンを押して最終的な検索式の草案を完成させてください。
+            まずAPIで警告・エラー・Query Translationを確認し、その後にWeb版PubMedのDetailsで最終確認します。
           </p>
           <p>
             PubMed ESearch APIが返す Query Translation、警告、エラー、該当件数を確認します。
@@ -121,6 +113,14 @@ export function SrPubMedDetailsChecker({ settings, query }: Props) {
             ただし、Web版Advanced SearchのDetailsと完全に同一ではありません。
           </p>
         </div>
+        <button
+          type="button"
+          className="btn btn-primary sr-details-check-button"
+          onClick={() => void checkDetails()}
+          disabled={!query.trim() || loading}
+        >
+          {loading ? "PubMedで確認中…" : "APIで補助確認する"}
+        </button>
       </div>
 
       {error && (

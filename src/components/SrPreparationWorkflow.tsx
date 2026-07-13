@@ -48,6 +48,8 @@ interface Props {
   ) => void;
   /** 上流のPICO・定義・適格基準が変わったとき、古い検索表を無効化する。 */
   onSearchInputsChanged: () => void;
+  /** 検索語テーブルが表示され、Step 7へ到達しているか。 */
+  searchReady: boolean;
 }
 
 type Feedback = { kind: "ok" | "error"; text: string } | null;
@@ -56,6 +58,16 @@ const SR_PICO_VARIANT_LABEL =
   "PICO案 C：システマティックレビュー用（厳密・網羅的な形）";
 const SR_PICO_VARIANT_INSTRUCTION =
   "PICO案 C：システマティックレビュー用（厳密・網羅的な形）の一つだけを作成してください。PICO案 A/B や代替案は出さないでください。";
+
+const WORKFLOW_STEPS = [
+  { number: 1, label: "疑問・PICO" },
+  { number: 2, label: "定義調査" },
+  { number: 3, label: "定義選択" },
+  { number: 4, label: "適格基準" },
+  { number: 5, label: "基準確認" },
+  { number: 6, label: "類義語" },
+  { number: 7, label: "検索・検証" },
+] as const;
 
 function FeedbackLine({ feedback }: { feedback: Feedback }) {
   if (!feedback) return null;
@@ -81,6 +93,7 @@ export function SrPreparationWorkflow({
   onKnownPmidsChange,
   onTermsReady,
   onSearchInputsChanged,
+  searchReady,
 }: Props) {
   const [specialty, setSpecialty] = useState("");
 
@@ -104,6 +117,7 @@ export function SrPreparationWorkflow({
   const [synonymPrompt, setSynonymPrompt] = useState("");
   const [synonymResponse, setSynonymResponse] = useState("");
   const [synonymFeedback, setSynonymFeedback] = useState<Feedback>(null);
+  const [eligibilityBypassOpen, setEligibilityBypassOpen] = useState(false);
 
   const parsedKnownPmids = useMemo(
     () => parseKnownPmids(knownPmids),
@@ -111,6 +125,19 @@ export function SrPreparationWorkflow({
   );
   const selectedDefinitionCount =
     consultation?.options.filter((option) => option.selected).length ?? 0;
+  const currentStep = searchReady
+    ? 7
+    : synonymPrompt || eligibilityBypassOpen
+      ? 6
+      : eligibility
+        ? 5
+        : eligibilityPrompt
+          ? 4
+          : consultation
+            ? 3
+            : definitionPrompt
+              ? 2
+              : 1;
 
   function resetAfterPico() {
     setDefinitionPrompt("");
@@ -124,6 +151,7 @@ export function SrPreparationWorkflow({
     setSynonymPrompt("");
     setSynonymResponse("");
     setSynonymFeedback(null);
+    setEligibilityBypassOpen(false);
     onSearchInputsChanged();
   }
 
@@ -135,6 +163,7 @@ export function SrPreparationWorkflow({
     setSynonymPrompt("");
     setSynonymResponse("");
     setSynonymFeedback(null);
+    setEligibilityBypassOpen(false);
     onSearchInputsChanged();
   }
 
@@ -380,12 +409,31 @@ export function SrPreparationWorkflow({
   return (
     <>
       <nav className="sr-workflow-map" aria-label="システマティックレビュー検索の作成手順">
+        <div className="sr-workflow-map-heading">
+          <strong>現在地</strong>
+          <span>Step {currentStep} / 7</span>
+        </div>
         <ol>
-          <li><span>1</span>PICO案</li>
-          <li><span>2</span>定義と原典</li>
-          <li><span>3</span>適格基準</li>
-          <li><span>4</span>検索語</li>
-          <li><span>5</span>PubMed検索</li>
+          {WORKFLOW_STEPS.map((step) => {
+            const state =
+              step.number < currentStep
+                ? "completed"
+                : step.number === currentStep
+                  ? "current"
+                  : "upcoming";
+            return (
+              <li
+                key={step.number}
+                className={`sr-workflow-${state}`}
+                aria-current={state === "current" ? "step" : undefined}
+              >
+                <span aria-hidden="true">
+                  {state === "completed" ? "✓" : step.number}
+                </span>
+                <small>{step.label}</small>
+              </li>
+            );
+          })}
         </ol>
       </nav>
 
@@ -680,7 +728,28 @@ export function SrPreparationWorkflow({
         </section>
       )}
 
-      {(eligibility || (pico.p.trim() && pico.i.trim())) && (
+      {!eligibility &&
+        pico.p.trim() &&
+        pico.i.trim() &&
+        !eligibilityBypassOpen && (
+          <aside className="sr-advanced-start sr-eligibility-bypass">
+            <details>
+              <summary>適格基準が既に確定している方（上級者向け）</summary>
+              <p>
+                通常はStep 2〜5で定義と適格基準を確定します。別のプロトコルで基準が確定済みの場合だけ、暫定PICOからStep 6の類義語作成へ進めます。
+              </p>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setEligibilityBypassOpen(true)}
+              >
+                Step 6の類義語作成を開く
+              </button>
+            </details>
+          </aside>
+        )}
+
+      {(eligibility || eligibilityBypassOpen) && (
       <section className="workflow-section">
         <h2>Step 6：既存SRの検索式を参考に、類義語候補を作る</h2>
         {!eligibility && (

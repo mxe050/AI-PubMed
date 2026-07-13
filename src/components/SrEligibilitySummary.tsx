@@ -171,7 +171,7 @@ export function SrEligibilitySummary({ criteria, onChange, question = "" }: Prop
       <div className="step3-action sr-share-copy-action">
         <button
           type="button"
-          className="btn btn-primary sr-copy-criteria-btn"
+          className="btn btn-secondary btn-copy sr-copy-criteria-btn"
           onClick={() => void copyShareText()}
         >
           選択基準の全文をコピー

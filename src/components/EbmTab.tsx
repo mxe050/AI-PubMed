@@ -387,7 +387,8 @@ export function EbmTab({ settings, onPubMedFallbackToAi }: Props) {
           目的は、次のEBM Step 3に渡せる「文献候補リスト」を、AIとPubMedの往復で作ることです。
         </p>
         <p className="ai-format-warning" role="alert">
-          高モデルで回答すると、複数の回答が得られ、自動抽出ができない場合がありますので、手動で入力してください。
+          外部AIが指定形式以外の説明や複数案を追加すると、自動抽出できない場合があります。
+          その場合は、回答内のPICOと検索式を確認して手動で入力してください。
         </p>
         <div className="ebm-design-note">
           <strong>本アプリの検索方針：</strong>
@@ -397,7 +398,7 @@ export function EbmTab({ settings, onPubMedFallbackToAi }: Props) {
           全階層に分類します。「ガイドラインがあればGL、なければSR、なければRCT、…」という読み進めは検索後に判定します。
         </div>
         <div className="ebm-clear-bar">
-          <button className="btn btn-secondary" onClick={clearAll}>
+          <button className="btn btn-reset" onClick={clearAll}>
             🗑 すべての入力・結果をクリアして最初からやり直す
           </button>
         </div>
@@ -566,8 +567,12 @@ SGLT2阻害薬（ダパグリフロジン10mg/日）
         </div>
 
         <div className="form-group">
-          <label>検索目的</label>
-          <select value={purpose} onChange={(e) => setPurpose(e.target.value)}>
+          <label htmlFor="ebm-search-purpose">検索目的</label>
+          <select
+            id="ebm-search-purpose"
+            value={purpose}
+            onChange={(e) => setPurpose(e.target.value)}
+          >
             {purposeOptions.map((opt) => (
               <option key={opt.value} value={opt.value}>
                 {opt.label}

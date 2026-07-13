@@ -8,7 +8,17 @@ export function GradeExplainerTab() {
         </p>
       </header>
 
-      <section className="grade-section">
+      <nav className="section-jump-nav" aria-label="GRADE-ADOLOPMENTページ内メニュー">
+        <span>ページ内メニュー</span>
+        <a href="#grade-overview">概要</a>
+        <a href="#grade-flowchart">フローチャート</a>
+        <a href="#grade-steps">手順</a>
+        <a href="#grade-etd">EtD 8基準</a>
+        <a href="#grade-app-support">本アプリでの支援</a>
+        <a href="#grade-references">参考文献</a>
+      </nav>
+
+      <section id="grade-overview" className="grade-section">
         <h3>GRADE-ADOLOPMENT とは</h3>
         <p>
           <strong>GRADE-ADOLOPMENT</strong> は、Schünemann ら（2017）が提唱した診療ガイドライン作成のフレームワークです。
@@ -106,7 +116,7 @@ export function GradeExplainerTab() {
         </div>
       </section>
 
-      <section className="grade-section">
+      <section id="grade-flowchart" className="grade-section">
         <h3>フローチャート</h3>
         <p>
           下図はSchünemannら（2017, J Clin Epidemiol 81: 101-110）のFigure 1を日本語化したものです。
@@ -118,7 +128,7 @@ export function GradeExplainerTab() {
         </p>
       </section>
 
-      <section className="grade-section">
+      <section id="grade-steps" className="grade-section">
         <h3>ステップごとの詳細解説</h3>
 
         <Step
@@ -252,7 +262,7 @@ export function GradeExplainerTab() {
         />
       </section>
 
-      <section className="grade-section">
+      <section id="grade-etd" className="grade-section">
         <h3>EtD（Evidence to Decision）8基準</h3>
         <p>
           GRADE EtD frameworkでは、推奨の方向と強度に影響する8つの基準を構造的に評価します。
@@ -497,7 +507,7 @@ export function GradeExplainerTab() {
         </div>
       </section>
 
-      <section className="grade-section">
+      <section id="grade-app-support" className="grade-section">
         <h3>本アプリでGRADE-ADOLOPMENTを支援するには</h3>
         <p>
           本アプリの「トピック探索」「システマティックレビュー」タブで以下のように対応できます：
@@ -518,7 +528,7 @@ export function GradeExplainerTab() {
         </ul>
       </section>
 
-      <section className="grade-section references">
+      <section id="grade-references" className="grade-section references">
         <h3>主要参考文献</h3>
         <ol>
           <li>

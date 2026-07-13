@@ -31,7 +31,7 @@ export function PromptDisplay({ prompt, title = "AI用プロンプト" }: Props)
     <div className="prompt-display">
       <div className="prompt-header">
         <h3>{title}</h3>
-        <button className="btn btn-copy" onClick={handleCopy}>
+        <button type="button" className="btn btn-copy" onClick={handleCopy}>
           {copied ? "コピーしました" : "コピー"}
         </button>
       </div>

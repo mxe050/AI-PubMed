@@ -64,6 +64,7 @@ export function SrTab({ settings }: Props) {
   const [classificationAiResponse, setClassificationAiResponse] = useState("");
   const [classificationError, setClassificationError] = useState("");
   const [filterCopyMsg, setFilterCopyMsg] = useState("");
+  const [searchCopyMsg, setSearchCopyMsg] = useState("");
   const parsedKnownPmids = useMemo(
     () => parseKnownPmids(knownPmids),
     [knownPmids]
@@ -115,6 +116,7 @@ export function SrTab({ settings }: Props) {
     setClassificationAiResponse("");
     setClassificationError("");
     setFilterCopyMsg("");
+    setSearchCopyMsg("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -165,6 +167,22 @@ export function SrTab({ settings }: Props) {
     setTimeout(() => setFilterCopyMsg(""), 2000);
   }
 
+  async function copySearchString() {
+    if (!effectiveSearchString) return;
+    try {
+      await navigator.clipboard.writeText(effectiveSearchString);
+    } catch {
+      const ta = document.createElement("textarea");
+      ta.value = effectiveSearchString;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      document.body.removeChild(ta);
+    }
+    setSearchCopyMsg("検索式をコピーしました");
+    setTimeout(() => setSearchCopyMsg(""), 1800);
+  }
+
   async function copyClassificationPrompt() {
     if (!pubmedResult || isResultStale) return;
     const text = buildEbmClassificationCopyText(pubmedResult);
@@ -212,7 +230,7 @@ export function SrTab({ settings }: Props) {
       <header className="strategy-header">
         <h2>システマティックレビュー（補助機能）</h2>
         <div className="ebm-clear-bar">
-          <button className="btn btn-secondary" onClick={clearAll}>
+          <button className="btn btn-reset" onClick={clearAll}>
             🗑 すべての入力・結果をクリアして最初からやり直す
           </button>
         </div>
@@ -241,12 +259,27 @@ export function SrTab({ settings }: Props) {
         onKnownPmidsChange={setKnownPmids}
         onTermsReady={handleTermsReady}
         onSearchInputsChanged={invalidatePreparedSearch}
+        searchReady={hasTermRows || manualSearchOpen}
       />
 
       {/* Step 7: インタラクティブ検索語テーブル + 検索 + 分類 */}
       {hasTermRows || manualSearchOpen ? (
       <section id="sr-step-search" className="workflow-section">
-        <h2>Step 7：検索語テーブル → PubMed検索 → AI分類</h2>
+        <div className="sr-step7-title">
+          <span>Step 7 / 7</span>
+          <h2>検索語を確定し、PubMedで検証する</h2>
+          <p>
+            検索語の採否、研究デザイン、PubMedでの解釈、キー論文の回収を順に確認します。
+          </p>
+        </div>
+
+        <div className="sr-step7-subheading">
+          <span>7A</span>
+          <div>
+            <h3>検索語を人が選ぶ</h3>
+            <p>AIの候補を出発点に、不要語を外し、必要語を追加してから次へ進みます。</p>
+          </div>
+        </div>
 
         {searchAdvice.length > 0 && (
           <div className="sr-search-advice" role="note">
@@ -297,8 +330,15 @@ export function SrTab({ settings }: Props) {
         <SrTermTable table={termTable} onChange={setTermTable} />
 
         {/* フィルター */}
+        <div className="sr-step7-subheading">
+          <span>7B</span>
+          <div>
+            <h3>文献タイプ・研究デザインを選ぶ</h3>
+            <p>レビューの適格基準に必要な場合だけ使用し、根拠と取りこぼしの可能性を確認します。</p>
+          </div>
+        </div>
         <div className="ebm-filter-block">
-          <h4>文献タイプ／研究デザインフィルター（任意）</h4>
+          <h4>フィルター候補（任意）</h4>
           <p className="hint">
             根拠は選択肢ごとに異なります。Cochrane の検証済み PubMed
             フィルターは RCT の感度最大版です。その他を Cochrane
@@ -408,6 +448,13 @@ export function SrTab({ settings }: Props) {
         </div>
 
         {/* 検索式（自動生成・読み取り専用） */}
+        <div className="sr-step7-subheading">
+          <span>7C</span>
+          <div>
+            <h3>検索式を確認し、PubMedで実行する</h3>
+            <p>API補助確認の後、Web版のDetailsとWarningsを確認してからプレビューします。</p>
+          </div>
+        </div>
         <div className="form-group">
           <label htmlFor="sr-effective-query">PubMed検索式（テーブルから自動生成・リアルタイム更新）</label>
           <textarea
@@ -481,10 +528,10 @@ export function SrTab({ settings }: Props) {
         </div>
 
         {/* 検索ボタン群 */}
-        <div className="button-group">
+        <div className="button-group sr-search-actions" aria-label="PubMed検索の実行手順">
           <button
             type="button"
-            className="btn btn-secondary"
+            className="btn btn-secondary btn-external"
             onClick={() => {
               window.open(
                 "https://pubmed.ncbi.nlm.nih.gov/advanced/",
@@ -494,6 +541,14 @@ export function SrTab({ settings }: Props) {
             }}
           >
             PubMed Advanced Search を開く（外部）
+          </button>
+          <button
+            type="button"
+            className="btn btn-secondary btn-copy"
+            onClick={() => void copySearchString()}
+            disabled={!effectiveSearchString}
+          >
+            検索式をコピー
           </button>
           <PubMedSearchBox
             settings={settings}
@@ -524,6 +579,11 @@ export function SrTab({ settings }: Props) {
             }
           />
         </div>
+        {searchCopyMsg && (
+          <p className="ebm-copy-feedback" role="status" aria-live="polite">
+            {searchCopyMsg}
+          </p>
+        )}
 
         {/* 検索結果は、プレビューボタンの直後に表示する */}
         {pubmedResult && (
@@ -539,7 +599,7 @@ export function SrTab({ settings }: Props) {
             )}
             <div className="ebm-classification-bar">
               <button
-                className="btn btn-primary"
+                className="btn btn-secondary btn-copy"
                 onClick={copyClassificationPrompt}
                 type="button"
                 disabled={isResultStale}
@@ -788,19 +848,21 @@ export function SrTab({ settings }: Props) {
         />
       </section>
       ) : (
-        <section id="sr-step-search" className="workflow-section sr-search-collapsed">
-          <h2>Step 7：検索語テーブル → PubMed検索 → AI分類</h2>
-          <p>
-            Step 6でAIの類義語回答を読み込むと、ここに検索語テーブルが自動表示されます。
-          </p>
-          <button
-            type="button"
-            className="btn btn-secondary btn-sm"
-            onClick={() => setManualSearchOpen(true)}
-          >
-            上級者：検索語を手入力して開始
-          </button>
-        </section>
+        <aside id="sr-step-search" className="sr-advanced-start">
+          <details>
+            <summary>既に検索語・プロトコルがある方（上級者向け）</summary>
+            <p>
+              通常はStep 2〜6を順に進みます。定義と適格基準が確定済みで、検索語を人が入力できる場合だけ、検索語テーブルから開始できます。
+            </p>
+            <button
+              type="button"
+              className="btn btn-secondary btn-sm"
+              onClick={() => setManualSearchOpen(true)}
+            >
+              検索語テーブルを開く
+            </button>
+          </details>
+        </aside>
       )}
     </div>
   );

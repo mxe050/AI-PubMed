@@ -150,7 +150,17 @@ export function HarmsSearchTab() {
         </p>
       </header>
 
-      <section className="harms-builder" aria-labelledby="harms-builder-title">
+      <nav className="section-jump-nav" aria-label="害の検索ページ内メニュー">
+        <span>ページ内メニュー</span>
+        <a href="#harms-builder">検索式を作る</a>
+        <a href="#harms-methods">基本方法を読む</a>
+        <a href="#harms-by-intervention">介入別の検索式</a>
+        <a href="#harms-practical-flow">実務フロー</a>
+        <a href="#harms-missing-signals">見つからないとき</a>
+        <a href="#harms-references">参考文献</a>
+      </nav>
+
+      <section id="harms-builder" className="harms-builder" aria-labelledby="harms-builder-title">
         <div className="harms-builder-heading">
           <div>
             <span className="harms-builder-kicker">実践ツール</span>
@@ -495,7 +505,7 @@ export function HarmsSearchTab() {
       </section>
 
       {/* 9. 検索式の基本構造 */}
-      <section className="harms-section">
+      <section id="harms-methods" className="harms-section">
         <h3>9. 実際の検索式の基本構造</h3>
         <p>
           害検索は、1本の万能式ではなく、通常検索Aと害専用検索Bの2本立てにします。Aでは害語を付けず、通常の有効性検索で回収したRCT等から害も抽出します。Bでは同じ介入が別疾患で使われた安全性研究も拾うため、原則としてPを必須にしません［1,10］。
@@ -549,7 +559,7 @@ NOT (animals[mh] NOT humans[mh])`}
       </section>
 
       {/* 11. 薬剤の害 */}
-      <section className="harms-section">
+      <section id="harms-by-intervention" className="harms-section">
         <h3>11. 薬剤の害検索</h3>
         <p>
           薬剤名は一般名、商品名、薬剤クラス名、略語を含めます。Golderらの更新フィルターはOvid MEDLINE検証セットで相対再現率90%、具体的害をOR追加すると92%でした。これは絶対感度でも、PubMed変換後の検証値でもありません［22］。
@@ -771,7 +781,7 @@ NOT (animals[mh] NOT humans[mh])`}
       </section>
 
       {/* 19. 実務フロー */}
-      <section className="harms-section">
+      <section id="harms-practical-flow" className="harms-section">
         <h3>19. 診療ガイドライン作成における実務フロー</h3>
         <p>診療ガイドライン作成では、以下の流れが実務的です。</p>
         <ol>
@@ -806,7 +816,7 @@ NOT (animals[mh] NOT humans[mh])`}
       </section>
 
       {/* 21. 害の報告がありそうなのに見つからない場合 */}
-      <section className="harms-section harms-section-spotlight">
+      <section id="harms-missing-signals" className="harms-section harms-section-spotlight">
         <h3>21. 害の報告が「ありそうなのに見つからない」場合</h3>
         <p>
           自由診療で行われている治療、たとえば高濃度ビタミンC点滴や、標準治療として有効性・安全性が十分に確立していないがん免疫療法などでは、医療者の間で「効果が乏しい可能性が高い」「患者に不利益を与える可能性がある」と認識されていても、学術論文として明確な「害」の報告が見つからないことがあります。
@@ -892,7 +902,7 @@ NOT (animals[mh] NOT humans[mh])`}
       </section>
 
       {/* 参考文献 */}
-      <section className="harms-section harms-references">
+      <section id="harms-references" className="harms-section harms-references">
         <h3>参考文献</h3>
         <ol className="harms-reference-list">
           <li>

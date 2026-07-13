@@ -59,6 +59,11 @@ const tabs: { key: TabType; label: string; kind: TabKind }[] = [
   { key: "grade_explainer", label: "GRADE-ADOLOPMENT解説", kind: "supp" },
 ];
 
+const tabGroups: { label: string; kinds: TabKind[] }[] = [
+  { label: "基本・メイン", kinds: ["meta", "main"] },
+  { label: "専門・補助", kinds: ["supp"] },
+];
+
 function tabFromHash(): TabType {
   const value = window.location.hash.replace(/^#/, "") as TabType;
   return tabs.some((tab) => tab.key === value) ? value : "how_to_use";
@@ -79,6 +84,7 @@ export default function App() {
   const [settings, setSettings] = useState<AppSettings>(loadSettings);
   const [topicMode, setTopicMode] = useState<TopicSearchMode>("normal");
   const [topicPrefill, setTopicPrefill] = useState<TopicPrefill | null>(null);
+  const [showBackToTop, setShowBackToTop] = useState(false);
 
   const showTab = useCallback((nextTab: TabType) => {
     setActiveTab(nextTab);
@@ -88,6 +94,9 @@ export default function App() {
       next.add(nextTab);
       return next;
     });
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "auto" });
+    });
   }, []);
 
   useEffect(() => {
@@ -95,10 +104,22 @@ export default function App() {
   }, [activeTab]);
 
   useEffect(() => {
-    const syncFromHash = () => showTab(tabFromHash());
+    const syncFromHash = () => {
+      const value = window.location.hash.replace(/^#/, "") as TabType;
+      if (tabs.some((tab) => tab.key === value)) {
+        showTab(value);
+      }
+    };
     window.addEventListener("hashchange", syncFromHash);
     return () => window.removeEventListener("hashchange", syncFromHash);
   }, [showTab]);
+
+  useEffect(() => {
+    const updateBackToTop = () => setShowBackToTop(window.scrollY > 720);
+    updateBackToTop();
+    window.addEventListener("scroll", updateBackToTop, { passive: true });
+    return () => window.removeEventListener("scroll", updateBackToTop);
+  }, []);
 
   function sendEbmToTopicSearch(payload: {
     question: string;
@@ -124,33 +145,52 @@ export default function App() {
       <a className="skip-link" href="#main-content">本文へ移動</a>
       <header className="app-header">
         <h1>医療関係者のためのAI検索（PubMed・SR）</h1>
-        <p className="app-subtitle">
-          AI APIには一切通信しません。PubMed公式API（NCBI E-utilities）のみを使用します。
-        </p>
-        <p className="app-subtitle app-subtitle-warning">
-          ⚠ AIモデルは日々進化・変化しています。本アプリで生成したプロンプトを外部AIに渡す方法より、
-          外部AIで直接トピック検索やファクトチェックを行った方が正確な回答になる場合もあります。
-          またAIモデルの仕様変更により、出力の品質や形式が変わることがあります。
-          本アプリの結果を盲信せず、最終判断は必ず人間が行ってください。
-          <br />
-          <strong>
-            医療情報では、ハルシネーションを限りなくゼロに近づける必要があります。本アプリは未検証情報を明示し、PubMedによる書誌確認と、人間による原典確認を支援します。正確性を保証するものではありません。
-            低モデルでは、ファクトチェックでハルシネーションが増える場合があります。
-          </strong>
-        </p>
+        <div className="app-trust-row" aria-label="通信と確認方法">
+          <span>AI APIへの自動送信なし</span>
+          <span>PubMed公式APIのみ使用</span>
+          <span>最終判断は人が行う</span>
+        </div>
+        <div className="app-safety-summary" role="note">
+          <strong>重要：</strong>
+          AIの回答や本アプリの候補をそのまま採用せず、PubMedの書誌と原典本文を必ず確認してください。
+        </div>
+        <details className="app-safety-details">
+          <summary>医療安全上の注意を詳しく読む</summary>
+          <div>
+            <p>
+              AIモデルは日々変化し、同じプロンプトでも出力の内容・品質・形式が変わることがあります。
+              外部AIが提示した論文、PMID、DOI、MeSH、検索式は、実在性と内容の一致を確認してください。
+            </p>
+            <p>
+              本アプリは未確認情報を区別し、PubMedによる書誌確認と人間による原典確認を支援しますが、
+              正確性・網羅性・臨床的妥当性を保証するものではありません。患者の診療に関わる最終判断は必ず人が行ってください。
+            </p>
+          </div>
+        </details>
       </header>
 
       <nav className="tab-nav" aria-label="機能を選ぶ">
-        {tabs.map((tab) => (
-          <button
-            key={tab.key}
-            className={`tab-button tab-kind-${tab.kind} ${activeTab === tab.key ? "active" : ""}`}
-            onClick={() => showTab(tab.key)}
-            aria-pressed={activeTab === tab.key}
-          >
-            {tab.kind === "main" && <span className="tab-main-dot" aria-hidden="true">●</span>}
-            {tab.label}
-          </button>
+        {tabGroups.map((group) => (
+          <div className="tab-nav-group" key={group.label}>
+            <span className="tab-nav-group-label">{group.label}</span>
+            <div className="tab-nav-buttons">
+              {tabs
+                .filter((tab) => group.kinds.includes(tab.kind))
+                .map((tab) => (
+                  <button
+                    type="button"
+                    key={tab.key}
+                    className={`tab-button tab-kind-${tab.kind} ${activeTab === tab.key ? "active" : ""}`}
+                    onClick={() => showTab(tab.key)}
+                    aria-pressed={activeTab === tab.key}
+                    aria-current={activeTab === tab.key ? "page" : undefined}
+                  >
+                    {tab.kind === "main" && <span className="tab-main-dot" aria-hidden="true">●</span>}
+                    {tab.label}
+                  </button>
+                ))}
+            </div>
+          </div>
         ))}
       </nav>
 
@@ -352,6 +392,17 @@ export default function App() {
         </div>
         </Suspense>
       </main>
+
+      {showBackToTop && (
+        <button
+          type="button"
+          className="back-to-top"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          aria-label="ページ上部へ戻る"
+        >
+          ↑ 上へ
+        </button>
+      )}
 
       <footer className="app-footer">
         <p>

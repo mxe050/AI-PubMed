@@ -162,6 +162,9 @@ function AbstractToCsvTool() {
 
       <div
         className={`drop-zone ${dragging ? "drop-zone-active" : ""}`}
+        role="button"
+        tabIndex={0}
+        aria-label="PubMedのAbstract textファイルを選択"
         onDragOver={(e) => {
           e.preventDefault();
           setDragging(true);
@@ -169,6 +172,12 @@ function AbstractToCsvTool() {
         onDragLeave={() => setDragging(false)}
         onDrop={handleDrop}
         onClick={() => fileRef.current?.click()}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            fileRef.current?.click();
+          }
+        }}
       >
         <p className="drop-zone-main">
           📄 Abstract (text) ファイルをドラッグ＆ドロップ
@@ -183,6 +192,7 @@ function AbstractToCsvTool() {
           ref={fileRef}
           type="file"
           accept=".txt,.text"
+          aria-label="PubMedのAbstract textファイル"
           style={{ display: "none" }}
           onChange={handleFileChange}
         />
@@ -201,7 +211,7 @@ function AbstractToCsvTool() {
             <button className="btn btn-primary" onClick={handleConvertNow}>
               CSVに再変換
             </button>
-            <button className="btn btn-secondary" onClick={handleClear}>
+            <button className="btn btn-reset" onClick={handleClear}>
               クリア
             </button>
           </div>
@@ -242,7 +252,7 @@ function AbstractToCsvTool() {
             <button className="btn btn-primary" onClick={handleDownload}>
               CSVをダウンロード
             </button>
-            <button className="btn btn-secondary" onClick={handleClear}>
+            <button className="btn btn-reset" onClick={handleClear}>
               クリア
             </button>
           </div>
@@ -395,7 +405,7 @@ function NbibToRisTool() {
             <button className="btn btn-primary" onClick={handleConvertNow}>
               RISに再変換
             </button>
-            <button className="btn btn-secondary" onClick={handleClear}>
+            <button className="btn btn-reset" onClick={handleClear}>
               クリア
             </button>
           </div>
@@ -433,7 +443,7 @@ function NbibToRisTool() {
             <button className="btn btn-secondary" onClick={handleCopy}>
               {copyMsg || "RISをコピー"}
             </button>
-            <button className="btn btn-secondary" onClick={handleClear}>
+            <button className="btn btn-reset" onClick={handleClear}>
               クリア
             </button>
           </div>

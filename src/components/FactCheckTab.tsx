@@ -428,7 +428,7 @@ ${aiResponse}
           </button>
 
           <button
-            className="btn btn-danger"
+            className="btn btn-secondary btn-copy"
             onClick={handleCopyAiCheckPrompt}
             disabled={!aiResponse.trim()}
             title="AI（ChatGPT/Claude/Gemini等のWeb検索可能なモデル）に渡してファクトチェックさせるためのプロンプトをコピー"
@@ -439,7 +439,7 @@ ${aiResponse}
           </button>
 
           <button
-            className="btn btn-secondary"
+            className="btn btn-reset"
             onClick={handleClear}
             disabled={
               !aiResponse && items.length === 0 && citationResults.length === 0

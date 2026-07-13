@@ -115,7 +115,7 @@ export function QuickEvidenceTab(_props: Props) {
           <button className="btn btn-primary" onClick={handleGenerate}>
             プロンプトを生成
           </button>
-          <button className="btn btn-secondary" onClick={handleClear}>
+          <button className="btn btn-reset" onClick={handleClear}>
             🗑 すべてクリア
           </button>
         </div>
