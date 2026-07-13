@@ -1,5 +1,5 @@
 import { useRef, useState } from "react";
-import type { AppSettings, PubMedSearchResult } from "../types";
+import type { AppSettings, PubMedArticle, PubMedSearchResult } from "../types";
 import { esearchPubMed } from "../api/esearchPubMed";
 import { esummaryPubMed } from "../api/esummaryPubMed";
 import { efetchPubMed } from "../api/efetchPubMed";
@@ -40,10 +40,12 @@ export function PubMedSearchBox({
   const [error, setError] = useState<string | null>(null);
   const abortControllerRef = useRef<AbortController | null>(null);
   const [exportProgress, setExportProgress] = useState<string>("");
+  const [progressMessage, setProgressMessage] = useState("");
 
   async function runSearch() {
     setLoading(true);
     setError(null);
+    setProgressMessage("PubMedで上位文献を検索中…");
     const validation = validatePubMedQuery(searchString, queryKind);
     if (!validation.valid) {
       setError(
@@ -52,6 +54,7 @@ export function PubMedSearchBox({
           .map((item) => item.message)
           .join(" / ")
       );
+      setProgressMessage("");
       setLoading(false);
       return;
     }
@@ -69,6 +72,9 @@ export function PubMedSearchBox({
         retmax,
         0,
         controller.signal
+      );
+      setProgressMessage(
+        `該当${search.count.toLocaleString("ja-JP")}件。上位${search.idList.length}件の書誌情報を取得中…`
       );
 
       let knownPmidBenchmark: PubMedSearchResult["knownPmidBenchmark"];
@@ -106,15 +112,39 @@ export function PubMedSearchBox({
         }
       }
 
-      const summaries = await esummaryPubMed(
-        search.idList,
-        settings,
-        limiter,
-        controller.signal
-      );
+      const previewWarnings: string[] = [];
+      let summaries: PubMedArticle[];
+      try {
+        summaries = await esummaryPubMed(
+          search.idList,
+          settings,
+          limiter,
+          controller.signal
+        );
+      } catch (summaryError) {
+        if (
+          summaryError instanceof DOMException &&
+          summaryError.name === "AbortError"
+        ) {
+          throw summaryError;
+        }
+        previewWarnings.push(
+          "上位文献の書誌情報を取得できなかったため、PMIDのみ表示します。時間をおいて再実行してください。"
+        );
+        summaries = search.idList.map((pmid) => ({
+          pmid,
+          verified: false,
+          source: "manual",
+          bibliographicStatus: "unverified",
+          contentVerificationStatus: "unverified",
+        }));
+      }
 
       let detailedArticles = summaries;
 
+      setProgressMessage(
+        `上位${search.idList.length}件の抄録・MeSHを取得中…`
+      );
       try {
         const fetched = await efetchPubMed(
           search.idList,
@@ -139,6 +169,9 @@ export function PubMedSearchBox({
         if (fetchError instanceof DOMException && fetchError.name === "AbortError") {
           throw fetchError;
         }
+        previewWarnings.push(
+          "抄録・MeSHの追加取得を完了できなかったため、取得済みの書誌情報を表示します。"
+        );
       }
 
       const result: PubMedSearchResult = {
@@ -148,9 +181,13 @@ export function PubMedSearchBox({
         count: search.count,
         idList: search.idList,
         queryTranslation: search.queryTranslation,
-        warningList: search.warningList,
+        warningList: [...search.warningList, ...previewWarnings],
         errorList: search.errorList,
-        warnings: [...search.warningList, ...search.errorList],
+        warnings: [
+          ...search.warningList,
+          ...search.errorList,
+          ...previewWarnings,
+        ],
         queryParameters: {
           db: "pubmed",
           retmode: "json",
@@ -167,7 +204,11 @@ export function PubMedSearchBox({
       };
 
       onResult(result);
+      setProgressMessage(
+        `上位${result.articles.length}件のプレビューをボタン直下に表示しました。`
+      );
     } catch (e) {
+      setProgressMessage("");
       if (e instanceof DOMException && e.name === "AbortError") {
         setError("検索をキャンセルしました。");
         return;
@@ -200,6 +241,7 @@ export function PubMedSearchBox({
     }
     setLoading(true);
     setError(null);
+    setProgressMessage("");
     setExportProgress("全件数を確認中…");
     const controller = new AbortController();
     abortControllerRef.current = controller;
@@ -244,6 +286,7 @@ export function PubMedSearchBox({
   return (
     <div className="pubmed-search-box">
       <button
+        type="button"
         className={`btn btn-${buttonVariant}`}
         onClick={runSearch}
         disabled={!searchString || loading}
@@ -268,6 +311,11 @@ export function PubMedSearchBox({
         >
           全PMIDを取得してJSON出力
         </button>
+      )}
+      {progressMessage && (
+        <span className="pubmed-search-status" role="status" aria-live="polite">
+          {progressMessage}
+        </span>
       )}
       {exportProgress && <span role="status" aria-live="polite">{exportProgress}</span>}
 

@@ -24,7 +24,7 @@ export function SrPubMedResultTable({ result }: Props) {
         </p>
         {result.warningList && result.warningList.length > 0 && (
           <div className="sr-api-warning" role="alert">
-            <strong>PubMed からの検索警告</strong>
+            <strong>検索・プレビューの警告</strong>
             <ul>{result.warningList.map((warning) => <li key={warning}>{warning}</li>)}</ul>
           </div>
         )}

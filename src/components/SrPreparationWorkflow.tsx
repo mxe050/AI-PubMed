@@ -455,7 +455,7 @@ export function SrPreparationWorkflow({
           </p>
           <button
             type="button"
-            className="btn btn-secondary"
+            className="btn btn-primary"
             onClick={generateBrainstormPrompt}
           >
             PICO案ブレストプロンプトを生成

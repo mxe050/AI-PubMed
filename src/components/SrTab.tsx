@@ -23,7 +23,6 @@ import type { StudyDesignFilterKey } from "../utils/cochraneFilters";
 import { buildEbmClassificationCopyText } from "../utils/buildEbmClassificationCopyText";
 import { parseClassificationResponse } from "../utils/parseClassificationResponse";
 import { renderClassificationNewTab } from "../utils/renderClassificationNewTab";
-import { openPubMedWithQuery } from "../utils/pubmedUrl";
 import { parseKnownPmids } from "../utils/knownPmidBenchmark";
 import { PubMedSearchBox } from "./PubMedSearchBox";
 import { SrPubMedDetailsChecker } from "./SrPubMedDetailsChecker";
@@ -64,7 +63,6 @@ export function SrTab({ settings }: Props) {
   const [classificationCopyMsg, setClassificationCopyMsg] = useState("");
   const [classificationAiResponse, setClassificationAiResponse] = useState("");
   const [classificationError, setClassificationError] = useState("");
-  const [searchCopyMsg, setSearchCopyMsg] = useState("");
   const [filterCopyMsg, setFilterCopyMsg] = useState("");
   const parsedKnownPmids = useMemo(
     () => parseKnownPmids(knownPmids),
@@ -116,7 +114,6 @@ export function SrTab({ settings }: Props) {
     setClassificationCopyMsg("");
     setClassificationAiResponse("");
     setClassificationError("");
-    setSearchCopyMsg("");
     setFilterCopyMsg("");
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -150,22 +147,6 @@ export function SrTab({ settings }: Props) {
     setTermWarnings([]);
     setPubmedResult(null);
     setManualSearchOpen(false);
-  }
-
-  async function copySearchString() {
-    if (!effectiveSearchString) return;
-    try {
-      await navigator.clipboard.writeText(effectiveSearchString);
-    } catch {
-      const ta = document.createElement("textarea");
-      ta.value = effectiveSearchString;
-      document.body.appendChild(ta);
-      ta.select();
-      document.execCommand("copy");
-      document.body.removeChild(ta);
-    }
-    setSearchCopyMsg("コピーしました");
-    setTimeout(() => setSearchCopyMsg(""), 1800);
   }
 
   async function copyFilterText(text: string, message: string) {
@@ -445,6 +426,11 @@ export function SrTab({ settings }: Props) {
           />
         </div>
 
+        <SrPubMedDetailsChecker
+          settings={settings}
+          query={effectiveSearchString}
+        />
+
         <div
           className="sr-details-required-card"
           role="note"
@@ -460,7 +446,10 @@ export function SrTab({ settings }: Props) {
             検索式が完成したら、アプリ内の確認だけで終えず、最終版をPubMedで実際に検索します。
           </p>
           <ol>
-            <li>下の「PubMed Advanced Search で開く」から検索を実行する。</li>
+            <li>
+              上の検索式をコピーし、下の「PubMed Advanced Search を開く（外部）」から
+              Advanced Searchを開いて検索を実行する。
+            </li>
             <li>Advanced Search BuilderのHistoryで、実行した検索式のDetailsを開く。</li>
             <li>
               <strong>Warningsが表示されていないことを必ず確認する。</strong>
@@ -491,38 +480,20 @@ export function SrTab({ settings }: Props) {
           </div>
         </div>
 
-        <SrPubMedDetailsChecker
-          settings={settings}
-          query={effectiveSearchString}
-        />
-
         {/* 検索ボタン群 */}
-        <div className="sr-preview-notice" role="note">
-          <strong>アプリ内表示は Best Match 上位100件のプレビューです。</strong>
-          <span>
-            システマティックレビューの全件スクリーニングではありません。全件確認・保存は
-            「PubMed Advanced Search で開く」を使用してください。
-          </span>
-        </div>
         <div className="button-group">
           <button
             type="button"
             className="btn btn-secondary"
             onClick={() => {
-              if (!effectiveSearchString) return;
-              void openPubMedWithQuery(effectiveSearchString, "advanced");
+              window.open(
+                "https://pubmed.ncbi.nlm.nih.gov/advanced/",
+                "_blank",
+                "noopener,noreferrer"
+              );
             }}
-            disabled={!effectiveSearchString}
           >
-            PubMed Advanced Search で開く（外部）
-          </button>
-          <button
-            type="button"
-            className="btn btn-secondary"
-            onClick={copySearchString}
-            disabled={!effectiveSearchString}
-          >
-            {searchCopyMsg || "検索式をコピー"}
+            PubMed Advanced Search を開く（外部）
           </button>
           <PubMedSearchBox
             settings={settings}
@@ -553,11 +524,69 @@ export function SrTab({ settings }: Props) {
             }
           />
         </div>
-        <p className="hint" style={{ fontSize: "0.78rem" }}>
-          ※ 検索式が長すぎる場合、URLに入りきらないことがあります。その場合は本アプリが
-          自動的に検索式をクリップボードにコピーし、Advanced Search 画面（空の状態）を開きます。
-          そのまま貼り付けて検索してください。
-        </p>
+
+        {/* 検索結果は、プレビューボタンの直後に表示する */}
+        {pubmedResult && (
+          <section
+            id="sr-pubmed-preview-results"
+            className="sr-pubmed-preview-results"
+            aria-label="PubMed上位100件プレビュー"
+          >
+            {isResultStale && (
+              <div className="sr-stale-warning" role="alert">
+                検索条件または既知PMIDが前回の結果から変更されています。現在の条件で再検索してから分類してください。
+              </div>
+            )}
+            <div className="ebm-classification-bar">
+              <button
+                className="btn btn-primary"
+                onClick={copyClassificationPrompt}
+                type="button"
+                disabled={isResultStale}
+              >
+                AIで研究デザイン別に分類する（プロンプト＋結果をコピー）
+              </button>
+              {classificationCopyMsg && (
+                <span className="ebm-copy-feedback">
+                  ✅ {classificationCopyMsg}
+                </span>
+              )}
+            </div>
+
+            <SrPubMedResultTable result={pubmedResult} />
+
+            <div className="ebm-classify-result-block">
+              <h4>AIの回答を貼り付け</h4>
+              <p className="hint">
+                上のプロンプトを外部AIに貼り付け、返ってきた回答を下に貼り付けてください。
+                「分類結果を表示」ボタンで新しいブラウザタブに分類テーブルが開きます（CSVダウンロード機能付き）。
+              </p>
+              <textarea
+                value={classificationAiResponse}
+                onChange={(e) =>
+                  setClassificationAiResponse(e.target.value)
+                }
+                rows={10}
+                placeholder="AIから返ってきた分類回答全体をここに貼り付け..."
+                style={{ width: "100%" }}
+              />
+              <div className="step3-action">
+                <button
+                  className="btn btn-primary"
+                  onClick={showClassificationResult}
+                  disabled={!classificationAiResponse.trim()}
+                >
+                  分類結果を表示（新しいブラウザタブ）
+                </button>
+              </div>
+              {classificationError && (
+                <div className="error-box" role="alert">
+                  <p>⚠ {classificationError}</p>
+                </div>
+              )}
+            </div>
+          </section>
+        )}
 
         <section
           className="sr-after-search-guide"
@@ -757,65 +786,6 @@ export function SrTab({ settings }: Props) {
           perElement={perElement}
           designFilterExpression={designFilter.expression}
         />
-
-        {/* 検索結果 */}
-        {pubmedResult && (
-          <>
-            {isResultStale && (
-              <div className="sr-stale-warning" role="alert">
-                検索条件または既知PMIDが前回の結果から変更されています。現在の条件で再検索してから分類してください。
-              </div>
-            )}
-            <div className="ebm-classification-bar">
-              <button
-                className="btn btn-primary"
-                onClick={copyClassificationPrompt}
-                type="button"
-                disabled={isResultStale}
-              >
-                AIで研究デザイン別に分類する（プロンプト＋結果をコピー）
-              </button>
-              {classificationCopyMsg && (
-                <span className="ebm-copy-feedback">
-                  ✅ {classificationCopyMsg}
-                </span>
-              )}
-            </div>
-
-            <SrPubMedResultTable result={pubmedResult} />
-
-            <div className="ebm-classify-result-block">
-              <h4>AIの回答を貼り付け</h4>
-              <p className="hint">
-                上のプロンプトを外部AIに貼り付け、返ってきた回答を下に貼り付けてください。
-                「分類結果を表示」ボタンで新しいブラウザタブに分類テーブルが開きます（CSVダウンロード機能付き）。
-              </p>
-              <textarea
-                value={classificationAiResponse}
-                onChange={(e) =>
-                  setClassificationAiResponse(e.target.value)
-                }
-                rows={10}
-                placeholder="AIから返ってきた分類回答全体をここに貼り付け..."
-                style={{ width: "100%" }}
-              />
-              <div className="step3-action">
-                <button
-                  className="btn btn-primary"
-                  onClick={showClassificationResult}
-                  disabled={!classificationAiResponse.trim()}
-                >
-                  分類結果を表示（新しいブラウザタブ）
-                </button>
-              </div>
-              {classificationError && (
-                <div className="error-box" role="alert">
-                  <p>⚠ {classificationError}</p>
-                </div>
-              )}
-            </div>
-          </>
-        )}
       </section>
       ) : (
         <section id="sr-step-search" className="workflow-section sr-search-collapsed">

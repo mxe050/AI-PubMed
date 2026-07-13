@@ -1108,6 +1108,18 @@ mark.claim-hl {
   margin-top: 12px;
 }
 
+.button-group > .pubmed-search-box {
+  margin-top: 0;
+}
+
+.pubmed-search-status {
+  display: block;
+  margin-top: 7px;
+  color: var(--color-text-secondary);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
 /* Error */
 .error-box {
   background: var(--color-error-bg);
@@ -4391,9 +4403,18 @@ tr.unverified {
 
 .sr-pubmed-details-heading {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  align-items: flex-start;
+  justify-content: flex-start;
   gap: 14px;
+}
+
+.sr-pubmed-details-heading > div {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sr-pubmed-details-heading > .btn {
+  flex: 0 0 auto;
 }
 
 .sr-pubmed-details-heading h4 {
@@ -4407,6 +4428,18 @@ tr.unverified {
   color: var(--color-text-secondary);
   font-size: 0.82rem;
   line-height: 1.5;
+}
+
+.sr-pubmed-details-heading .sr-pubmed-details-instruction {
+  margin: 0 0 6px;
+  color: #1e40af;
+  font-size: 0.88rem;
+  font-weight: 750;
+}
+
+.sr-pubmed-preview-results {
+  margin-top: 16px;
+  scroll-margin-top: 16px;
 }
 
 .sr-pubmed-details-result {
