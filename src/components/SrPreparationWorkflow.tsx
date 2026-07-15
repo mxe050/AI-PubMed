@@ -562,7 +562,10 @@ export function SrPreparationWorkflow({
         <details className="sr-complex-population-note">
           <summary id="sr-complex-population-summary">
             <span aria-hidden="true">⚠</span>
-            Pに複数の条件が含まれる場合：単純なAND検索による見落としに注意
+            <span className="sr-complex-population-summary-copy">
+              <span>Pに複数の条件が含まれる場合：単純なAND検索による見落としに注意</span>
+              <small>該当する場合は、見出しをクリックして内容を読んでください。</small>
+            </span>
           </summary>
           <div className="sr-complex-population-body">
             <p className="sr-complex-population-example">
