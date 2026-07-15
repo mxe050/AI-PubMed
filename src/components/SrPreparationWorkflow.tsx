@@ -546,10 +546,73 @@ export function SrPreparationWorkflow({
                 rows={3}
                 value={pico[key]}
                 onChange={(event) => updatePico(key, event.target.value)}
+                aria-describedby={
+                  key === "p" ? "sr-complex-population-summary" : undefined
+                }
               />
+              {key === "p" && (
+                <small className="sr-pico-inline-caution">
+                  「〇〇を伴う××」のように条件が複数ある場合は、下の注意を確認してください。
+                </small>
+              )}
             </label>
           ))}
         </div>
+
+        <details className="sr-complex-population-note">
+          <summary id="sr-complex-population-summary">
+            <span aria-hidden="true">⚠</span>
+            Pに複数の条件が含まれる場合：単純なAND検索による見落としに注意
+          </summary>
+          <div className="sr-complex-population-body">
+            <p className="sr-complex-population-example">
+              <strong>例：肥満を有する糖尿病患者</strong>
+            </p>
+            <p>
+              このPには「肥満」と「糖尿病」という2つの条件があります。検索式を単純に
+              <code>肥満 AND 糖尿病</code>
+              とすると、糖尿病治療の研究で、肥満の有無が本文中のサブグループ解析としてだけ報告され、
+              タイトル・抄録・索引に「肥満」が十分記載されていない研究が検索結果から外れる可能性があります。
+            </p>
+            <p>
+              そのサブグループ結果をレビューに採用できるかは、検索式とは別に、事前に定めた適格基準、
+              入手できるデータ、解析計画に基づいて判断します。ただし、候補研究自体が検索段階で漏れると、
+              その判断を行う機会も失われます。
+            </p>
+            <div className="sr-complex-population-policy" role="note">
+              <strong>このアプリの扱い</strong>
+              <p>
+                本アプリは、1つのPを自動的にP1・P2へ分割し、ANDまたはORで機械的に結合しません。
+                適切な組み方は、対象集団、適格基準、研究での報告方法によって異なり、単純な一つの正解がないためです。
+              </p>
+            </div>
+            <h4>進め方</h4>
+            <ol>
+              <li>
+                AIへ相談する場合は、「Pに複数の条件があり、本文中のサブグループ研究も拾いたい」と明示して、
+                複数の候補式と、それぞれで漏れる可能性のある研究を説明させます。AIの式はそのまま採用しません。
+              </li>
+              <li>
+                必要に応じて司書・医学情報検索の専門家や共同研究者にも相談し、候補式をPubMedで個別に実行します。
+                件数とノイズ、Details／Warnings、キー論文や既知の関連研究を回収できるかを比較します。
+              </li>
+              <li>
+                人が最終式を決定し、採用した組み方と判断理由をプロトコルおよび検索記録に残します。
+              </li>
+            </ol>
+            <p className="hint sr-complex-population-sources">
+              方法論の確認：
+              <a href="https://training.cochrane.org/handbook/current/chapter-03" target="_blank" rel="noreferrer">
+                Cochrane Handbook Chapter 3
+              </a>
+              （対象集団・部分的に適格な参加者）／
+              <a href="https://training.cochrane.org/handbook/current/chapter-04" target="_blank" rel="noreferrer">
+                Chapter 4
+              </a>
+              （検索概念を増やしすぎず感度を保つ考え方）
+            </p>
+          </div>
+        </details>
 
         <div className="form-group">
           <label htmlFor="sr-known-pmids">
