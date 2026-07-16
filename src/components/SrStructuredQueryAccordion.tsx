@@ -3,10 +3,18 @@
 
 import { useState } from "react";
 import type { SrPicoElement } from "../utils/parseSrTermsFromAiResponse";
+import type { SrPopulationSearchBlocks } from "../utils/buildSrSearchString";
+import type {
+  SrPopulationMode,
+  SrPopulationRelation,
+} from "../utils/srPopulation";
 
 interface Props {
   perElement: Record<SrPicoElement, string>;
   designFilterExpression: string;
+  populationMode?: SrPopulationMode;
+  populationRelation?: SrPopulationRelation | null;
+  populationBlocks?: SrPopulationSearchBlocks;
 }
 
 const ELEMENT_LABEL: Record<SrPicoElement, string> = {
@@ -19,6 +27,9 @@ const ELEMENT_LABEL: Record<SrPicoElement, string> = {
 export function SrStructuredQueryAccordion({
   perElement,
   designFilterExpression,
+  populationMode = "single",
+  populationRelation = null,
+  populationBlocks,
 }: Props) {
   return (
     <details className="sr-structured-accordion">
@@ -33,7 +44,25 @@ export function SrStructuredQueryAccordion({
         Oは通常、最終検索式には含めません。以下から各ブロックを個別にコピーできます。
       </p>
 
-      {(["P", "I", "C", "O"] as SrPicoElement[]).map((el) => (
+      {populationMode === "multiple" && populationBlocks ? (
+        <>
+          <div className="sr-structured-population-note">
+            複合Pは、P1とP2を別々に保存したうえで、最終的に
+            <strong> {populationRelation ?? "AND／OR未選択"} </strong>
+            で結合した行も保存します。
+          </div>
+          <BlockRow label="P1（主となる集団・疾患）" query={populationBlocks.p1} />
+          <BlockRow label="P2（追加条件・特性）" query={populationBlocks.p2} />
+          <BlockRow
+            label={`P（P1 ${populationRelation ?? "?"} P2）`}
+            query={populationBlocks.combined}
+          />
+        </>
+      ) : (
+        <BlockRow label={ELEMENT_LABEL.P} query={perElement.P} />
+      )}
+
+      {(["I", "C", "O"] as SrPicoElement[]).map((el) => (
         <BlockRow
           key={el}
           label={ELEMENT_LABEL[el]}

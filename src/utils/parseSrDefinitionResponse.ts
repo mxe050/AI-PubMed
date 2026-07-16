@@ -1,6 +1,6 @@
 import type { SrEligibilityReference } from "./parseSrEligibilityResponse";
 
-export type SrDefinitionElement = "P" | "I" | "C" | "O";
+export type SrDefinitionElement = "P" | "P1" | "P2" | "I" | "C" | "O";
 
 export interface SrDefinitionSource {
   citation: string;
@@ -26,6 +26,7 @@ export interface SrDefinitionOption {
 export interface SrDefinitionConsultation {
   questionInterpretation: string;
   decisionPoints: string[];
+  populationGuidance?: string[];
   options: SrDefinitionOption[];
 }
 
@@ -48,7 +49,12 @@ function asStringArray(value: unknown): string[] {
 
 function normalizeElement(value: unknown): SrDefinitionElement | null {
   const element = asString(value).toUpperCase();
-  return element === "P" || element === "I" || element === "C" || element === "O"
+  return element === "P" ||
+    element === "P1" ||
+    element === "P2" ||
+    element === "I" ||
+    element === "C" ||
+    element === "O"
     ? element
     : null;
 }
@@ -99,7 +105,14 @@ export function parseSrDefinitionResponse(text: string): ParseSrDefinitionResult
 
   const root = raw as Record<string, unknown>;
   const sourceOptions = Array.isArray(root.options) ? root.options : [];
-  const counters: Record<SrDefinitionElement, number> = { P: 0, I: 0, C: 0, O: 0 };
+  const counters: Record<SrDefinitionElement, number> = {
+    P: 0,
+    P1: 0,
+    P2: 0,
+    I: 0,
+    C: 0,
+    O: 0,
+  };
   const options: SrDefinitionOption[] = [];
 
   for (const item of sourceOptions) {
@@ -107,7 +120,7 @@ export function parseSrDefinitionResponse(text: string): ParseSrDefinitionResult
     const value = item as Record<string, unknown>;
     const element = normalizeElement(value.element);
     if (!element) {
-      warnings.push("P/I/C/Oを判定できない定義候補を除外しました");
+      warnings.push("P/P1/P2/I/C/Oを判定できない定義候補を除外しました");
       continue;
     }
     const definition = asString(value.definition);
@@ -152,7 +165,7 @@ export function parseSrDefinitionResponse(text: string): ParseSrDefinitionResult
     return { ok: false, reason: "利用可能な定義候補がありません", warnings };
   }
 
-  for (const element of ["P", "I", "C", "O"] as SrDefinitionElement[]) {
+  for (const element of ["P", "P1", "P2", "I", "C", "O"] as SrDefinitionElement[]) {
     const group = options.filter((option) => option.element === element);
     if (group.length > 0 && !group.some((option) => option.selected)) {
       group[0].selected = true;
@@ -160,7 +173,10 @@ export function parseSrDefinitionResponse(text: string): ParseSrDefinitionResult
     }
   }
 
-  if (!options.some((option) => option.element === "P") || !options.some((option) => option.element === "I")) {
+  const hasPopulation = options.some((option) =>
+    ["P", "P1", "P2"].includes(option.element)
+  );
+  if (!hasPopulation || !options.some((option) => option.element === "I")) {
     warnings.push("PまたはIの定義候補が不足しています");
   }
 
@@ -169,6 +185,7 @@ export function parseSrDefinitionResponse(text: string): ParseSrDefinitionResult
     consultation: {
       questionInterpretation: asString(root.questionInterpretation),
       decisionPoints: asStringArray(root.decisionPoints),
+      populationGuidance: asStringArray(root.populationGuidance),
       options,
     },
     warnings,
@@ -194,6 +211,7 @@ export function buildSelectedDefinitionContext(
   return JSON.stringify(
     {
       questionInterpretation: consultation.questionInterpretation,
+      populationGuidance: consultation.populationGuidance ?? [],
       selectedOptions: selected,
     },
     null,

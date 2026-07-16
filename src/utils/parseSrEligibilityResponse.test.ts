@@ -6,7 +6,10 @@ describe("parseSrEligibilityResponse", () => {
     const result = parseSrEligibilityResponse(`
 ===ELIGIBILITY_JSON_START===
 {
-  "p": "成人", "i": "介入A", "c": "標準治療", "o": "有害事象",
+  "p": "肥満を有する成人糖尿病患者",
+  "populationMode": "multiple", "p1": "成人糖尿病患者", "p2": "肥満",
+  "populationNotes": ["P2該当者の分離データが必要"],
+  "i": "介入A", "c": "標準治療", "o": "有害事象",
   "studyDesigns": ["並行する比較群を持つ"],
   "settings": ["外来"], "timing": ["12週以上"],
   "inclusion": ["18歳以上"], "exclusion": ["症例報告"],
@@ -24,6 +27,9 @@ describe("parseSrEligibilityResponse", () => {
 
     expect(result.ok).toBe(true);
     expect(result.criteria?.studyDesigns[0]).toContain("比較群");
+    expect(result.criteria?.populationMode).toBe("multiple");
+    expect(result.criteria?.p2).toBe("肥満");
+    expect(result.criteria?.populationNotes[0]).toContain("分離データ");
     expect(result.criteria?.sourceOptionIds).toEqual(["P1", "I1"]);
     expect(result.criteria?.definitionReferences[0]).toMatchObject({
       optionIds: ["P1"],
@@ -48,5 +54,7 @@ describe("parseSrEligibilityResponse", () => {
 ===ELIGIBILITY_JSON_END===`);
     expect(result.ok).toBe(true);
     expect(result.criteria?.definitionReferences).toEqual([]);
+    expect(result.criteria?.populationMode).toBe("single");
+    expect(result.criteria?.p1).toBe("成人");
   });
 });

@@ -45,6 +45,28 @@ describe("parseSrDefinitionResponse", () => {
     expect(result.ok).toBe(false);
   });
 
+  it("parses separate P1 and P2 definition groups", () => {
+    const result = parseSrDefinitionResponse(`
+===DEFINITION_JSON_START===
+{
+  "populationGuidance": ["P2が本文だけに記載される可能性を確認する"],
+  "options": [
+    {"id":"P1-1","element":"P1","definition":"糖尿病","recommended":true,"sources":[]},
+    {"id":"P2-1","element":"P2","definition":"肥満","recommended":true,"sources":[]},
+    {"id":"I-1","element":"I","definition":"介入A","recommended":true,"sources":[]}
+  ]
+}
+===DEFINITION_JSON_END===`);
+
+    expect(result.ok).toBe(true);
+    expect(result.consultation?.options.map((option) => option.element)).toEqual([
+      "P1",
+      "P2",
+      "I",
+    ]);
+    expect(result.consultation?.populationGuidance?.[0]).toContain("本文");
+  });
+
   it("collects evidence only from selected options and deduplicates shared papers", () => {
     const result = collectSelectedDefinitionReferences({
       questionInterpretation: "",

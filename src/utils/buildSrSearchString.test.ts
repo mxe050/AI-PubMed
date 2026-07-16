@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 import type { SrTerm, SrTermsByElement } from "./parseSrTermsFromAiResponse";
 import { buildSrSearchString } from "./buildSrSearchString";
 
-function term(value: string, enabled = true): SrTerm {
+function term(
+  value: string,
+  enabled = true,
+  populationGroup?: "P1" | "P2"
+): SrTerm {
   return {
     id: value,
     term: value,
@@ -10,6 +14,7 @@ function term(value: string, enabled = true): SrTerm {
     fieldTag: "[tiab]",
     reason: "",
     enabled,
+    populationGroup,
   };
 }
 
@@ -39,5 +44,41 @@ describe("buildSrSearchString", () => {
       P: [term(raw)], I: [], C: [], O: [],
     };
     expect(buildSrSearchString(table)).toBe(raw);
+  });
+
+  it("requires an explicit relation and builds separate P1/P2 blocks", () => {
+    const table: SrTermsByElement = {
+      P: [
+        term("diabetes", true, "P1"),
+        term("diabetes mellitus", true, "P1"),
+        term("obesity", true, "P2"),
+      ],
+      I: [term("semaglutide")],
+      C: [],
+      O: [],
+    };
+
+    expect(
+      buildSrSearchString(table, {
+        populationMode: "multiple",
+        populationRelation: null,
+      })
+    ).toBe("");
+    expect(
+      buildSrSearchString(table, {
+        populationMode: "multiple",
+        populationRelation: "OR",
+      })
+    ).toBe(
+      '((diabetes[tiab] OR "diabetes mellitus"[tiab]) OR obesity[tiab]) AND semaglutide[tiab]'
+    );
+    expect(
+      buildSrSearchString(table, {
+        populationMode: "multiple",
+        populationRelation: "AND",
+      })
+    ).toBe(
+      '((diabetes[tiab] OR "diabetes mellitus"[tiab]) AND obesity[tiab]) AND semaglutide[tiab]'
+    );
   });
 });

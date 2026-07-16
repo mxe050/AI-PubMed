@@ -1,8 +1,8 @@
 import { useMemo, useState } from "react";
 import { buildPrompt } from "../utils/buildPrompt";
-import { ebmPicoBrainstormPrompt } from "../prompts/ebmStep2";
 import {
   srEligibilityPrompt,
+  srPicoBrainstormPrompt,
   srPicoDefinitionPrompt,
 } from "../prompts/srPicoDevelopment";
 import { srInitialPrompt } from "../prompts/systematicReview";
@@ -26,9 +26,13 @@ import { parseKnownPmids } from "../utils/knownPmidBenchmark";
 import { PromptDisplay } from "./PromptDisplay";
 import { SrDefinitionSelector } from "./SrDefinitionSelector";
 import { SrEligibilitySummary } from "./SrEligibilitySummary";
+import type { SrPopulationMode } from "../utils/srPopulation";
 
 export interface SrPicoValue {
   p: string;
+  populationMode: SrPopulationMode;
+  p1: string;
+  p2: string;
   i: string;
   c: string;
   o: string;
@@ -53,11 +57,6 @@ interface Props {
 }
 
 type Feedback = { kind: "ok" | "error"; text: string } | null;
-
-const SR_PICO_VARIANT_LABEL =
-  "PICO案 C：システマティックレビュー用（厳密・網羅的な形）";
-const SR_PICO_VARIANT_INSTRUCTION =
-  "PICO案 C：システマティックレビュー用（厳密・網羅的な形）の一つだけを作成してください。PICO案 A/B や代替案は出さないでください。";
 
 const WORKFLOW_STEPS = [
   { number: 1, label: "疑問・PICO" },
@@ -174,8 +173,24 @@ export function SrPreparationWorkflow({
     onSearchInputsChanged();
   }
 
-  function updatePico(key: keyof SrPicoValue, value: string) {
+  function updatePico(
+    key: "p" | "p1" | "p2" | "i" | "c" | "o",
+    value: string
+  ) {
     onPicoChange({ ...pico, [key]: value });
+    resetAfterPico();
+  }
+
+  function updatePopulationMode(populationMode: SrPopulationMode) {
+    onPicoChange({
+      ...pico,
+      populationMode,
+      p1:
+        populationMode === "multiple"
+          ? pico.p1 || pico.p
+          : pico.p || pico.p1,
+      p2: populationMode === "multiple" ? pico.p2 : "",
+    });
     resetAfterPico();
   }
 
@@ -188,12 +203,9 @@ export function SrPreparationWorkflow({
       return;
     }
     setBrainstormPrompt(
-      buildPrompt(ebmPicoBrainstormPrompt, {
+      buildPrompt(srPicoBrainstormPrompt, {
         question,
         specialty: specialty || "未入力",
-        purpose: "システマティックレビュー",
-        picoVariantLabel: SR_PICO_VARIANT_LABEL,
-        picoVariantInstruction: SR_PICO_VARIANT_INSTRUCTION,
       })
     );
     setBrainstormFeedback(null);
@@ -210,6 +222,12 @@ export function SrPreparationWorkflow({
     }
     onPicoChange({
       p: result.pico.p || pico.p,
+      populationMode: result.pico.populationMode,
+      p1: result.pico.p1 || result.pico.p || pico.p1,
+      p2:
+        result.pico.populationMode === "multiple"
+          ? result.pico.p2 || pico.p2
+          : "",
       i: result.pico.i || pico.i,
       c: result.pico.c || pico.c,
       o: result.pico.o || pico.o,
@@ -229,11 +247,24 @@ export function SrPreparationWorkflow({
       });
       return;
     }
+    if (
+      pico.populationMode === "multiple" &&
+      (!pico.p1.trim() || !pico.p2.trim())
+    ) {
+      setDefinitionFeedback({
+        kind: "error",
+        text: "複合Pを選んだ場合は、P1とP2を両方入力してください。",
+      });
+      return;
+    }
     setDefinitionPrompt(
       buildPrompt(srPicoDefinitionPrompt, {
         question,
         specialty: specialty || "未入力",
         p: pico.p,
+        populationMode: pico.populationMode,
+        p1: pico.populationMode === "multiple" ? pico.p1 : pico.p,
+        p2: pico.populationMode === "multiple" ? pico.p2 : "該当なし",
         i: pico.i,
         c: pico.c || "未入力・要検討",
         o: pico.o || "未入力・要検討",
@@ -257,10 +288,18 @@ export function SrPreparationWorkflow({
     }
     setConsultation(result.consultation);
     resetAfterDefinitions();
+    const missingSplitDefinitions =
+      pico.populationMode === "multiple" &&
+      (!result.consultation.options.some((option) => option.element === "P1") ||
+        !result.consultation.options.some((option) => option.element === "P2"));
     setDefinitionFeedback({
-      kind: "ok",
+      kind: missingSplitDefinitions ? "error" : "ok",
       text: `${result.consultation.options.length}件の定義候補を読み込みました。${
         result.warnings.length ? ` 確認事項：${result.warnings.join(" / ")}` : ""
+      }${
+        missingSplitDefinitions
+          ? " 複合PですがP1またはP2の定義候補が不足しています。AI回答を再確認してください。"
+          : ""
       }`,
     });
     setTimeout(() => {
@@ -277,16 +316,27 @@ export function SrPreparationWorkflow({
 
   function generateEligibilityPrompt() {
     if (!consultation) return;
-    const selectedP = consultation.options.some(
-      (option) => option.element === "P" && option.selected
-    );
+    const selectedP =
+      pico.populationMode === "multiple"
+        ? consultation.options.some(
+            (option) => option.element === "P1" && option.selected
+          ) &&
+          consultation.options.some(
+            (option) => option.element === "P2" && option.selected
+          )
+        : consultation.options.some(
+            (option) => option.element === "P" && option.selected
+          );
     const selectedI = consultation.options.some(
       (option) => option.element === "I" && option.selected
     );
     if (!selectedP || !selectedI) {
       setEligibilityFeedback({
         kind: "error",
-        text: "最低限、PとIから各1件以上の定義候補を選択してください。",
+        text:
+          pico.populationMode === "multiple"
+            ? "P1・P2・Iから、それぞれ1件以上の定義候補を選択してください。"
+            : "最低限、PとIから各1件以上の定義候補を選択してください。",
       });
       return;
     }
@@ -294,6 +344,9 @@ export function SrPreparationWorkflow({
       buildPrompt(srEligibilityPrompt, {
         question,
         p: pico.p,
+        populationMode: pico.populationMode,
+        p1: pico.populationMode === "multiple" ? pico.p1 : pico.p,
+        p2: pico.populationMode === "multiple" ? pico.p2 : "",
         i: pico.i,
         c: pico.c || "未入力",
         o: pico.o || "未入力",
@@ -320,6 +373,15 @@ export function SrPreparationWorkflow({
       : [];
     const trustedCriteria: SrEligibilityCriteria = {
       ...result.criteria,
+      populationMode: pico.populationMode,
+      p1:
+        pico.populationMode === "multiple"
+          ? result.criteria.p1 || pico.p1
+          : result.criteria.p || pico.p,
+      p2:
+        pico.populationMode === "multiple"
+          ? result.criteria.p2 || pico.p2
+          : "",
       sourceOptionIds:
         consultation?.options
           .filter((option) => option.selected)
@@ -329,6 +391,9 @@ export function SrPreparationWorkflow({
     setEligibility(trustedCriteria);
     onPicoChange({
       p: trustedCriteria.p,
+      populationMode: trustedCriteria.populationMode,
+      p1: trustedCriteria.p1,
+      p2: trustedCriteria.p2,
       i: trustedCriteria.i,
       c: trustedCriteria.c,
       o: trustedCriteria.o,
@@ -350,7 +415,15 @@ export function SrPreparationWorkflow({
 
   function handleEligibilityChange(next: SrEligibilityCriteria) {
     setEligibility(next);
-    onPicoChange({ p: next.p, i: next.i, c: next.c, o: next.o });
+    onPicoChange({
+      p: next.p,
+      populationMode: next.populationMode,
+      p1: next.p1,
+      p2: next.p2,
+      i: next.i,
+      c: next.c,
+      o: next.o,
+    });
     resetAfterEligibility();
   }
 
@@ -359,6 +432,16 @@ export function SrPreparationWorkflow({
       setSynonymFeedback({
         kind: "error",
         text: "最低限PとIを入力してください。",
+      });
+      return;
+    }
+    if (
+      pico.populationMode === "multiple" &&
+      (!pico.p1.trim() || !pico.p2.trim())
+    ) {
+      setSynonymFeedback({
+        kind: "error",
+        text: "複合Pの検索語を作るには、P1とP2を両方入力してください。",
       });
       return;
     }
@@ -371,6 +454,9 @@ export function SrPreparationWorkflow({
     setSynonymPrompt(
       buildPrompt(srInitialPrompt, {
         p: pico.p,
+        populationMode: pico.populationMode,
+        p1: pico.populationMode === "multiple" ? pico.p1 : pico.p,
+        p2: pico.populationMode === "multiple" ? pico.p2 : "該当なし",
         i: pico.i,
         c: pico.c || "未入力",
         o: pico.o || "未入力",
@@ -499,7 +585,7 @@ export function SrPreparationWorkflow({
             <strong>PICOが思いつかない場合：AIに案を考えてもらうプロンプトを生成</strong>
           </summary>
           <p className="hint">
-            EBMタブの機能をそのままSR用PICO案Cに固定して配置しています。原質問と領域から一案を作り、AI回答を貼り付けると下のP/I/C/Oへ反映します。
+            原質問と領域からSR用PICO案を1つ作ります。Pに複数の条件がある場合はP1・P2の候補も整理し、AI回答を貼り付けると下のP/I/C/OとPの構造へ反映します。
           </p>
           <button
             type="button"
@@ -552,11 +638,70 @@ export function SrPreparationWorkflow({
               />
               {key === "p" && (
                 <small className="sr-pico-inline-caution">
-                  「〇〇を伴う××」のように条件が複数ある場合は、下の注意を確認してください。
+                  「〇〇を伴う××」のように条件が複数ある場合は、下でP1・P2に整理できます。
                 </small>
               )}
             </label>
           ))}
+        </div>
+
+        <div className="sr-population-structure-card" role="group" aria-labelledby="sr-population-structure-title">
+          <div className="sr-population-structure-heading">
+            <div>
+              <strong id="sr-population-structure-title">Pの中に、別々に定義したい条件がありますか？</strong>
+              <p>迷う場合は、上のPICO案プロンプトでAIに候補を整理させてから選べます。</p>
+            </div>
+            <div className="sr-population-mode-buttons" role="radiogroup" aria-label="Pの構造">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={pico.populationMode === "single"}
+                className={`btn btn-secondary ${pico.populationMode === "single" ? "active" : ""}`}
+                onClick={() => updatePopulationMode("single")}
+              >
+                Pは1つの概念
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={pico.populationMode === "multiple"}
+                className={`btn btn-secondary ${pico.populationMode === "multiple" ? "active" : ""}`}
+                onClick={() => updatePopulationMode("multiple")}
+              >
+                Pに2つの条件がある
+              </button>
+            </div>
+          </div>
+
+          {pico.populationMode === "multiple" && (
+            <div className="sr-population-split-grid">
+              <label>
+                <strong>P1：主となる集団・疾患</strong>
+                <span>研究が主にどの患者・疾患を対象としているか</span>
+                <textarea
+                  rows={3}
+                  value={pico.p1}
+                  onChange={(event) => updatePico("p1", event.target.value)}
+                  placeholder="例：2型糖尿病患者"
+                />
+              </label>
+              <label>
+                <strong>P2：追加条件・特性</strong>
+                <span>P1に加えて必要な併存状態・特性・サブグループ</span>
+                <textarea
+                  rows={3}
+                  value={pico.p2}
+                  onChange={(event) => updatePico("p2", event.target.value)}
+                  placeholder="例：肥満を有する"
+                />
+              </label>
+              <div className="sr-population-split-reminder" role="note">
+                <strong>P1・P2は「別の概念」です。</strong>
+                同義語や略語はここで分けず、Step 6の各検索語ブロック内でORにまとめます。
+                P1とP2をAND／ORのどちらで結ぶかは、検索語を確認した後のStep 7で選びます。
+              </div>
+            </div>
+          )}
         </div>
 
         <details className="sr-complex-population-note">
@@ -578,29 +723,32 @@ export function SrPreparationWorkflow({
               タイトル・抄録・索引に「肥満」が十分記載されていない研究が検索結果から外れる可能性があります。
             </p>
             <p>
-              そのサブグループ結果をレビューに採用できるかは、検索式とは別に、事前に定めた適格基準、
-              入手できるデータ、解析計画に基づいて判断します。ただし、候補研究自体が検索段階で漏れると、
-              その判断を行う機会も失われます。
+              この場合、P全体は「肥満を有する糖尿病患者」のまま適格基準として保持し、検索概念だけを
+              P1「糖尿病」とP2「肥満」に分けます。P1/P2へ分けることは、適格基準を緩めることではありません。
             </p>
             <div className="sr-complex-population-policy" role="note">
-              <strong>このアプリの扱い</strong>
-              <p>
-                本アプリは、1つのPを自動的にP1・P2へ分割し、ANDまたはORで機械的に結合しません。
-                適切な組み方は、対象集団、適格基準、研究での報告方法によって異なり、単純な一つの正解がないためです。
-              </p>
+              <strong>ANDとORは、どちらも目的が違います</strong>
+              <ul>
+                <li><strong>P1 AND P2：</strong>両方が書誌情報に現れる文献へ絞れますが、P2が本文だけにある研究を落とす可能性があります。</li>
+                <li><strong>P1 OR P2：</strong>一方しか書誌情報にない研究も拾いやすくなりますが、無関係文献が大きく増えることがあります。</li>
+              </ul>
             </div>
-            <h4>進め方</h4>
+            <h4>P1・P2を決める順序</h4>
             <ol>
               <li>
-                AIへ相談する場合は、「Pに複数の条件があり、本文中のサブグループ研究も拾いたい」と明示して、
-                複数の候補式と、それぞれで漏れる可能性のある研究を説明させます。AIの式はそのまま採用しません。
+                <strong>Step 1：</strong>P1を主となる集団・疾患、P2を追加条件・特性として仮置きします。
+                年齢・重症度・病期・診療場面を機械的にP2へせず、レビュー目的に不可欠か確認します。
               </li>
               <li>
-                必要に応じて司書・医学情報検索の専門家や共同研究者にも相談し、候補式をPubMedで個別に実行します。
-                件数とノイズ、Details／Warnings、キー論文や既知の関連研究を回収できるかを比較します。
+                <strong>Step 2〜5：</strong>P1/P2それぞれの定義・閾値・根拠を確認し、一部だけ適格な参加者、
+                混合集団、分離できるサブグループデータをどう扱うか事前に決めます。
               </li>
               <li>
-                人が最終式を決定し、採用した組み方と判断理由をプロトコルおよび検索記録に残します。
+                <strong>Step 6〜7：</strong>P1/P2の類義語を別々に作り、OR版とAND版をPubMedで比較します。
+                件数、Details／Warnings、キー論文の回収、無関係文献の原因を確認して人が選びます。
+              </li>
+              <li>
+                採用した結合方法、その理由、比較した検索日・件数・キー論文の結果をプロトコルと検索記録に残します。
               </li>
             </ol>
             <p className="hint sr-complex-population-sources">
@@ -667,6 +815,8 @@ export function SrPreparationWorkflow({
           <h2>Step 2：PICOの定義候補と原典を調べる</h2>
           <p className="hint">
             Web検索が使える外部AIへ貼り付けてください。定義論文、妥当性研究、診断・分類基準、ガイドライン、手術・処置の基本的方法論論文まで照合し、確認できない書誌を作らないよう指示しています。
+            {pico.populationMode === "multiple" &&
+              " P1とP2は別々に調査し、混合集団・本文中のサブグループ・分離データの扱いも検討します。"}
           </p>
           <PromptDisplay prompt={definitionPrompt} title="定義・原典調査プロンプト" />
           <label className="sr-ai-response-label">
@@ -698,7 +848,9 @@ export function SrPreparationWorkflow({
           <div className="sr-step3-guide" role="note">
             <p className="sr-step3-guide-lead">
               <strong>ここでは、次の適格基準作成に使う定義を人が決めます。</strong>
-              AIが並べた候補をそのまま採用する画面ではありません。P・I・C・Oごとに、定義の範囲と根拠を確認して選びます。
+              AIが並べた候補をそのまま採用する画面ではありません。
+              {pico.populationMode === "multiple" ? "P1・P2・I・C・O" : "P・I・C・O"}
+              ごとに、定義の範囲と根拠を確認して選びます。
             </p>
             <ol>
               <li>
@@ -710,7 +862,10 @@ export function SrPreparationWorkflow({
               <li>
                 <strong>採用する候補へチェックする</strong>
                 <span>
-                  PとIは最低1候補ずつ必要です。C・Oはレビュー課題に必要な場合だけ選びます。
+                  {pico.populationMode === "multiple"
+                    ? "P1・P2・Iは最低1候補ずつ必要です。"
+                    : "PとIは最低1候補ずつ必要です。"}
+                  C・Oはレビュー課題に必要な場合だけ選びます。
                   複数候補を併用する場合は複数チェックし、1候補に決める場合は「この候補だけ採用」を使います。
                 </span>
               </li>
@@ -755,6 +910,8 @@ export function SrPreparationWorkflow({
           <h2>Step 4：スクリーニングに使える適格基準を作る</h2>
           <p className="hint">
             選択した定義だけを使い、タイトル・抄録／全文スクリーニングで再現可能な基準と、論文Methodsへ調整して使える文章を作らせます。
+            {pico.populationMode === "multiple" &&
+              " P1・P2の両条件、一部だけ適格な集団、サブグループデータの扱いも文章化します。"}
           </p>
           <PromptDisplay prompt={eligibilityPrompt} title="適格基準作成プロンプト" />
           <label className="sr-ai-response-label">
@@ -785,6 +942,8 @@ export function SrPreparationWorkflow({
           <h2>Step 5：最終PICO・適格基準を確認する</h2>
           <p className="hint">
             共同研究者への提示や論文草案への貼り付けに使えるよう、PICOと選択基準を一つの文書として表示します。修正が必要な場合だけ、下の個別編集欄を開いてください。
+            {pico.populationMode === "multiple" &&
+              " P全体とP1/P2の定義が意図どおり対応しているか確認してください。"}
           </p>
           <SrEligibilitySummary
             criteria={eligibility}
@@ -817,7 +976,17 @@ export function SrPreparationWorkflow({
 
       {(eligibility || eligibilityBypassOpen) && (
       <section className="workflow-section">
-        <h2>Step 6：既存SRの検索式を参考に、類義語候補を作る</h2>
+        <h2>
+          Step 6：{pico.populationMode === "multiple" ? "P1・P2を分けて、" : ""}
+          類義語候補を作る
+        </h2>
+        {pico.populationMode === "multiple" && (
+          <div className="sr-population-step6-note" role="note">
+            <strong>この段階ではP1とP2を混ぜません。</strong>
+            AIには各概念のMeSH・自由語を別々に出させます。各ブロック内の類義語はORでまとめ、
+            P1とP2の間をAND／ORのどちらにするかは、Step 7であなたが選びます。
+          </div>
+        )}
         {!eligibility && (
           <div className="sr-bypass-note" role="note">
             推奨経路はStep 2〜5で適格基準を確定してから進む方法です。既にプロトコルがある場合は、現在のPICOから予備的な検索語作成へ進めます。
@@ -842,7 +1011,12 @@ export function SrPreparationWorkflow({
           type="button"
           className="btn btn-primary"
           onClick={generateSynonymPrompt}
-          disabled={!pico.p.trim() || !pico.i.trim()}
+          disabled={
+            !pico.p.trim() ||
+            !pico.i.trim() ||
+            (pico.populationMode === "multiple" &&
+              (!pico.p1.trim() || !pico.p2.trim()))
+          }
         >
           類義語提案プロンプトを生成
         </button>

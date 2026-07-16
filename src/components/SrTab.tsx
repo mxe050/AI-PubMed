@@ -11,9 +11,14 @@ import { useMemo, useState } from "react";
 import type { AppSettings, PubMedSearchResult } from "../types";
 import type { SrTermsByElement } from "../utils/parseSrTermsFromAiResponse";
 import {
+  buildSrPopulationSearchBlocks,
   buildSrSearchString,
   buildSrSearchStringPerElement,
 } from "../utils/buildSrSearchString";
+import type {
+  SrPopulationMode,
+  SrPopulationRelation,
+} from "../utils/srPopulation";
 import {
   studyDesignFilters,
   applyStudyDesignFilter,
@@ -41,6 +46,13 @@ interface Props {
 const EMPTY_TABLE: SrTermsByElement = { P: [], I: [], C: [], O: [] };
 export function SrTab({ settings }: Props) {
   const [picoP, setPicoP] = useState("");
+  const [populationMode, setPopulationMode] =
+    useState<SrPopulationMode>("single");
+  const [picoP1, setPicoP1] = useState("");
+  const [picoP2, setPicoP2] = useState("");
+  const [populationRelation, setPopulationRelation] =
+    useState<SrPopulationRelation | null>(null);
+  const [populationRelationReason, setPopulationRelationReason] = useState("");
   const [picoI, setPicoI] = useState("");
   const [picoC, setPicoC] = useState("");
   const [picoO, setPicoO] = useState("");
@@ -72,8 +84,12 @@ export function SrTab({ settings }: Props) {
 
   // 検索式の派生値
   const baseSearchString = useMemo(
-    () => buildSrSearchString(termTable),
-    [termTable]
+    () =>
+      buildSrSearchString(termTable, {
+        populationMode,
+        populationRelation,
+      }),
+    [termTable, populationMode, populationRelation]
   );
   const designFilter = studyDesignFilters.find((f) => f.key === designKey)!;
   const effectiveSearchString = useMemo(() => {
@@ -92,14 +108,31 @@ export function SrTab({ settings }: Props) {
   );
 
   const perElement = useMemo(
-    () => buildSrSearchStringPerElement(termTable),
-    [termTable]
+    () =>
+      buildSrSearchStringPerElement(termTable, {
+        populationMode,
+        populationRelation,
+      }),
+    [termTable, populationMode, populationRelation]
+  );
+  const populationBlocks = useMemo(
+    () =>
+      buildSrPopulationSearchBlocks(termTable.P, {
+        populationMode,
+        populationRelation,
+      }),
+    [termTable.P, populationMode, populationRelation]
   );
   const hasTermRows = Object.values(termTable).some((rows) => rows.length > 0);
 
   function clearAll() {
     if (!confirm("入力内容・取得結果をすべてクリアして最初からやり直しますか？")) return;
     setPicoP("");
+    setPopulationMode("single");
+    setPicoP1("");
+    setPicoP2("");
+    setPopulationRelation(null);
+    setPopulationRelationReason("");
     setPicoI("");
     setPicoC("");
     setPicoO("");
@@ -121,7 +154,18 @@ export function SrTab({ settings }: Props) {
   }
 
   function setPico(value: SrPicoValue) {
+    const structureChanged =
+      value.populationMode !== populationMode ||
+      value.p1 !== picoP1 ||
+      value.p2 !== picoP2;
     setPicoP(value.p);
+    setPopulationMode(value.populationMode);
+    setPicoP1(value.p1);
+    setPicoP2(value.p2);
+    if (structureChanged) {
+      setPopulationRelation(null);
+      setPopulationRelationReason("");
+    }
     setPicoI(value.i);
     setPicoC(value.c);
     setPicoO(value.o);
@@ -135,6 +179,10 @@ export function SrTab({ settings }: Props) {
     setTermTable(terms);
     setSearchAdvice(advice);
     setTermWarnings(warnings);
+    if (populationMode === "multiple") {
+      setPopulationRelation(null);
+      setPopulationRelationReason("");
+    }
     setPubmedResult(null);
     setTimeout(() => {
       document
@@ -149,6 +197,12 @@ export function SrTab({ settings }: Props) {
     setTermWarnings([]);
     setPubmedResult(null);
     setManualSearchOpen(false);
+  }
+
+  function choosePopulationRelation(value: SrPopulationRelation) {
+    setPopulationRelation(value);
+    setPubmedResult(null);
+    setSearchCopyMsg("");
   }
 
   async function copyFilterText(text: string, message: string) {
@@ -211,6 +265,8 @@ export function SrTab({ settings }: Props) {
     }
     const pico = [
       picoP && `P: ${picoP}`,
+      populationMode === "multiple" && picoP1 && `P1: ${picoP1}`,
+      populationMode === "multiple" && picoP2 && `P2: ${picoP2}`,
       picoI && `I: ${picoI}`,
       picoC && `C: ${picoC}`,
       picoO && `O: ${picoO}`,
@@ -253,7 +309,15 @@ export function SrTab({ settings }: Props) {
         key={preparationKey}
         question={question}
         onQuestionChange={setQuestion}
-        pico={{ p: picoP, i: picoI, c: picoC, o: picoO }}
+        pico={{
+          p: picoP,
+          populationMode,
+          p1: picoP1,
+          p2: picoP2,
+          i: picoI,
+          c: picoC,
+          o: picoO,
+        }}
         onPicoChange={setPico}
         knownPmids={knownPmids}
         onKnownPmidsChange={setKnownPmids}
@@ -305,6 +369,73 @@ export function SrTab({ settings }: Props) {
           </div>
         )}
 
+        {populationMode === "multiple" && (
+          <section className="sr-population-logic-card" aria-labelledby="sr-population-logic-title">
+            <div className="sr-population-logic-heading">
+              <span>複合P</span>
+              <div>
+                <h3 id="sr-population-logic-title">P1とP2の結び方を選んでください</h3>
+                <p>各ブロック内の類義語はORです。ここでは、P1ブロックとP2ブロックの間だけを選びます。</p>
+              </div>
+            </div>
+
+            <div className="sr-population-logic-concepts">
+              <div><strong>P1</strong><span>{picoP1 || "未入力"}</span></div>
+              <div><strong>P2</strong><span>{picoP2 || "未入力"}</span></div>
+            </div>
+
+            <div className="sr-population-relation-options" role="radiogroup" aria-label="P1とP2の論理演算子">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={populationRelation === "OR"}
+                className={`sr-population-relation-option ${populationRelation === "OR" ? "active" : ""}`}
+                onClick={() => choosePopulationRelation("OR")}
+              >
+                <span className="sr-relation-operator">OR</span>
+                <strong>感度を優先</strong>
+                <small>P1かP2のどちらかが書誌情報にあれば拾います。サブグループ研究を拾いやすい一方、ノイズが増えます。</small>
+              </button>
+              <button
+                type="button"
+                role="radio"
+                aria-checked={populationRelation === "AND"}
+                className={`sr-population-relation-option ${populationRelation === "AND" ? "active" : ""}`}
+                onClick={() => choosePopulationRelation("AND")}
+              >
+                <span className="sr-relation-operator">AND</span>
+                <strong>両条件を検索上も必須にする</strong>
+                <small>件数を絞れますが、P2が本文やサブグループにしかない研究を見落とす可能性があります。</small>
+              </button>
+            </div>
+
+            {!populationRelation ? (
+              <div className="sr-population-relation-required" role="alert">
+                ORまたはANDを選ぶまで最終検索式は作成されません。まずOR版とAND版を順に試し、件数・キー論文・無関係文献を比較してください。
+              </div>
+            ) : (
+              <div className="sr-population-relation-selected" role="status">
+                現在の検索構造：<strong>（P1） {populationRelation} （P2）</strong> AND （I）
+              </div>
+            )}
+
+            <label className="sr-population-relation-reason">
+              <strong>採用理由のメモ（推奨）</strong>
+              <span>OR版／AND版の件数、キー論文の回収、ノイズを比較した結果を記録します。</span>
+              <textarea
+                rows={3}
+                value={populationRelationReason}
+                onChange={(event) => setPopulationRelationReason(event.target.value)}
+                placeholder="例：ANDではキー論文PMID XXXXXXXXが脱落したため、感度を優先してORを採用。OR 2,450件、AND 184件（検索日YYYY-MM-DD）。"
+              />
+            </label>
+
+            <p className="hint sr-population-logic-source">
+              Cochrane Handbookは、概念内の語をOR、異なる概念をANDで結ぶ一般原則と同時に、検索構造を課題ごとに検討し感度を最大化することを求めています。複合PのP2を独立した必須概念にするかは、書誌での報告状況と回収確認に基づいて判断します。
+            </p>
+          </section>
+        )}
+
         <div className="sr-concept-selection-guide" role="note">
           <div className="sr-guide-heading">
             <span>感度を守る</span>
@@ -327,7 +458,13 @@ export function SrTab({ settings }: Props) {
           </ul>
         </div>
 
-        <SrTermTable table={termTable} onChange={setTermTable} />
+        <SrTermTable
+          table={termTable}
+          onChange={setTermTable}
+          populationMode={populationMode}
+          p1Label={picoP1}
+          p2Label={picoP2}
+        />
 
         {/* フィルター */}
         <div className="sr-step7-subheading">
@@ -455,6 +592,18 @@ export function SrTab({ settings }: Props) {
             <p>API補助確認の後、Web版のDetailsとWarningsを確認してからプレビューします。</p>
           </div>
         </div>
+        {populationMode === "multiple" && !populationRelation && (
+          <div className="sr-query-blocked-note" role="alert">
+            最終検索式はまだ作成されていません。7Aの「P1とP2の結び方」でORまたはANDを選んでください。
+          </div>
+        )}
+        {populationMode === "multiple" &&
+          populationRelation &&
+          (!populationBlocks.p1 || !populationBlocks.p2) && (
+            <div className="sr-query-blocked-note" role="alert">
+              P1またはP2に選択中の検索語がありません。両方の検索語表で少なくとも1語を選択してください。
+            </div>
+          )}
         <div className="form-group">
           <label htmlFor="sr-effective-query">PubMed検索式（テーブルから自動生成・リアルタイム更新）</label>
           <textarea
@@ -688,6 +837,13 @@ export function SrTab({ settings }: Props) {
                 上の一括検索式だけを保存して終わらず、P、I、必要な場合のみC、研究デザインフィルターを
                 PubMed Advanced SearchのHistoryへ別々の行として登録し、最後にANDで結合します。
               </p>
+              {populationMode === "multiple" && (
+                <p>
+                  複合Pでは、P1、P2、P1 {populationRelation ?? "AND／OR"} P2の各行も保存し、
+                  OR／ANDを選んだ理由と比較結果を記録します。
+                  {populationRelationReason && <> 現在のメモ：{populationRelationReason}</>}
+                </p>
+              )}
               <p>
                 各概念内の類義語はORでまとめます。Oは通常、検索式へ含めずスクリーニングで確認します。
               </p>
@@ -698,6 +854,8 @@ export function SrTab({ settings }: Props) {
             <p>
               データベースとプラットフォーム、P・I・C・研究デザインの各行、最後のAND結合式、検索日、各行の件数、
               使用した期間制限・フィルターとその理由を、実際に実行したとおり保存して記載します。
+              {populationMode === "multiple" &&
+                " 複合PではP1・P2の定義、結合演算子、選択理由、OR版／AND版の比較結果も残します。"}
             </p>
           </div>
           <p className="sr-guidance-sources">
@@ -845,6 +1003,9 @@ export function SrTab({ settings }: Props) {
         <SrStructuredQueryAccordion
           perElement={perElement}
           designFilterExpression={designFilter.expression}
+          populationMode={populationMode}
+          populationRelation={populationRelation}
+          populationBlocks={populationBlocks}
         />
       </section>
       ) : (

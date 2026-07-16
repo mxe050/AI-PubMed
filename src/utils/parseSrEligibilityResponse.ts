@@ -1,3 +1,5 @@
+import type { SrPopulationMode } from "./srPopulation";
+
 export interface SrEligibilityReference {
   optionIds: string[];
   citation: string;
@@ -9,6 +11,10 @@ export interface SrEligibilityReference {
 
 export interface SrEligibilityCriteria {
   p: string;
+  populationMode: SrPopulationMode;
+  p1: string;
+  p2: string;
+  populationNotes: string[];
   i: string;
   c: string;
   o: string;
@@ -97,8 +103,19 @@ export function parseSrEligibilityResponse(text: string): ParseSrEligibilityResu
   }
 
   const value = raw as Record<string, unknown>;
+  const p = asString(value.p);
+  const parsedP1 = asString(value.p1);
+  const parsedP2 = asString(value.p2);
+  const populationMode: SrPopulationMode =
+    asString(value.populationMode).toLowerCase() === "multiple" || parsedP2
+      ? "multiple"
+      : "single";
   const criteria: SrEligibilityCriteria = {
-    p: asString(value.p),
+    p,
+    populationMode,
+    p1: parsedP1 || p,
+    p2: parsedP2,
+    populationNotes: asStringArray(value.populationNotes),
     i: asString(value.i),
     c: asString(value.c),
     o: asString(value.o),

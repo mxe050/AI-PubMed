@@ -16,6 +16,8 @@ const ELEMENTS: Array<{
   className: string;
 }> = [
   { key: "P", label: "P：対象集団の定義", className: "sr-definition-p" },
+  { key: "P1", label: "P1：主となる集団・疾患の定義", className: "sr-definition-p sr-definition-p1" },
+  { key: "P2", label: "P2：追加条件・特性の定義", className: "sr-definition-p sr-definition-p2" },
   { key: "I", label: "I：介入・曝露の定義", className: "sr-definition-i" },
   { key: "C", label: "C：比較対照の定義", className: "sr-definition-c" },
   { key: "O", label: "O：アウトカムの定義", className: "sr-definition-o" },
@@ -77,6 +79,17 @@ export function SrDefinitionSelector({ consultation, onChange }: Props) {
           <strong>定義を決める前に判断する点</strong>
           <ul>
             {consultation.decisionPoints.map((point, index) => (
+              <li key={`${point}-${index}`}>{point}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {(consultation.populationGuidance?.length ?? 0) > 0 && (
+        <div className="sr-population-guidance" role="note">
+          <strong>P1・P2を定義するときの注意</strong>
+          <ul>
+            {consultation.populationGuidance?.map((point, index) => (
               <li key={`${point}-${index}`}>{point}</li>
             ))}
           </ul>

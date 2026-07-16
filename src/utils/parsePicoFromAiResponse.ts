@@ -1,11 +1,16 @@
 // AI回答から ===PICO_START=== ... ===PICO_END=== ブロックを抽出して
-// P / I / C / O の各値を返す。
+// P / I / C / O と、SRで任意に使う P1 / P2 の各値を返す。
+
+import type { SrPopulationMode } from "./srPopulation";
 
 export interface ParsedPico {
   p: string;
   i: string;
   c: string;
   o: string;
+  populationMode: SrPopulationMode;
+  p1: string;
+  p2: string;
 }
 
 export interface ParsePicoResult {
@@ -68,7 +73,23 @@ export function parsePicoFromAiResponse(text: string): ParsePicoResult {
     i: grab("I"),
     c: grab("C"),
     o: grab("O"),
+    populationMode: "single",
+    p1: grab("P1"),
+    p2: grab("P2"),
   };
+
+  const structureMatch = block.match(
+    /^\s*(?:P_STRUCTURE|P構造|Pの構造)\s*[:：-]\s*(.+?)\s*$/im
+  );
+  const structure = structureMatch?.[1]?.trim().toUpperCase() ?? "";
+  pico.populationMode =
+    (pico.p1 && pico.p2) || /MULTIPLE|複数|COMPLEX/.test(structure)
+      ? "multiple"
+      : "single";
+
+  if (pico.populationMode === "single" && !pico.p1) {
+    pico.p1 = pico.p;
+  }
 
   const filled = [pico.p, pico.i, pico.c, pico.o].filter((v) => v.length > 0)
     .length;

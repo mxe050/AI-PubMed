@@ -8,6 +8,7 @@ interface Props {
 }
 
 type ArrayKey =
+  | "populationNotes"
   | "studyDesigns"
   | "settings"
   | "timing"
@@ -17,6 +18,11 @@ type ArrayKey =
   | "searchNotes";
 
 const ARRAY_FIELDS: Array<{ key: ArrayKey; label: string; help?: string }> = [
+  {
+    key: "populationNotes",
+    label: "複合P・部分的に適格な集団の扱い",
+    help: "P1・P2の一部だけを満たす研究、混合集団、サブグループデータをどう扱うかを事前に記録します。",
+  },
   {
     key: "studyDesigns",
     label: "対象とする研究デザインの特徴",
@@ -54,8 +60,13 @@ function formatDefinitionReferences(criteria: SrEligibilityCriteria): string {
       const elements = Array.from(
         new Set(
           reference.optionIds
-            .map((id) => id.trim().charAt(0).toUpperCase())
-            .filter((element) => ["P", "I", "C", "O"].includes(element))
+            .map((id) => {
+              const normalized = id.trim().toUpperCase();
+              if (/^P1[-_]/.test(normalized)) return "P1";
+              if (/^P2[-_]/.test(normalized)) return "P2";
+              return normalized.charAt(0);
+            })
+            .filter((element) => ["P", "P1", "P2", "I", "C", "O"].includes(element))
         )
       );
       const identifiers = [
@@ -84,6 +95,11 @@ ${question.trim() || "未記載"}
 
 【レビューPICO】
 P（対象集団）：${criteria.p || "未記載"}
+${
+  criteria.populationMode === "multiple"
+    ? `P1（主となる集団・疾患）：${criteria.p1 || "未記載"}\nP2（追加条件・特性）：${criteria.p2 || "未記載"}\n※P1/P2は検索概念の整理です。適格性は上記のP全体で判定します。`
+    : `Pの検索概念：${criteria.p1 || criteria.p || "未記載"}`
+}
 I（介入・曝露）：${criteria.i || "未記載"}
 C（比較対照）：${criteria.c || "指定なし"}
 O（アウトカム）：${criteria.o || "指定なし"}
@@ -99,6 +115,9 @@ ${formatList(criteria.timing)}
 
 【組入れ基準】
 ${formatList(criteria.inclusion)}
+
+【複合P・部分的に適格な集団の扱い】
+${formatList(criteria.populationNotes, "該当なし・未設定")}
 
 【除外基準】
 ${formatList(criteria.exclusion)}
@@ -122,7 +141,10 @@ export function SrEligibilitySummary({ criteria, onChange, question = "" }: Prop
   const [copyMessage, setCopyMessage] = useState("");
   const shareText = buildShareText(criteria, question);
 
-  function updateText(key: "p" | "i" | "c" | "o" | "methodsText", value: string) {
+  function updateText(
+    key: "p" | "p1" | "p2" | "i" | "c" | "o" | "methodsText",
+    value: string
+  ) {
     onChange({ ...criteria, [key]: value });
   }
 
@@ -222,6 +244,27 @@ export function SrEligibilitySummary({ criteria, onChange, question = "" }: Prop
             </label>
           ))}
         </div>
+
+        {criteria.populationMode === "multiple" && (
+          <div className="sr-final-population-grid">
+            <label className="sr-final-pico-card sr-final-p">
+              <strong>P1（主となる集団・疾患）</strong>
+              <textarea
+                rows={3}
+                value={criteria.p1}
+                onChange={(event) => updateText("p1", event.target.value)}
+              />
+            </label>
+            <label className="sr-final-pico-card sr-final-p">
+              <strong>P2（追加条件・特性）</strong>
+              <textarea
+                rows={3}
+                value={criteria.p2}
+                onChange={(event) => updateText("p2", event.target.value)}
+              />
+            </label>
+          </div>
+        )}
 
         <div className="sr-criteria-editor-grid">
           {ARRAY_FIELDS.map((field) => (

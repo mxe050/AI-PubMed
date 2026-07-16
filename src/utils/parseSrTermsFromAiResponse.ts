@@ -13,6 +13,7 @@
 //   ===TERMS_END===
 
 import { extractSearchString } from "./extractSearchString";
+import type { SrPopulationGroup } from "./srPopulation";
 
 export type SrPicoElement = "P" | "I" | "C" | "O";
 
@@ -31,6 +32,8 @@ export interface SrTerm {
   fieldTag: SrFieldTag;
   reason: string;
   enabled: boolean;
+  /** 複合Pのときだけ使用。未指定の既存データはP1として扱う。 */
+  populationGroup?: SrPopulationGroup;
 }
 
 export type SrTermsByElement = Record<SrPicoElement, SrTerm[]>;
@@ -191,17 +194,26 @@ export function parseSrTermsFromAiResponse(
 
   const terms: SrTermsByElement = { P: [], I: [], C: [], O: [] };
   let current: SrPicoElement | null = null;
+  let currentPopulationGroup: SrPopulationGroup | undefined;
   let unparsed = 0;
 
   for (const line of lines) {
     if (/^\[?\s*FINAL[_\s-]*SEARCH\s*\]?\s*$/i.test(line)) {
       current = null;
+      currentPopulationGroup = undefined;
+      continue;
+    }
+    const populationHeader = line.match(/^\[?\s*(P[12])\s*\]?\s*$/i);
+    if (populationHeader) {
+      current = "P";
+      currentPopulationGroup = populationHeader[1].toUpperCase() as SrPopulationGroup;
       continue;
     }
     // 見出し検出: [P] / [I] / [C] / [O]、または "P", "I", "C", "O" 単独
     const headerMatch = line.match(/^\[?\s*([PICOpico])\s*\]?\s*$/);
     if (headerMatch) {
       current = headerMatch[1].toUpperCase() as SrPicoElement;
+      currentPopulationGroup = undefined;
       continue;
     }
 
@@ -221,6 +233,9 @@ export function parseSrTermsFromAiResponse(
         // 高感度な SR 検索では P/I を中心にし、C は必要時のみ、O は原則
         // 検索式へ入れない。語は削除せず、ユーザーが個別に有効化できる。
         t.enabled = current === "P" || current === "I";
+        if (current === "P" && currentPopulationGroup) {
+          t.populationGroup = currentPopulationGroup;
+        }
         terms[current].push(t);
       } else {
         unparsed++;
@@ -246,6 +261,15 @@ export function parseSrTermsFromAiResponse(
   if (disabledByDefault > 0) {
     warnings.push(
       `検索感度を保つため、C/O の ${disabledByDefault} 語は初期状態で検索式から除外しました。必要な語だけ Step 4 で選択してください`
+    );
+  }
+
+  const populationGroups = new Set(
+    terms.P.map((term) => term.populationGroup).filter(Boolean)
+  );
+  if (populationGroups.size === 1) {
+    warnings.push(
+      "複合Pとして出力されましたが、P1またはP2の片方に検索語がありません。検索表で不足する概念を確認してください"
     );
   }
 

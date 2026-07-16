@@ -41,4 +41,21 @@ describe("parseSrTermsFromAiResponse", () => {
       "Oは既定でOFFにする",
     ]);
   });
+
+  it("keeps P1 and P2 terms in separate population groups", () => {
+    const result = parseSrTermsFromAiResponse(`
+===TERMS_START===
+[P1]
+検索語: diabetes | 日本語訳: 糖尿病 | フィールドタグ: [tiab] | 選定理由: P1
+[P2]
+検索語: obesity | 日本語訳: 肥満 | フィールドタグ: [tiab] | 選定理由: P2
+[I]
+検索語: semaglutide | 日本語訳: セマグルチド | フィールドタグ: [tiab] | 選定理由: 介入
+===TERMS_END===`);
+
+    expect(result.ok).toBe(true);
+    expect(result.terms?.P).toHaveLength(2);
+    expect(result.terms?.P[0].populationGroup).toBe("P1");
+    expect(result.terms?.P[1].populationGroup).toBe("P2");
+  });
 });
