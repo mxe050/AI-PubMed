@@ -67,10 +67,13 @@ export function buildSrPopulationSearchBlocks(
   const p2 = buildElementBlock(
     terms.filter((term) => term.populationGroup === "P2")
   );
-  const ready = Boolean(p1 && p2 && options.populationRelation);
-  const combined = ready
-    ? `(${p1} ${options.populationRelation} ${p2})`
-    : "";
+  if (options.populationRelation === "P1_ONLY") {
+    return { p1, p2, combined: p1, ready: Boolean(p1) };
+  }
+
+  const relation = options.populationRelation;
+  const ready = Boolean(p1 && p2 && relation);
+  const combined = ready && relation ? `(${p1} ${relation} ${p2})` : "";
   return { p1, p2, combined, ready };
 }
 

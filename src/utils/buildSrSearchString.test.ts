@@ -80,5 +80,32 @@ describe("buildSrSearchString", () => {
     ).toBe(
       '((diabetes[tiab] OR "diabetes mellitus"[tiab]) AND obesity[tiab]) AND semaglutide[tiab]'
     );
+    expect(
+      buildSrSearchString(table, {
+        populationMode: "multiple",
+        populationRelation: "P1_ONLY",
+      })
+    ).toBe(
+      '(diabetes[tiab] OR "diabetes mellitus"[tiab]) AND semaglutide[tiab]'
+    );
+  });
+
+  it("builds a P1-only search even when P2 has no selected terms", () => {
+    const table: SrTermsByElement = {
+      P: [
+        term("diabetes", true, "P1"),
+        term("obesity", false, "P2"),
+      ],
+      I: [term("semaglutide")],
+      C: [],
+      O: [],
+    };
+
+    expect(
+      buildSrSearchString(table, {
+        populationMode: "multiple",
+        populationRelation: "P1_ONLY",
+      })
+    ).toBe("diabetes[tiab] AND semaglutide[tiab]");
   });
 });

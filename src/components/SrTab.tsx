@@ -374,8 +374,8 @@ export function SrTab({ settings }: Props) {
             <div className="sr-population-logic-heading">
               <span>複合P</span>
               <div>
-                <h3 id="sr-population-logic-title">P1とP2の結び方を選んでください</h3>
-                <p>各ブロック内の類義語はORです。ここでは、P1ブロックとP2ブロックの間だけを選びます。</p>
+                <h3 id="sr-population-logic-title">複合Pの検索方法を選んでください</h3>
+                <p>各ブロック内の類義語はORです。P1のみを使うか、P1とP2をOR／ANDで結ぶかを選びます。</p>
               </div>
             </div>
 
@@ -384,7 +384,18 @@ export function SrTab({ settings }: Props) {
               <div><strong>P2</strong><span>{picoP2 || "未入力"}</span></div>
             </div>
 
-            <div className="sr-population-relation-options" role="radiogroup" aria-label="P1とP2の論理演算子">
+            <div className="sr-population-relation-options" role="group" aria-label="複合Pの検索方法">
+              <button
+                type="button"
+                role="radio"
+                aria-checked={populationRelation === "P1_ONLY"}
+                className={`sr-population-relation-option ${populationRelation === "P1_ONLY" ? "active" : ""}`}
+                onClick={() => choosePopulationRelation("P1_ONLY")}
+              >
+                <span className="sr-relation-operator">P1</span>
+                <strong>P1のみを検索に使う</strong>
+                <small>P1の検索語だけで検索します。P2は適格基準やスクリーニングで確認し、最終検索式には入りません。</small>
+              </button>
               <button
                 type="button"
                 role="radio"
@@ -407,11 +418,25 @@ export function SrTab({ settings }: Props) {
                 <strong>両条件を検索上も必須にする</strong>
                 <small>件数を絞れますが、P2が本文やサブグループにしかない研究を見落とす可能性があります。</small>
               </button>
+              <button
+                type="button"
+                className="sr-population-relation-option sr-population-ai-review-option"
+                onClick={() => undefined}
+                title="このボタンは検索式や現在の選択を変更しません"
+              >
+                <span className="sr-relation-operator">AI</span>
+                <strong>AIでもう一度考え直す</strong>
+                <small>このボタンを押しても何も変更されません。必要に応じてAIへ相談し、戻ってP1のみ・OR・ANDのいずれかを選んでください。</small>
+              </button>
             </div>
 
             {!populationRelation ? (
               <div className="sr-population-relation-required" role="alert">
-                ORまたはANDを選ぶまで最終検索式は作成されません。まずOR版とAND版を順に試し、件数・キー論文・無関係文献を比較してください。
+                P1のみ・OR・ANDのいずれかを選ぶまで最終検索式は作成されません。各案の件数・キー論文・無関係文献を比較してください。「AIでもう一度考え直す」は検索式を変更しません。
+              </div>
+            ) : populationRelation === "P1_ONLY" ? (
+              <div className="sr-population-relation-selected" role="status">
+                現在の検索構造：<strong>（P1のみ）</strong> AND （I）。P2は最終検索式に使用しません。
               </div>
             ) : (
               <div className="sr-population-relation-selected" role="status">
@@ -421,17 +446,17 @@ export function SrTab({ settings }: Props) {
 
             <label className="sr-population-relation-reason">
               <strong>採用理由のメモ（推奨）</strong>
-              <span>OR版／AND版の件数、キー論文の回収、ノイズを比較した結果を記録します。</span>
+              <span>P1のみ／OR版／AND版の件数、キー論文の回収、ノイズを比較した結果を記録します。</span>
               <textarea
                 rows={3}
                 value={populationRelationReason}
                 onChange={(event) => setPopulationRelationReason(event.target.value)}
-                placeholder="例：ANDではキー論文PMID XXXXXXXXが脱落したため、感度を優先してORを採用。OR 2,450件、AND 184件（検索日YYYY-MM-DD）。"
+                placeholder="例：P2は書誌情報に記載されないことが多く、ANDではキー論文PMID XXXXXXXXが脱落したため、P1のみを採用。P1のみ1,200件、OR 2,450件、AND 184件（検索日YYYY-MM-DD）。"
               />
             </label>
 
             <p className="hint sr-population-logic-source">
-              Cochrane Handbookは、概念内の語をOR、異なる概念をANDで結ぶ一般原則と同時に、検索構造を課題ごとに検討し感度を最大化することを求めています。複合PのP2を独立した必須概念にするかは、書誌での報告状況と回収確認に基づいて判断します。
+              Cochrane Handbookは、概念内の語をOR、異なる概念をANDで結ぶ一般原則と同時に、検索構造を課題ごとに検討し感度を最大化することを求めています。P2を検索式へ入れずP1のみとするか、P1とP2をOR／ANDで結ぶかは、書誌での報告状況と回収確認に基づいて判断します。
             </p>
           </section>
         )}
@@ -594,11 +619,19 @@ export function SrTab({ settings }: Props) {
         </div>
         {populationMode === "multiple" && !populationRelation && (
           <div className="sr-query-blocked-note" role="alert">
-            最終検索式はまだ作成されていません。7Aの「P1とP2の結び方」でORまたはANDを選んでください。
+            最終検索式はまだ作成されていません。7Aの「複合Pの検索方法」でP1のみ・OR・ANDのいずれかを選んでください。
           </div>
         )}
         {populationMode === "multiple" &&
+          populationRelation === "P1_ONLY" &&
+          !populationBlocks.p1 && (
+            <div className="sr-query-blocked-note" role="alert">
+              P1に選択中の検索語がありません。P1の検索語表で少なくとも1語を選択してください。
+            </div>
+          )}
+        {populationMode === "multiple" &&
           populationRelation &&
+          populationRelation !== "P1_ONLY" &&
           (!populationBlocks.p1 || !populationBlocks.p2) && (
             <div className="sr-query-blocked-note" role="alert">
               P1またはP2に選択中の検索語がありません。両方の検索語表で少なくとも1語を選択してください。
@@ -839,8 +872,11 @@ export function SrTab({ settings }: Props) {
               </p>
               {populationMode === "multiple" && (
                 <p>
-                  複合Pでは、P1、P2、P1 {populationRelation ?? "AND／OR"} P2の各行も保存し、
-                  OR／ANDを選んだ理由と比較結果を記録します。
+                  複合Pでは、P1とP2の各行に加え、
+                  {populationRelation === "P1_ONLY"
+                    ? "P1のみを最終検索式に使用したこと"
+                    : `P1 ${populationRelation ?? "AND／OR"} P2としたこと`}
+                  を保存し、P1のみ／OR／ANDを選んだ理由と比較結果を記録します。
                   {populationRelationReason && <> 現在のメモ：{populationRelationReason}</>}
                 </p>
               )}
@@ -855,7 +891,7 @@ export function SrTab({ settings }: Props) {
               データベースとプラットフォーム、P・I・C・研究デザインの各行、最後のAND結合式、検索日、各行の件数、
               使用した期間制限・フィルターとその理由を、実際に実行したとおり保存して記載します。
               {populationMode === "multiple" &&
-                " 複合PではP1・P2の定義、結合演算子、選択理由、OR版／AND版の比較結果も残します。"}
+                " 複合PではP1・P2の定義、採用した検索方法、選択理由、P1のみ／OR版／AND版の比較結果も残します。"}
             </p>
           </div>
           <p className="sr-guidance-sources">

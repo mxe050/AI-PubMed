@@ -2,7 +2,7 @@ export type SrPopulationMode = "single" | "multiple";
 
 export type SrPopulationGroup = "P1" | "P2";
 
-export type SrPopulationRelation = "AND" | "OR";
+export type SrPopulationRelation = "AND" | "OR" | "P1_ONLY";
 
 export interface SrPopulationStructure {
   populationMode: SrPopulationMode;

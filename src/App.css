@@ -6578,6 +6578,22 @@ select:focus-visible {
   background: #eff6ff;
 }
 
+.sr-population-ai-review-option {
+  border-style: dashed;
+  background: #f8fafc;
+  cursor: help;
+}
+
+.sr-population-ai-review-option:hover {
+  border-color: #94a3b8;
+  box-shadow: none;
+}
+
+.sr-population-ai-review-option .sr-relation-operator {
+  background: #f1f5f9;
+  color: #475569;
+}
+
 .sr-population-relation-option small {
   grid-column: 1 / -1;
   color: var(--color-text-secondary);

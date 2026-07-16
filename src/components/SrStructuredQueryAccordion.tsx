@@ -47,14 +47,30 @@ export function SrStructuredQueryAccordion({
       {populationMode === "multiple" && populationBlocks ? (
         <>
           <div className="sr-structured-population-note">
-            複合Pは、P1とP2を別々に保存したうえで、最終的に
-            <strong> {populationRelation ?? "AND／OR未選択"} </strong>
-            で結合した行も保存します。
+            {populationRelation === "P1_ONLY" ? (
+              <>
+                最終検索式には<strong> P1のみ </strong>を使用します。P2は検索式へ入れず、
+                適格基準とスクリーニングで確認します。
+              </>
+            ) : (
+              <>
+                複合Pは、P1とP2を別々に保存したうえで、最終的に
+                <strong> {populationRelation ?? "AND／OR未選択"} </strong>
+                で結合した行も保存します。
+              </>
+            )}
           </div>
           <BlockRow label="P1（主となる集団・疾患）" query={populationBlocks.p1} />
-          <BlockRow label="P2（追加条件・特性）" query={populationBlocks.p2} />
           <BlockRow
-            label={`P（P1 ${populationRelation ?? "?"} P2）`}
+            label={populationRelation === "P1_ONLY"
+              ? "P2（参考・最終検索式では不使用）"
+              : "P2（追加条件・特性）"}
+            query={populationBlocks.p2}
+          />
+          <BlockRow
+            label={populationRelation === "P1_ONLY"
+              ? "P（P1のみ）"
+              : `P（P1 ${populationRelation ?? "?"} P2）`}
             query={populationBlocks.combined}
           />
         </>

@@ -698,7 +698,7 @@ export function SrPreparationWorkflow({
               <div className="sr-population-split-reminder" role="note">
                 <strong>P1・P2は「別の概念」です。</strong>
                 同義語や略語はここで分けず、Step 6の各検索語ブロック内でORにまとめます。
-                P1とP2をAND／ORのどちらで結ぶかは、検索語を確認した後のStep 7で選びます。
+                P1のみを使うか、P1とP2をOR／ANDで結ぶかは、検索語を確認した後のStep 7で選びます。
               </div>
             </div>
           )}
@@ -727,8 +727,9 @@ export function SrPreparationWorkflow({
               P1「糖尿病」とP2「肥満」に分けます。P1/P2へ分けることは、適格基準を緩めることではありません。
             </p>
             <div className="sr-complex-population-policy" role="note">
-              <strong>ANDとORは、どちらも目的が違います</strong>
+              <strong>P1のみ・OR・ANDは、目的と見落としの可能性が異なります</strong>
               <ul>
+                <li><strong>P1のみ：</strong>P2を検索式へ入れず、P2は適格基準とスクリーニングで確認します。P2が書誌情報に現れにくい場合の見落としを避けやすくなります。</li>
                 <li><strong>P1 AND P2：</strong>両方が書誌情報に現れる文献へ絞れますが、P2が本文だけにある研究を落とす可能性があります。</li>
                 <li><strong>P1 OR P2：</strong>一方しか書誌情報にない研究も拾いやすくなりますが、無関係文献が大きく増えることがあります。</li>
               </ul>
@@ -744,7 +745,7 @@ export function SrPreparationWorkflow({
                 混合集団、分離できるサブグループデータをどう扱うか事前に決めます。
               </li>
               <li>
-                <strong>Step 6〜7：</strong>P1/P2の類義語を別々に作り、OR版とAND版をPubMedで比較します。
+                <strong>Step 6〜7：</strong>P1/P2の類義語を別々に作り、P1のみ・OR版・AND版をPubMedで比較します。
                 件数、Details／Warnings、キー論文の回収、無関係文献の原因を確認して人が選びます。
               </li>
               <li>
@@ -984,7 +985,7 @@ export function SrPreparationWorkflow({
           <div className="sr-population-step6-note" role="note">
             <strong>この段階ではP1とP2を混ぜません。</strong>
             AIには各概念のMeSH・自由語を別々に出させます。各ブロック内の類義語はORでまとめ、
-            P1とP2の間をAND／ORのどちらにするかは、Step 7であなたが選びます。
+            P1のみを使うか、P1とP2をOR／ANDで結ぶかは、Step 7であなたが選びます。
           </div>
         )}
         {!eligibility && (
