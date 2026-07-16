@@ -18,6 +18,7 @@ interface Props {
   populationMode?: SrPopulationMode;
   p1Label?: string;
   p2Label?: string;
+  disabledPopulationGroup?: SrPopulationGroup;
 }
 
 interface TableSection {
@@ -65,6 +66,7 @@ export function SrTermTable({
   populationMode = "single",
   p1Label = "",
   p2Label = "",
+  disabledPopulationGroup,
 }: Props) {
   const sections: TableSection[] =
     populationMode === "multiple"
@@ -125,6 +127,7 @@ export function SrTermTable({
   }
 
   function addRow(section: TableSection) {
+    const sectionDisabled = section.populationGroup === disabledPopulationGroup;
     onChange({
       ...table,
       [section.element]: [
@@ -135,7 +138,7 @@ export function SrTermTable({
           japanese: "",
           fieldTag: "[tiab]",
           reason: "",
-          enabled: section.element === "P" || section.element === "I",
+          enabled: !sectionDisabled && (section.element === "P" || section.element === "I"),
           populationGroup: section.populationGroup,
         },
       ],
@@ -164,24 +167,34 @@ export function SrTermTable({
       {sections.map((section) => {
         const rows = rowsFor(section);
         const enabledCount = rows.filter((row) => row.enabled).length;
+        const sectionDisabled = section.populationGroup === disabledPopulationGroup;
         return (
           <details
             key={section.key}
-            className={`sr-term-section ${section.cssClass}`}
+            className={`sr-term-section ${section.cssClass} ${sectionDisabled ? "sr-term-section-disabled" : ""}`}
             open
           >
             <summary>
               <span className="sr-section-title"><strong>{section.title}</strong></span>
-              <span className="sr-section-meta">{enabledCount} / {rows.length} 語 選択中</span>
+              <span className="sr-section-meta">
+                {sectionDisabled
+                  ? "P1のみ選択中：検索式では不使用"
+                  : `${enabledCount} / ${rows.length} 語 選択中`}
+              </span>
             </summary>
             <p className="sr-section-subtitle">{section.subtitle}</p>
+            {sectionDisabled && (
+              <p className="sr-section-disabled-note" role="status">
+                P1のみが選択されているため、P2の検索語はすべて解除されています。OR／ANDへ戻すと以前のチェック状態を復元します。
+              </p>
+            )}
 
             {rows.length > 0 && (
               <div className="sr-section-toolbar">
-                <button type="button" className="btn btn-secondary btn-xs" onClick={() => toggleAllInSection(section, true)}>
+                <button type="button" className="btn btn-secondary btn-xs" onClick={() => toggleAllInSection(section, true)} disabled={sectionDisabled}>
                   全選択
                 </button>
-                <button type="button" className="btn btn-secondary btn-xs" onClick={() => toggleAllInSection(section, false)}>
+                <button type="button" className="btn btn-secondary btn-xs" onClick={() => toggleAllInSection(section, false)} disabled={sectionDisabled}>
                   全解除
                 </button>
               </div>
@@ -208,6 +221,7 @@ export function SrTermTable({
                           type="checkbox"
                           aria-label={`${row.term || `${section.title} ${index + 1}行目`}を検索式に含める`}
                           checked={row.enabled}
+                          disabled={sectionDisabled}
                           onChange={(event) => patchRow(section.element, row.id, { enabled: event.target.checked })}
                         />
                       </td>

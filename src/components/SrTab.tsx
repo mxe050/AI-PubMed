@@ -7,7 +7,7 @@
 //           + PubMed検索 + 結果テーブル + 構造化検索式
 //           + AI分類プロンプトコピー + 分類結果表示（新タブ）
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import type { AppSettings, PubMedSearchResult } from "../types";
 import type { SrTermsByElement } from "../utils/parseSrTermsFromAiResponse";
 import {
@@ -53,6 +53,7 @@ export function SrTab({ settings }: Props) {
   const [populationRelation, setPopulationRelation] =
     useState<SrPopulationRelation | null>(null);
   const [populationRelationReason, setPopulationRelationReason] = useState("");
+  const p2SelectionBeforeP1Only = useRef<Map<string, boolean> | null>(null);
   const [picoI, setPicoI] = useState("");
   const [picoC, setPicoC] = useState("");
   const [picoO, setPicoO] = useState("");
@@ -133,6 +134,7 @@ export function SrTab({ settings }: Props) {
     setPicoP2("");
     setPopulationRelation(null);
     setPopulationRelationReason("");
+    p2SelectionBeforeP1Only.current = null;
     setPicoI("");
     setPicoC("");
     setPicoO("");
@@ -165,6 +167,7 @@ export function SrTab({ settings }: Props) {
     if (structureChanged) {
       setPopulationRelation(null);
       setPopulationRelationReason("");
+      p2SelectionBeforeP1Only.current = null;
     }
     setPicoI(value.i);
     setPicoC(value.c);
@@ -182,6 +185,7 @@ export function SrTab({ settings }: Props) {
     if (populationMode === "multiple") {
       setPopulationRelation(null);
       setPopulationRelationReason("");
+      p2SelectionBeforeP1Only.current = null;
     }
     setPubmedResult(null);
     setTimeout(() => {
@@ -192,6 +196,7 @@ export function SrTab({ settings }: Props) {
   }
 
   function invalidatePreparedSearch() {
+    p2SelectionBeforeP1Only.current = null;
     setTermTable({ P: [], I: [], C: [], O: [] });
     setSearchAdvice([]);
     setTermWarnings([]);
@@ -200,6 +205,39 @@ export function SrTab({ settings }: Props) {
   }
 
   function choosePopulationRelation(value: SrPopulationRelation) {
+    if (value === "P1_ONLY") {
+      setTermTable((current) => {
+        if (populationRelation !== "P1_ONLY") {
+          p2SelectionBeforeP1Only.current = new Map(
+            current.P
+              .filter((term) => term.populationGroup === "P2")
+              .map((term) => [term.id, term.enabled])
+          );
+        }
+        return {
+          ...current,
+          P: current.P.map((term) =>
+            term.populationGroup === "P2"
+              ? { ...term, enabled: false }
+              : term
+          ),
+        };
+      });
+    } else if (populationRelation === "P1_ONLY") {
+      const previousP2Selection = p2SelectionBeforeP1Only.current;
+      setTermTable((current) => ({
+        ...current,
+        P: current.P.map((term) =>
+          term.populationGroup === "P2"
+            ? {
+                ...term,
+                enabled: previousP2Selection?.get(term.id) ?? term.enabled,
+              }
+            : term
+        ),
+      }));
+      p2SelectionBeforeP1Only.current = null;
+    }
     setPopulationRelation(value);
     setPubmedResult(null);
     setSearchCopyMsg("");
@@ -489,6 +527,7 @@ export function SrTab({ settings }: Props) {
           populationMode={populationMode}
           p1Label={picoP1}
           p2Label={picoP2}
+          disabledPopulationGroup={populationRelation === "P1_ONLY" ? "P2" : undefined}
         />
 
         {/* フィルター */}

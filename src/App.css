@@ -3454,6 +3454,30 @@ tr.unverified {
   color: var(--color-text-secondary);
 }
 
+.sr-term-section.sr-term-section-disabled {
+  border-left-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.sr-term-section-disabled .sr-section-meta {
+  color: #475569;
+  font-weight: 700;
+}
+
+.sr-section-disabled-note {
+  margin: 6px 0 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.sr-term-section-disabled input[type="checkbox"] {
+  cursor: not-allowed;
+}
+
 .sr-section-toolbar {
   display: flex;
   gap: 6px;
