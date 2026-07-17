@@ -211,6 +211,7 @@ export function buildSelectedDefinitionContext(
   return JSON.stringify(
     {
       questionInterpretation: consultation.questionInterpretation,
+      decisionPoints: consultation.decisionPoints,
       populationGuidance: consultation.populationGuidance ?? [],
       selectedOptions: selected,
     },

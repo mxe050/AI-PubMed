@@ -6,6 +6,7 @@ import {
   srPicoDefinitionPrompt,
 } from "../prompts/srPicoDevelopment";
 import { srInitialPrompt } from "../prompts/systematicReview";
+import type { SrPopulationPreparationContext } from "../prompts/srPopulationReconsideration";
 import { parsePicoFromAiResponse } from "../utils/parsePicoFromAiResponse";
 import {
   buildSelectedDefinitionContext,
@@ -48,7 +49,8 @@ interface Props {
   onTermsReady: (
     terms: SrTermsByElement,
     advice: string[],
-    warnings: string[]
+    warnings: string[],
+    preparationContext: SrPopulationPreparationContext
   ) => void;
   /** 上流のPICO・定義・適格基準が変わったとき、古い検索表を無効化する。 */
   onSearchInputsChanged: () => void;
@@ -481,7 +483,17 @@ export function SrPreparationWorkflow({
       });
       return;
     }
-    onTermsReady(result.terms, result.advice, result.warnings);
+    onTermsReady(result.terms, result.advice, result.warnings, {
+      specialty,
+      selectedDefinitions: consultation
+        ? buildSelectedDefinitionContext(consultation)
+        : "定義検討を省略。暫定PICOのみを使用した。",
+      eligibilityCriteria: eligibility
+        ? buildEligibilityContext(eligibility)
+        : "適格基準は未作成。暫定PICOから予備的な検索語を作成した。",
+      existingSearchStrategy:
+        existingSearchStrategy || "既存レビューの検索式は入力されていない。",
+    });
     const count = Object.values(result.terms).reduce(
       (sum, terms) => sum + terms.length,
       0

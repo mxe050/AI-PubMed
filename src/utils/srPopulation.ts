@@ -10,6 +10,13 @@ export interface SrPopulationStructure {
   p2: string;
 }
 
+export function isSrPopulationGroupDisabled(
+  sectionGroup?: SrPopulationGroup,
+  disabledGroup?: SrPopulationGroup
+): boolean {
+  return Boolean(disabledGroup && sectionGroup === disabledGroup);
+}
+
 export function hasCompleteSplitPopulation(
   value: SrPopulationStructure
 ): boolean {

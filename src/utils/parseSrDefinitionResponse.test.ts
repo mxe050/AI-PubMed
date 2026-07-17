@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildSelectedDefinitionContext,
   collectSelectedDefinitionReferences,
   parseSrDefinitionResponse,
 } from "./parseSrDefinitionResponse";
@@ -65,6 +66,18 @@ describe("parseSrDefinitionResponse", () => {
       "I",
     ]);
     expect(result.consultation?.populationGuidance?.[0]).toContain("本文");
+  });
+
+  it("carries decision points into downstream prompt context", () => {
+    const context = buildSelectedDefinitionContext({
+      questionInterpretation: "複合Pの確認",
+      decisionPoints: ["P2を研究全体の条件にするか"],
+      populationGuidance: ["サブグループを事前規定する"],
+      options: [],
+    });
+
+    expect(context).toContain("P2を研究全体の条件にするか");
+    expect(context).toContain("サブグループを事前規定する");
   });
 
   it("collects evidence only from selected options and deduplicates shared papers", () => {

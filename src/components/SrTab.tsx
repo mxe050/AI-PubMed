@@ -20,6 +20,11 @@ import type {
   SrPopulationRelation,
 } from "../utils/srPopulation";
 import {
+  buildSrPopulationReconsiderationPrompt,
+  type SrPopulationCurrentResultContext,
+  type SrPopulationPreparationContext,
+} from "../prompts/srPopulationReconsideration";
+import {
   studyDesignFilters,
   applyStudyDesignFilter,
   appendAnimalOnlyExclusion,
@@ -63,6 +68,12 @@ export function SrTab({ settings }: Props) {
   const [termTable, setTermTable] = useState<SrTermsByElement>(EMPTY_TABLE);
   const [searchAdvice, setSearchAdvice] = useState<string[]>([]);
   const [termWarnings, setTermWarnings] = useState<string[]>([]);
+  const [populationPreparationContext, setPopulationPreparationContext] =
+    useState<SrPopulationPreparationContext | null>(null);
+  const [populationAiCopyFeedback, setPopulationAiCopyFeedback] = useState<{
+    kind: "ok" | "error";
+    text: string;
+  } | null>(null);
   const [preparationKey, setPreparationKey] = useState(0);
   const [manualSearchOpen, setManualSearchOpen] = useState(false);
 
@@ -143,6 +154,8 @@ export function SrTab({ settings }: Props) {
     setTermTable({ P: [], I: [], C: [], O: [] });
     setSearchAdvice([]);
     setTermWarnings([]);
+    setPopulationPreparationContext(null);
+    setPopulationAiCopyFeedback(null);
     setPreparationKey((value) => value + 1);
     setManualSearchOpen(false);
     setDesignKey("none");
@@ -177,11 +190,14 @@ export function SrTab({ settings }: Props) {
   function handleTermsReady(
     terms: SrTermsByElement,
     advice: string[],
-    warnings: string[]
+    warnings: string[],
+    preparationContext: SrPopulationPreparationContext
   ) {
     setTermTable(terms);
     setSearchAdvice(advice);
     setTermWarnings(warnings);
+    setPopulationPreparationContext(preparationContext);
+    setPopulationAiCopyFeedback(null);
     if (populationMode === "multiple") {
       setPopulationRelation(null);
       setPopulationRelationReason("");
@@ -200,6 +216,8 @@ export function SrTab({ settings }: Props) {
     setTermTable({ P: [], I: [], C: [], O: [] });
     setSearchAdvice([]);
     setTermWarnings([]);
+    setPopulationPreparationContext(null);
+    setPopulationAiCopyFeedback(null);
     setPubmedResult(null);
     setManualSearchOpen(false);
   }
@@ -241,6 +259,114 @@ export function SrTab({ settings }: Props) {
     setPopulationRelation(value);
     setPubmedResult(null);
     setSearchCopyMsg("");
+    setPopulationAiCopyFeedback(null);
+  }
+
+  async function copyPopulationReconsiderationPrompt() {
+    const previousP2Selection = p2SelectionBeforeP1Only.current;
+    const comparisonTable: SrTermsByElement =
+      populationRelation === "P1_ONLY" && previousP2Selection
+        ? {
+            ...termTable,
+            P: termTable.P.map((term) =>
+              term.populationGroup === "P2"
+                ? {
+                    ...term,
+                    enabled:
+                      previousP2Selection.get(term.id) ?? term.enabled,
+                  }
+                : term
+            ),
+          }
+        : termTable;
+
+    const buildCandidateQuery = (relation: SrPopulationRelation) => {
+      const base = buildSrSearchString(comparisonTable, {
+        populationMode,
+        populationRelation: relation,
+      });
+      if (!base) return "";
+      return appendAnimalOnlyExclusion(
+        applyStudyDesignFilter(base, designFilter)
+      );
+    };
+
+    const candidateQueries = {
+      p1Only: buildCandidateQuery("P1_ONLY"),
+      or: buildCandidateQuery("OR"),
+      and: buildCandidateQuery("AND"),
+    };
+
+    let currentResult: SrPopulationCurrentResultContext | undefined;
+    if (pubmedResult && !isResultStale) {
+      const strategy: SrPopulationCurrentResultContext["strategy"] =
+        pubmedResult.query === candidateQueries.p1Only
+          ? "P1_ONLY"
+          : pubmedResult.query === candidateQueries.or
+            ? "OR"
+            : pubmedResult.query === candidateQueries.and
+              ? "AND"
+              : "OTHER";
+      const benchmark = pubmedResult.knownPmidBenchmark;
+      currentResult = {
+        strategy,
+        count: pubmedResult.count,
+        fetchedAt: pubmedResult.fetchedAt,
+        queryTranslation: pubmedResult.queryTranslation ?? "",
+        warnings: [
+          ...(pubmedResult.warningList ?? []),
+          ...(pubmedResult.errorList ?? []),
+          ...(pubmedResult.warnings ?? []),
+        ],
+        matchedKnownPmids: benchmark?.matchedPmids ?? [],
+        missedKnownPmids: benchmark?.missedPmids ?? [],
+      };
+    }
+
+    const prompt = buildSrPopulationReconsiderationPrompt({
+      question,
+      p: picoP,
+      p1: picoP1,
+      p2: picoP2,
+      i: picoI,
+      c: picoC,
+      o: picoO,
+      knownPmids,
+      currentRelation: populationRelation,
+      selectionReason: populationRelationReason,
+      termTable,
+      searchAdvice,
+      termWarnings,
+      candidateQueries,
+      currentResult,
+      designFilterLabel: designFilter.label,
+      designFilterExpression: designFilter.expression,
+      preparationContext: populationPreparationContext,
+    });
+
+    try {
+      await navigator.clipboard.writeText(prompt);
+    } catch {
+      try {
+        const ta = document.createElement("textarea");
+        ta.value = prompt;
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand("copy");
+        document.body.removeChild(ta);
+      } catch {
+        setPopulationAiCopyFeedback({
+          kind: "error",
+          text: "プロンプトをコピーできませんでした。ブラウザのクリップボード権限を確認してください。",
+        });
+        return;
+      }
+    }
+
+    setPopulationAiCopyFeedback({
+      kind: "ok",
+      text: "複合PをAIに再検討してもらうプロンプトをコピーしました。AIへ貼り付けてください。現在の選択と検索式は変更していません。",
+    });
   }
 
   async function copyFilterText(text: string, message: string) {
@@ -459,18 +585,32 @@ export function SrTab({ settings }: Props) {
               <button
                 type="button"
                 className="sr-population-relation-option sr-population-ai-review-option"
-                onClick={() => undefined}
-                title="このボタンは検索式や現在の選択を変更しません"
+                onClick={() => void copyPopulationReconsiderationPrompt()}
+                title="ここまでの検討内容を含むAI相談用プロンプトをクリップボードへコピーします"
               >
                 <span className="sr-relation-operator">AI</span>
                 <strong>AIでもう一度考え直す</strong>
-                <small>このボタンを押しても何も変更されません。必要に応じてAIへ相談し、戻ってP1のみ・OR・ANDのいずれかを選んでください。</small>
+                <small>押すと、ここまでのPICO・定義・適格基準・類義語・キー論文・候補検索式をまとめた相談用プロンプトをクリップボードへコピーします。現在の選択や検索式は変更しません。</small>
               </button>
             </div>
 
+            <p className="sr-population-ai-copy-note">
+              AIの回答を確認した後、P1のみ・OR・AND、または専門家が手動で調整する別案のどれを採用するか、人が決定してください。
+            </p>
+            {populationAiCopyFeedback && (
+              <p
+                className={`sr-population-ai-copy-feedback ${populationAiCopyFeedback.kind}`}
+                role={populationAiCopyFeedback.kind === "error" ? "alert" : "status"}
+                aria-live="polite"
+              >
+                {populationAiCopyFeedback.kind === "ok" ? "✅ " : "⚠ "}
+                {populationAiCopyFeedback.text}
+              </p>
+            )}
+
             {!populationRelation ? (
               <div className="sr-population-relation-required" role="alert">
-                P1のみ・OR・ANDのいずれかを選ぶまで最終検索式は作成されません。各案の件数・キー論文・無関係文献を比較してください。「AIでもう一度考え直す」は検索式を変更しません。
+                P1のみ・OR・ANDのいずれかを選ぶまで最終検索式は作成されません。各案の件数・キー論文・無関係文献を比較してください。「AIでもう一度考え直す」は相談用プロンプトをコピーしますが、検索方法の選択は変更しません。
               </div>
             ) : populationRelation === "P1_ONLY" ? (
               <div className="sr-population-relation-selected" role="status">

@@ -6605,7 +6605,7 @@ select:focus-visible {
 .sr-population-ai-review-option {
   border-style: dashed;
   background: #f8fafc;
-  cursor: help;
+  cursor: pointer;
 }
 
 .sr-population-ai-review-option:hover {
@@ -6616,6 +6616,31 @@ select:focus-visible {
 .sr-population-ai-review-option .sr-relation-operator {
   background: #f1f5f9;
   color: #475569;
+}
+
+.sr-population-ai-copy-note {
+  margin: 9px 0 0;
+  color: var(--color-text-secondary);
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.sr-population-ai-copy-feedback {
+  margin: 9px 0 0;
+  padding: 9px 11px;
+  border-radius: 6px;
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
+.sr-population-ai-copy-feedback.ok {
+  background: #f0fdf4;
+  color: #166534;
+}
+
+.sr-population-ai-copy-feedback.error {
+  background: #fef2f2;
+  color: #991b1b;
 }
 
 .sr-population-relation-option small {

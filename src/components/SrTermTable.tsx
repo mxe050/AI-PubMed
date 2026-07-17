@@ -11,6 +11,7 @@ import type {
   SrPopulationGroup,
   SrPopulationMode,
 } from "../utils/srPopulation";
+import { isSrPopulationGroupDisabled } from "../utils/srPopulation";
 
 interface Props {
   table: SrTermsByElement;
@@ -127,7 +128,10 @@ export function SrTermTable({
   }
 
   function addRow(section: TableSection) {
-    const sectionDisabled = section.populationGroup === disabledPopulationGroup;
+    const sectionDisabled = isSrPopulationGroupDisabled(
+      section.populationGroup,
+      disabledPopulationGroup
+    );
     onChange({
       ...table,
       [section.element]: [
@@ -167,7 +171,10 @@ export function SrTermTable({
       {sections.map((section) => {
         const rows = rowsFor(section);
         const enabledCount = rows.filter((row) => row.enabled).length;
-        const sectionDisabled = section.populationGroup === disabledPopulationGroup;
+        const sectionDisabled = isSrPopulationGroupDisabled(
+          section.populationGroup,
+          disabledPopulationGroup
+        );
         return (
           <details
             key={section.key}
