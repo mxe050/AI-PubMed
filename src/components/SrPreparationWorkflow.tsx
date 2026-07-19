@@ -27,7 +27,10 @@ import { parseKnownPmids } from "../utils/knownPmidBenchmark";
 import { PromptDisplay } from "./PromptDisplay";
 import { SrDefinitionSelector } from "./SrDefinitionSelector";
 import { SrEligibilitySummary } from "./SrEligibilitySummary";
-import type { SrPopulationMode } from "../utils/srPopulation";
+import {
+  resolveSrEligibilityPopulationRoute,
+  type SrPopulationMode,
+} from "../utils/srPopulation";
 
 export interface SrPicoValue {
   p: string;
@@ -126,6 +129,19 @@ export function SrPreparationWorkflow({
   );
   const selectedDefinitionCount =
     consultation?.options.filter((option) => option.selected).length ?? 0;
+  const eligibilityPopulationRoute = consultation
+    ? resolveSrEligibilityPopulationRoute(pico.populationMode, {
+        p: consultation.options.some(
+          (option) => option.element === "P" && option.selected
+        ),
+        p1: consultation.options.some(
+          (option) => option.element === "P1" && option.selected
+        ),
+        p2: consultation.options.some(
+          (option) => option.element === "P2" && option.selected
+        ),
+      })
+    : null;
   const currentStep = searchReady
     ? 7
     : synonymPrompt || eligibilityBypassOpen
@@ -317,41 +333,55 @@ export function SrPreparationWorkflow({
   }
 
   function generateEligibilityPrompt() {
-    if (!consultation) return;
-    const selectedP =
-      pico.populationMode === "multiple"
-        ? consultation.options.some(
-            (option) => option.element === "P1" && option.selected
-          ) &&
-          consultation.options.some(
-            (option) => option.element === "P2" && option.selected
-          )
-        : consultation.options.some(
-            (option) => option.element === "P" && option.selected
-          );
+    if (!consultation || !eligibilityPopulationRoute) return;
+    const selectedP1 = consultation.options.some(
+      (option) => option.element === "P1" && option.selected
+    );
     const selectedI = consultation.options.some(
       (option) => option.element === "I" && option.selected
     );
-    if (!selectedP || !selectedI) {
+    if (!eligibilityPopulationRoute.hasRequiredPopulationDefinition || !selectedI) {
       setEligibilityFeedback({
         kind: "error",
         text:
           pico.populationMode === "multiple"
-            ? "P1・P2・Iから、それぞれ1件以上の定義候補を選択してください。"
+            ? !selectedP1
+              ? "P1は主となる集団・疾患のため必須です。P1から1件以上の定義候補を選択してください。"
+              : "Iから1件以上の定義候補を選択してください。"
             : "最低限、PとIから各1件以上の定義候補を選択してください。",
       });
       return;
     }
+    const selectedSinglePopulation =
+      eligibilityPopulationRoute.selectedPopulationRoute === "P1_ONLY"
+          ? pico.p1
+          : pico.p;
+    const populationDefinitionRoute =
+      eligibilityPopulationRoute.selectedPopulationRoute === "P1_ONLY"
+        ? "P1_ONLY：P1だけが選択されています。P1を単独のPとして適格基準を作成し、P2を推測・補完・出力しないでください。"
+        : eligibilityPopulationRoute.selectedPopulationRoute === "P1_P2"
+            ? "P1_P2：P1とP2の両方が選択されています。複合Pとして両方を適格基準に使ってください。"
+            : "P：単独Pとして選択されています。";
     setEligibilityPrompt(
       buildPrompt(srEligibilityPrompt, {
         question,
-        p: pico.p,
-        populationMode: pico.populationMode,
-        p1: pico.populationMode === "multiple" ? pico.p1 : pico.p,
-        p2: pico.populationMode === "multiple" ? pico.p2 : "",
+        p:
+          eligibilityPopulationRoute.effectivePopulationMode === "single"
+            ? selectedSinglePopulation
+            : pico.p,
+        populationMode: eligibilityPopulationRoute.effectivePopulationMode,
+        p1:
+          eligibilityPopulationRoute.effectivePopulationMode === "single"
+            ? selectedSinglePopulation
+            : pico.p1,
+        p2:
+          eligibilityPopulationRoute.effectivePopulationMode === "multiple"
+            ? pico.p2
+            : "",
         i: pico.i,
         c: pico.c || "未入力",
         o: pico.o || "未入力",
+        populationDefinitionRoute,
         selectedDefinitions: buildSelectedDefinitionContext(consultation),
       })
     );
@@ -370,18 +400,34 @@ export function SrPreparationWorkflow({
       });
       return;
     }
+    const route = eligibilityPopulationRoute;
+    if (!route || !route.hasRequiredPopulationDefinition) {
+      setEligibilityFeedback({
+        kind: "error",
+        text: "P1の選択状態が変わっています。Step 3で主となる集団・疾患の定義を選び直してください。",
+      });
+      return;
+    }
+    const selectedSinglePopulation =
+      route.selectedPopulationRoute === "P1_ONLY"
+          ? pico.p1
+          : pico.p;
     const trustedReferences = consultation
       ? collectSelectedDefinitionReferences(consultation)
       : [];
     const trustedCriteria: SrEligibilityCriteria = {
       ...result.criteria,
-      populationMode: pico.populationMode,
-      p1:
-        pico.populationMode === "multiple"
-          ? result.criteria.p1 || pico.p1
+      p:
+        route.effectivePopulationMode === "single"
+          ? result.criteria.p || result.criteria.p1 || selectedSinglePopulation
           : result.criteria.p || pico.p,
+      populationMode: route.effectivePopulationMode,
+      p1:
+        route.effectivePopulationMode === "multiple"
+          ? result.criteria.p1 || pico.p1
+          : result.criteria.p1 || result.criteria.p || selectedSinglePopulation,
       p2:
-        pico.populationMode === "multiple"
+        route.effectivePopulationMode === "multiple"
           ? result.criteria.p2 || pico.p2
           : "",
       sourceOptionIds:
@@ -876,7 +922,7 @@ export function SrPreparationWorkflow({
                 <strong>採用する候補へチェックする</strong>
                 <span>
                   {pico.populationMode === "multiple"
-                    ? "P1・P2・Iは最低1候補ずつ必要です。"
+                    ? "P1とIは最低1候補ずつ必要です。P2は追加条件なので任意です。"
                     : "PとIは最低1候補ずつ必要です。"}
                   C・Oはレビュー課題に必要な場合だけ選びます。
                   複数候補を併用する場合は複数チェックし、1候補に決める場合は「この候補だけ採用」を使います。
@@ -894,6 +940,13 @@ export function SrPreparationWorkflow({
               チェックした候補、その操作的基準、根拠文献だけが次の「適格基準作成プロンプト」へ渡ります。
               チェックを外した候補は次の工程に使われません。
             </div>
+            {pico.populationMode === "multiple" && (
+              <div className="sr-step3-selection-meaning">
+                <strong>P1・P2の選び方：</strong>
+                P1は主となる集団・疾患なので必須です。P1だけならP1を単独のPとして適格基準を作り、P1とP2の両方を選ぶと複合Pのまま進みます。P2だけでは進めません。
+                両方を適格基準に残し、PubMed検索だけP1にしたい場合は、ここではP1・P2の両方を選び、Step 7で「P1のみを検索に使う」を選んでください。
+              </div>
+            )}
             <p className="sr-step3-ai-caution">
               「AI推奨候補」は比較を始めるための参考表示であり、妥当性や採用を保証するものではありません。
               根拠文献がない候補や「unverified」と表示された候補は、原典を確認できるまで採用しないでください。
@@ -923,8 +976,10 @@ export function SrPreparationWorkflow({
           <h2>Step 4：スクリーニングに使える適格基準を作る</h2>
           <p className="hint">
             選択した定義だけを使い、タイトル・抄録／全文スクリーニングで再現可能な基準と、論文Methodsへ調整して使える文章を作らせます。
-            {pico.populationMode === "multiple" &&
+            {eligibilityPopulationRoute?.selectedPopulationRoute === "P1_P2" &&
               " P1・P2の両条件、一部だけ適格な集団、サブグループデータの扱いも文章化します。"}
+            {eligibilityPopulationRoute?.selectedPopulationRoute === "P1_ONLY" &&
+              " 選ばれた側だけを単独のPとして使い、チェックしていない側は使いません。"}
           </p>
           <PromptDisplay prompt={eligibilityPrompt} title="適格基準作成プロンプト" />
           <label className="sr-ai-response-label">

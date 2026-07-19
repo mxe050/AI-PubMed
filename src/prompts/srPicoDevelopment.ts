@@ -168,12 +168,17 @@ I: {{i}}
 C: {{c}}
 O: {{o}}
 
+【今回のP定義の選択経路】
+{{populationDefinitionRoute}}
+
 【ユーザーが採用した定義・根拠】
 {{selectedDefinitions}}
 
 # 必須方針
 
 - 採用されていない定義を混ぜない。
+- P1_ONLYでは、P1だけを単独のPとして使う。populationModeはsingle、pとp1にはP1の定義、p2には空文字を出力し、未選択のP2を推測・補完しない。
+- P1_P2では、P1とP2の両方を使い、populationModeをmultipleとして出力する。
 - 新しい書誌情報を作らず、根拠は上記のoption idと文献だけに限定する。
 - definitionReferencesには、採用したoptionのsourcesに記載された書誌情報だけを一字一句変更せず転記する。
 - Pがmultipleなら、pには最終的な対象集団全体、p1/p2には各条件の操作的定義を別々に記載する。
@@ -209,7 +214,7 @@ O: {{o}}
   "screeningQuestions": ["査読者がYes/No/Unclearで判定できる質問"],
   "methodsText": "論文Methodsに使用できる適格基準の文章",
   "searchNotes": ["検索式には入れない概念、P1/P2結合の未決事項、感度維持の注意"],
-  "sourceOptionIds": ["P1-1", "P2-1", "I-1"],
+  "sourceOptionIds": ["採用された候補のoption idだけ。未選択のP1またはP2は含めない"],
   "definitionReferences": [
     {
       "optionIds": ["P1-1"],
