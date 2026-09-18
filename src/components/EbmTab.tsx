@@ -7,7 +7,6 @@ import {
   ebmPicoRefinementPrompt,
   ebmPicoBrainstormPrompt,
 } from "../prompts/ebmStep2";
-import { evaluatePicoCompleteness } from "../utils/evaluatePicoCompleteness";
 import { parsePicoFromAiResponse } from "../utils/parsePicoFromAiResponse";
 import { parseClassificationResponse } from "../utils/parseClassificationResponse";
 import { renderClassificationNewTab } from "../utils/renderClassificationNewTab";
@@ -26,6 +25,8 @@ import { PromptDisplay } from "./PromptDisplay";
 import { SearchStringInput } from "./SearchStringInput";
 import { PubMedSearchBox } from "./PubMedSearchBox";
 import { PubMedResultTable } from "./PubMedResultTable";
+import { PicoGuide } from "./PicoGuide";
+import { WorkflowNav } from "./WorkflowNav";
 
 interface Props {
   settings: AppSettings;
@@ -131,17 +132,16 @@ export function EbmTab({ settings, onPubMedFallbackToAi }: Props) {
     .join(" / ");
   const pico = combinedPico;
   const context = combinedPico;
-  const picoText = [picoP, picoI, picoC, picoO].some((v) => v.length > 0)
-    ? [picoP, picoI, picoC, picoO].join("\n")
-    : "";
   const hasCorePico = Boolean(picoP.trim() && picoI.trim());
 
   const [initialPrompt, setInitialPrompt] = useState("");
   const [aiResponse, setAiResponse] = useState("");
+  const [responsePrompt, setResponsePrompt] = useState("");
   const [searchString, setSearchString] = useState("");
   const [pubmedResult, setPubmedResult] = useState<PubMedSearchResult | null>(
     null
   );
+  const [resultPrompt, setResultPrompt] = useState("");
 
   // Step 4 filters (year + design)
   const [pubDateKey, setPubDateKey] = useState<PubDateFilterKey>("none");
@@ -155,14 +155,6 @@ export function EbmTab({ settings, onPubMedFallbackToAi }: Props) {
   // PICO refinement sub-flow state (Step 1)
   const [picoRefinementPrompt, setPicoRefinementPrompt] = useState("");
   const [picoRefinedAiResponse, setPicoRefinedAiResponse] = useState("");
-  const [picoCheckDismissed, setPicoCheckDismissed] = useState(false);
-
-  const picoEval = evaluatePicoCompleteness(rawQuestion);
-  const showPicoRefinement =
-    rawQuestion.trim().length > 0 &&
-    !hasCorePico &&
-    picoEval.recommendRefinement &&
-    !picoCheckDismissed;
 
   // 検索式にフィルターを適用したもの（API送信用）。表示は元の searchString のまま。
   const effectiveSearchString = useMemo(() => {
@@ -171,14 +163,6 @@ export function EbmTab({ settings, onPubMedFallbackToAi }: Props) {
     const withDesign = applyStudyDesignFilter(searchString, designFilter);
     return applyPubDateFilter(withDesign, pubDateKey);
   }, [searchString, designKey, pubDateKey]);
-
-  function setPicoFromText(value: string) {
-    const lines = value.split(/\r?\n/);
-    setPicoP(lines[0] ?? "");
-    setPicoI(lines[1] ?? "");
-    setPicoC(lines[2] ?? "");
-    setPicoO(lines.slice(3).join("\n"));
-  }
 
   function buildInitialPromptForVariant(variant: SearchVariantKey) {
     const purposeLabel =
@@ -202,14 +186,16 @@ export function EbmTab({ settings, onPubMedFallbackToAi }: Props) {
       alert("原質問、またはP/Iを含むPICOを入力してください。");
       return;
     }
-    if (!hasCorePico && picoEval.recommendRefinement && !picoCheckDismissed) {
-      const ok = confirm(
-        `この疑問はPICO要素のうち以下が不足している可能性があります：\n\n${picoEval.missing.join("、")}\n\n下のPICO洗練サブフローで疑問を磨くことを強く推奨します。\n\nそれでもこのまま初回プロンプト生成に進みますか？\n\n（OK = このまま進む / キャンセル = 戻ってPICO洗練を行う）`
-      );
-      if (!ok) return;
-    }
     setInitialPrompt(buildInitialPromptForVariant(searchVariant));
   }
+
+  const initialPromptIsStale = Boolean(initialPrompt &&
+    initialPrompt !== buildInitialPromptForVariant(searchVariant));
+  const responseIsStale = Boolean(aiResponse &&
+    (initialPromptIsStale || responsePrompt !== initialPrompt));
+  const resultIsStale = Boolean(pubmedResult &&
+    (initialPromptIsStale || responseIsStale || resultPrompt !== buildInitialPromptForVariant(searchVariant) ||
+      pubmedResult.query !== effectiveSearchString));
 
   function handleSearchVariantChange(variant: SearchVariantKey) {
     setSearchVariant(variant);
@@ -246,6 +232,7 @@ export function EbmTab({ settings, onPubMedFallbackToAi }: Props) {
       purpose: purposeLabel,
       picoVariantLabel: selectedVariant.label,
       picoVariantInstruction: selectedVariant.instruction,
+      currentPico: combinedPico || "まだ未入力",
     });
   }
 
@@ -301,6 +288,7 @@ export function EbmTab({ settings, onPubMedFallbackToAi }: Props) {
   }
 
   async function copyClassificationPrompt() {
+    if (resultIsStale) return;
     if (!pubmedResult) return;
     const text = buildEbmClassificationCopyText(pubmedResult);
     try {
@@ -321,6 +309,7 @@ export function EbmTab({ settings, onPubMedFallbackToAi }: Props) {
   }
 
   function showClassificationResult() {
+    if (resultIsStale) return;
     setClassificationError("");
     const parsed = parseClassificationResponse(classificationAiResponse);
     if (!parsed.ok) {
@@ -362,13 +351,14 @@ export function EbmTab({ settings, onPubMedFallbackToAi }: Props) {
     setPicoBrainstormPrompt("");
     setPicoBrainstormResponse("");
     setPicoAutofillMsg(null);
-    setPicoCheckDismissed(false);
     setPicoRefinementPrompt("");
     setPicoRefinedAiResponse("");
     setInitialPrompt("");
     setAiResponse("");
+    setResponsePrompt("");
     setSearchString("");
     setPubmedResult(null);
+    setResultPrompt("");
     setPubDateKey("none");
     setDesignKey("none");
     setClassificationAiResponse("");
@@ -380,13 +370,14 @@ export function EbmTab({ settings, onPubMedFallbackToAi }: Props) {
   return (
     <div className="ebm-tab">
       <header className="ebm-header">
-        <h2>EBMのための検索（補助機能・EBM Step 2 Navigator）</h2>
+        <h2>EBMのための検索</h2>
         <p className="hint">
-          このアプリは <strong>EBM Step 2（情報検索）</strong>に特化したフローです。
-          批判的吟味（Step 3）・推奨判断・治療方針決定は<strong>行いません</strong>。
-          目的は、次のEBM Step 3に渡せる「文献候補リスト」を、AIとPubMedの往復で作ることです。
+          臨床で感じた疑問を整理し、批判的吟味に進むための文献を探します。
+          まだPICOが決まっていなくても、短い疑問から始められます。
         </p>
-        <p className="ai-format-warning" role="alert">
+        <details className="ebm-scope-details">
+          <summary>検索の方針と、この画面で行わないこと</summary>
+        <p className="ai-format-warning">
           外部AIが指定形式以外の説明や複数案を追加すると、自動抽出できない場合があります。
           その場合は、回答内のPICOと検索式を確認して手動で入力してください。
         </p>
@@ -397,12 +388,32 @@ export function EbmTab({ settings, onPubMedFallbackToAi }: Props) {
           （診療GL → SR → RCT → 非RCT → 非RCT以外の観察研究 → シミュレーション/基礎研究 → その他）の
           全階層に分類します。「ガイドラインがあればGL、なければSR、なければRCT、…」という読み進めは検索後に判定します。
         </div>
+        <p className="hint">対象はEBM Step 2（情報検索）です。論文の批判的吟味・推奨判断・患者への適用は別に行ってください。</p>
+        </details>
         <div className="ebm-clear-bar">
           <button className="btn btn-reset" onClick={clearAll}>
             🗑 すべての入力・結果をクリアして最初からやり直す
           </button>
         </div>
       </header>
+
+      <WorkflowNav
+        label="EBM検索の手順"
+        steps={[
+          { id: "ebm-question-step", label: "疑問を整理", available: true },
+          { id: "ebm-prompt-step", label: "AIへ渡す", available: !!initialPrompt },
+          { id: "ebm-response-step", label: "回答を戻す", available: !!initialPrompt },
+          { id: "ebm-step-pubmed", label: "PubMedで検索", available: !!aiResponse },
+        ]}
+        current={initialPromptIsStale ? "ebm-question-step" : responseIsStale ? "ebm-response-step" : searchString ? "ebm-step-pubmed" : aiResponse ? "ebm-response-step" : initialPrompt ? "ebm-prompt-step" : "ebm-question-step"}
+        nextAction={initialPromptIsStale ? "変更後の入力でプロンプトを作り直す" : responseIsStale ? "最新プロンプトへのAI回答を貼り付け直す" : searchString ? "検索式を確認してPubMedで実行する" : aiResponse ? "AI回答から検索式を抽出する" : initialPrompt ? "全文をコピーして外部AIへ。回答はStep 3に貼り付ける" : "知りたいことを1文で書き、PICOを整理する"}
+      />
+      {initialPromptIsStale && (
+        <div className="pico-gentle-note" role="status">
+          疑問・PICO・検索の方針が、プロンプトを作った時点から変わっています。
+          <button type="button" className="text-button" onClick={generateInitialPrompt}>現在の入力でプロンプトを作り直す</button>
+        </div>
+      )}
 
       {/* Sticky context bar */}
       {(rawQuestion || pico) && (
@@ -429,18 +440,19 @@ export function EbmTab({ settings, onPubMedFallbackToAi }: Props) {
       )}
 
       {/* Step 1: Raw question */}
-      <section className="workflow-section">
-        <h2>Step 1: 原質問の入力</h2>
+      <section id="ebm-question-step" className="workflow-section">
+        <h2>Step 1：知りたいことを整理する</h2>
         <p className="hint">
-          原質問は加工せず、ユーザーが心の中で持っている疑問のまま記録します。
-          画面上部にも常時表示され、AI往復で論点がドリフトしないようにします。
+          専門用語でなくてかまいません。まず疑問をそのまま書いてください。
+          患者名・生年月日・IDなど、個人を特定する情報は入力しないでください。
         </p>
 
         <div className="form-group">
-          <label>
+          <label htmlFor="ebm-raw-question">
             原質問<span className="required">*</span>
           </label>
           <textarea
+            id="ebm-raw-question"
             rows={3}
             value={rawQuestion}
             onChange={(e) => setRawQuestion(e.target.value)}
@@ -452,7 +464,7 @@ export function EbmTab({ settings, onPubMedFallbackToAi }: Props) {
         <details className="pico-brainstorm-section">
           <summary>
             <strong>
-              PICOが思いつかない場合：AIに案を考えてもらうプロンプトを生成
+              まだPICOにできない：原質問からAIと整理する
             </strong>
           </summary>
           <p className="hint">
@@ -523,8 +535,9 @@ export function EbmTab({ settings, onPubMedFallbackToAi }: Props) {
         </details>
 
         <div className="form-group">
-          <label>診療科</label>
+          <label htmlFor="ebm-specialty">診療科（任意）</label>
           <input
+            id="ebm-specialty"
             type="text"
             value={specialty}
             onChange={(e) => setSpecialty(e.target.value)}
@@ -532,39 +545,40 @@ export function EbmTab({ settings, onPubMedFallbackToAi }: Props) {
           />
         </div>
 
-        <div className="ebm-pico-imperative">
-          <h4>⚠ EBM Step 1（臨床疑問の定式化）— 検索の質を決める最重要ステップ</h4>
-          <p>
-            EBMの第1ステップ「臨床疑問の定式化」は、検索の質を根本から決める最重要のステップです。
-            原質問のままではなく、必ず以下のPICOに分解して入力してください。
-          </p>
-          <p>
-            <strong>
-              AIが便利だからといって、このステップをないがしろにする癖をつけてはいけません。
-            </strong>{" "}
-            面倒でも、PICOを必ず入力してください。
-            EBMには必ずステップがあり、ステップを飛ばすと根拠の薄い検索になります。
-          </p>
-          <p>
-            自分でPICOが想定できない場合は、上の「PICO案をAIに考えてもらうプロンプトを生成」を使ってください。
-            AIで案を出してから、その案を「PICOを自動入力」ボタンで本欄に転記して進めてください。
-          </p>
+        <div className="pico-section-heading">
+          <h3>PICOで疑問の輪郭をつくる</h3>
+          <p>自分の疑問と合っているか、最後はご自身で確認してください。AIが補った内容は事実ではなく「案」です。</p>
         </div>
-
-        <h4>PICO（必須）</h4>
-        <div className="form-group">
-          <label>P/I/C/O（1行ずつ、P → I → C → O の順）</label>
-          <textarea
-            rows={5}
-            value={picoText}
-            onChange={(e) => setPicoFromText(e.target.value)}
-            placeholder={`例：
-80歳代の女性、HFrEF、eGFR 45、糖尿病あり、外来
-SGLT2阻害薬（ダパグリフロジン10mg/日）
-標準治療（ACE-I/ARB/β遮断薬）のみ
-心不全入院、全死亡、QOL`}
-          />
+        <PicoGuide />
+        <div className="pico-coach-grid">
+          {[
+            { key: "p", label: "P：誰について", hint: "対象の患者・疾患・状況", placeholder: "例：成人の慢性腰痛患者", value: picoP, set: setPicoP },
+            { key: "i", label: "I：何を調べるか", hint: "治療・検査・曝露・予後因子", placeholder: "例：運動療法", value: picoI, set: setPicoI },
+            { key: "c", label: "C：何と比べるか", hint: "比較がない疑問では任意", placeholder: "例：通常診療 / 比較なし", value: picoC, set: setPicoC },
+            { key: "o", label: "O：何を知りたいか", hint: "患者にとって重要な結果", placeholder: "例：痛み・日常生活・QOL", value: picoO, set: setPicoO },
+          ].map((field) => (
+            <div className={`pico-coach-field pico-coach-${field.key}`} key={field.key}>
+              <label htmlFor={`ebm-pico-${field.key}`}>{field.label}</label>
+              <small id={`ebm-pico-${field.key}-hint`}>{field.hint}</small>
+              <textarea id={`ebm-pico-${field.key}`} rows={3}
+                aria-describedby={`ebm-pico-${field.key}-hint`}
+                value={field.value} onChange={(event) => field.set(event.target.value)} placeholder={field.placeholder} />
+            </div>
+          ))}
         </div>
+        <div className="pico-comparison-presets">
+          <label htmlFor="ebm-comparison-preset">Cの入力候補</label>
+          <select id="ebm-comparison-preset" value="" onChange={(event) => {
+            const value = event.target.value;
+            if (value) setPicoC((current) => current.trim() ? `${current} / ${value}` : value);
+          }}>
+            <option value="">候補を選んで追加（自由入力も可）</option>
+            {["通常診療", "プラセボ", "他の治療", "比較なし", "未定（要検討）"].map((value) => <option key={value}>{value}</option>)}
+          </select>
+        </div>
+        {!hasCorePico && rawQuestion.trim() && (
+          <p className="pico-gentle-note">まず「誰について」と「何を調べるか」を考えてみましょう。迷った点は、上の「原質問からAIと整理する」で候補を出せます。</p>
+        )}
 
         <div className="form-group">
           <label htmlFor="ebm-search-purpose">検索目的</label>
@@ -581,24 +595,16 @@ SGLT2阻害薬（ダパグリフロジン10mg/日）
           </select>
         </div>
 
-        {showPicoRefinement && (
-          <div className="pico-refinement-box">
-            <h4>⚠ PICOに加えて、患者情報で必要なことを学ぼう</h4>
+        {(rawQuestion || pico) && (
+          <details className="pico-refinement-box">
+            <summary>疑問をもう一段深めたい：追加で確認する情報（任意）</summary>
             <p>
               現在のPICOをより良くするために、追加で確認したい患者情報・検査値・問診内容を整理します：
             </p>
-            <ul>
-              {picoEval.missing.map((m) => (
-                <li key={m}>{m}</li>
-              ))}
-              {rawQuestion.replace(/\s/g, "").length < 30 && (
-                <li>質問が短すぎる可能性（30文字未満）</li>
-              )}
-            </ul>
             <p className="hint">
               下の「学習プロンプトを生成」を押し、得たプロンプトをAIに投げると、現在のPICOをEBM的に見直す観点と、
               追加で患者から聞くべきこと・確認すべき検査値が得られます。
-              なお、現在の疑問でも問題ないと判断した場合は「このまま進める」で警告を消せます。
+              分からない情報は無理に埋めず、確認が必要な点として残してください。
             </p>
 
             <div className="button-group">
@@ -607,12 +613,6 @@ SGLT2阻害薬（ダパグリフロジン10mg/日）
                 onClick={generatePicoRefinementPrompt}
               >
                 学習プロンプトを生成
-              </button>
-              <button
-                className="btn btn-secondary"
-                onClick={() => setPicoCheckDismissed(true)}
-              >
-                このまま進める（PICO洗練をスキップ）
               </button>
             </div>
 
@@ -638,12 +638,12 @@ SGLT2阻害薬（ダパグリフロジン10mg/日）
                 />
               </>
             )}
-          </div>
+          </details>
         )}
 
         <div className="prompt-option-row">
           <button className="btn btn-primary" onClick={generateInitialPrompt}>
-            初回プロンプトを生成（PICO + 検索語 + 検索式案）
+            次へ：検索プロンプトを作る
           </button>
           <div className="prompt-option-buttons" aria-label="作成する検索案">
             {searchVariantOptions.map((opt) => (
@@ -678,7 +678,7 @@ SGLT2阻害薬（ダパグリフロジン10mg/日）
             className="btn btn-secondary"
             onClick={handlePubMedFallbackToAi}
           >
-            PubMed断念AIに頼る
+            本文・別の表現から探す
           </button>
           <p className="hint">
             どうしてもPubMed検索でヒットしない場合は、AIに頼りますが、必ずファクトチェックをしてください。
@@ -689,8 +689,8 @@ SGLT2阻害薬（ダパグリフロジン10mg/日）
 
       {/* Step 2: AI initial prompt */}
       {initialPrompt && (
-        <section className="workflow-section">
-          <h2>Step 2: AI用プロンプト</h2>
+        <section id="ebm-prompt-step" className="workflow-section">
+          <h2>Step 2：プロンプトを外部AIへ渡す</h2>
           <div className="prompt-option-buttons prompt-option-buttons-inline" aria-label="作成する検索案">
             {searchVariantOptions.map((opt) => (
               <button
@@ -712,7 +712,7 @@ SGLT2阻害薬（ダパグリフロジン10mg/日）
           <p className="hint">
             このプロンプトをコピーしてChatGPT / Claude /
             Geminiなどに貼り付けてください。
-            AIはPICO・検索語・PubMed検索式案を、情報源ヒエラルキー別（GL/SR/RCT/Broad）に出力します。
+            AIが提案した検索語と、研究デザインで絞らない検索式を確認します。
           </p>
           <PromptDisplay prompt={initialPrompt} />
         </section>
@@ -720,15 +720,20 @@ SGLT2阻害薬（ダパグリフロジン10mg/日）
 
       {/* Step 3: AI response paste */}
       {initialPrompt && (
-        <section className="workflow-section">
-          <h2>Step 3: AI回答の貼り付け</h2>
+        <section id="ebm-response-step" className="workflow-section">
+          <h2>Step 3：AI回答を戻し、検索式を取り出す</h2>
           <textarea
+            aria-label="検索式を含むAI回答"
             value={aiResponse}
-            onChange={(e) => setAiResponse(e.target.value)}
+            onChange={(e) => {
+              setAiResponse(e.target.value);
+              setResponsePrompt(initialPrompt);
+            }}
             rows={10}
             placeholder="AIから返ってきた回答全体をここに貼り付け..."
             style={{ width: "100%" }}
           />
+          {responseIsStale && <p className="warning-text" role="status">この回答は以前のプロンプトに対応しています。最新のプロンプトで外部AIに質問し、回答を貼り付け直してください。</p>}
           {pico && (
             <div className="form-group" style={{ marginTop: 12 }}>
               <label>Step 1で入力されたPICO（後段プロンプトに自動投入）</label>
@@ -740,7 +745,7 @@ SGLT2阻害薬（ダパグリフロジン10mg/日）
               <p className="hint">
                 AI回答に検索式（コードブロック）が含まれていれば、ボタン1つでStep 4の検索式欄に流し込みます。
               </p>
-              <button className="btn btn-primary" onClick={extractSearchFromAi}>
+              <button className="btn btn-primary" disabled={initialPromptIsStale || responseIsStale} onClick={extractSearchFromAi}>
                 AI回答から検索式を抽出してStep 4へ
               </button>
             </div>
@@ -817,9 +822,16 @@ SGLT2阻害薬（ダパグリフロジン10mg/日）
               )}
 
               <PubMedSearchBox
+                key={effectiveSearchString}
                 settings={settings}
                 searchString={effectiveSearchString}
-                onResult={(r) => setPubmedResult(r)}
+                onResult={(r) => {
+                  setPubmedResult(r);
+                  setResultPrompt(buildInitialPromptForVariant(searchVariant));
+                  setClassificationAiResponse("");
+                  setClassificationCopyMsg("");
+                  setClassificationError("");
+                }}
                 retmax={100}
               />
             </>
@@ -827,12 +839,14 @@ SGLT2阻害薬（ダパグリフロジン10mg/日）
 
           {pubmedResult && (
             <>
+              {resultIsStale && <p className="warning-text" role="status">入力または検索条件が変わっています。表示中の結果は前の条件のものです。検索式を見直し、再検索してから分類してください。</p>}
               {/* Classification copy + new-tab flow */}
               <div className="ebm-classification-bar">
                 <button
                   className="btn btn-primary"
                   onClick={copyClassificationPrompt}
                   type="button"
+                  disabled={resultIsStale}
                 >
                   AIで研究デザイン別に分類する（プロンプト＋結果をコピー）
                 </button>
@@ -867,7 +881,7 @@ SGLT2阻害薬（ダパグリフロジン10mg/日）
                   <button
                     className="btn btn-primary"
                     onClick={showClassificationResult}
-                    disabled={!classificationAiResponse.trim()}
+                    disabled={!classificationAiResponse.trim() || resultIsStale}
                   >
                     分類結果を表示（新しいブラウザタブ）
                   </button>

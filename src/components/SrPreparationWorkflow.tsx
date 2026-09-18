@@ -25,6 +25,8 @@ import {
 } from "../utils/parseSrTermsFromAiResponse";
 import { parseKnownPmids } from "../utils/knownPmidBenchmark";
 import { PromptDisplay } from "./PromptDisplay";
+import { PicoGuide } from "./PicoGuide";
+import { WorkflowNav } from "./WorkflowNav";
 import { SrDefinitionSelector } from "./SrDefinitionSelector";
 import { SrEligibilitySummary } from "./SrEligibilitySummary";
 import {
@@ -64,13 +66,13 @@ interface Props {
 type Feedback = { kind: "ok" | "error"; text: string } | null;
 
 const WORKFLOW_STEPS = [
-  { number: 1, label: "疑問・PICO" },
-  { number: 2, label: "定義調査" },
-  { number: 3, label: "定義選択" },
-  { number: 4, label: "適格基準" },
-  { number: 5, label: "基準確認" },
-  { number: 6, label: "類義語" },
-  { number: 7, label: "検索・検証" },
+  { number: 1, id: "sr-question-step", label: "疑問・PICO", next: "疑問を書き、対象と介入を整理する" },
+  { number: 2, id: "sr-definition-step", label: "定義調査", next: "プロンプトを外部AIへ渡し、定義の回答を貼り付ける" },
+  { number: 3, id: "sr-definition-selection", label: "定義選択", next: "原典を確認して、採用する定義を選ぶ" },
+  { number: 4, id: "sr-eligibility-step", label: "適格基準", next: "外部AIの適格基準案を貼り付け、読み込む" },
+  { number: 5, id: "sr-final-eligibility", label: "基準確認", next: "最終PICOと適格基準を確認し、類義語作成へ進む" },
+  { number: 6, id: "sr-synonyms-step", label: "類義語", next: "類義語のAI回答を読み込み、検索語テーブルへ反映する" },
+  { number: 7, id: "sr-step-search", label: "検索・検証", next: "検索語を選び、PubMedの解釈・キー論文の回収を確認する" },
 ] as const;
 
 function FeedbackLine({ feedback }: { feedback: Feedback }) {
@@ -552,37 +554,20 @@ export function SrPreparationWorkflow({
 
   return (
     <>
-      <nav className="sr-workflow-map" aria-label="システマティックレビュー検索の作成手順">
-        <div className="sr-workflow-map-heading">
-          <strong>現在地</strong>
-          <span>Step {currentStep} / 7</span>
-        </div>
-        <ol>
-          {WORKFLOW_STEPS.map((step) => {
-            const state =
-              step.number < currentStep
-                ? "completed"
-                : step.number === currentStep
-                  ? "current"
-                  : "upcoming";
-            return (
-              <li
-                key={step.number}
-                className={`sr-workflow-${state}`}
-                aria-current={state === "current" ? "step" : undefined}
-              >
-                <span aria-hidden="true">
-                  {state === "completed" ? "✓" : step.number}
-                </span>
-                <small>{step.label}</small>
-              </li>
-            );
-          })}
-        </ol>
-      </nav>
+      <WorkflowNav
+        label="SR検索の作成手順"
+        current={WORKFLOW_STEPS[currentStep - 1].id}
+        nextAction={WORKFLOW_STEPS[currentStep - 1].next}
+        steps={WORKFLOW_STEPS.map((step) => ({
+          ...step,
+          available: [true, !!definitionPrompt, !!consultation, !!eligibilityPrompt,
+            !!eligibility, !!eligibility || eligibilityBypassOpen, searchReady][step.number - 1],
+        }))}
+      />
 
-      <section className="workflow-section">
+      <section id="sr-question-step" className="workflow-section">
         <h2>Step 1：レビュー疑問と暫定PICO</h2>
+        <PicoGuide review />
         <div className="sr-method-note">
           <p>
             ここで作るのは<strong>review PICO</strong>です。P・I・Cと研究デザインは適格基準へ、Oは通常は検索で必須にせず、抽出・統合計画へつなげます。
@@ -638,9 +623,9 @@ export function SrPreparationWorkflow({
           />
         </div>
 
-        <details className="pico-brainstorm-section" open>
+        <details className="pico-brainstorm-section">
           <summary>
-            <strong>PICOが思いつかない場合：AIに案を考えてもらうプロンプトを生成</strong>
+            <strong>まだPICOにできない：原質問からAIと整理する</strong>
           </summary>
           <p className="hint">
             原質問と領域からSR用PICO案を1つ作ります。Pに複数の条件がある場合はP1・P2の候補も整理し、AI回答を貼り付けると下のP/I/C/OとPの構造へ反映します。
@@ -870,7 +855,7 @@ export function SrPreparationWorkflow({
       </section>
 
       {definitionPrompt && (
-        <section className="workflow-section">
+        <section id="sr-definition-step" className="workflow-section">
           <h2>Step 2：PICOの定義候補と原典を調べる</h2>
           <p className="hint">
             Web検索が使える外部AIへ貼り付けてください。定義論文、妥当性研究、診断・分類基準、ガイドライン、手術・処置の基本的方法論論文まで照合し、確認できない書誌を作らないよう指示しています。
@@ -972,7 +957,7 @@ export function SrPreparationWorkflow({
       )}
 
       {eligibilityPrompt && (
-        <section className="workflow-section">
+        <section id="sr-eligibility-step" className="workflow-section">
           <h2>Step 4：スクリーニングに使える適格基準を作る</h2>
           <p className="hint">
             選択した定義だけを使い、タイトル・抄録／全文スクリーニングで再現可能な基準と、論文Methodsへ調整して使える文章を作らせます。
@@ -1043,7 +1028,7 @@ export function SrPreparationWorkflow({
         )}
 
       {(eligibility || eligibilityBypassOpen) && (
-      <section className="workflow-section">
+      <section id="sr-synonyms-step" className="workflow-section">
         <h2>
           Step 6：{pico.populationMode === "multiple" ? "P1・P2を分けて、" : ""}
           類義語候補を作る

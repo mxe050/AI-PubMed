@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { AppSettings, PubMedArticle, PubMedSearchResult } from "../types";
 import { esearchPubMed } from "../api/esearchPubMed";
 import { esummaryPubMed } from "../api/esummaryPubMed";
@@ -41,6 +41,7 @@ export function PubMedSearchBox({
   const abortControllerRef = useRef<AbortController | null>(null);
   const [exportProgress, setExportProgress] = useState<string>("");
   const [progressMessage, setProgressMessage] = useState("");
+  useEffect(() => () => abortControllerRef.current?.abort(), []);
 
   async function runSearch() {
     setLoading(true);
@@ -99,6 +100,7 @@ export function PubMedSearchBox({
             [...benchmarkSearch.warningList, ...benchmarkSearch.errorList]
           );
         } catch (benchmarkError) {
+          controller.signal.throwIfAborted();
           knownPmidBenchmark = {
             requestedPmids: benchmarkPmids,
             matchedPmids: [],
@@ -203,6 +205,7 @@ export function PubMedSearchBox({
         apiMode: settings.ncbiApiKey ? "user_api_key" : "no_api_key",
       };
 
+      controller.signal.throwIfAborted();
       onResult(result);
       setProgressMessage(
         `上位${result.articles.length}件のプレビューをボタン直下に表示しました。`

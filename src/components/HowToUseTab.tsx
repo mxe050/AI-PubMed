@@ -10,7 +10,14 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
   return (
     <div className="how-to-use">
       <header className="how-to-use-header">
-        <h2>このアプリの使い方</h2>
+        <h2>いま取り組みたいことは？</h2>
+        <p className="hint">
+          疑問を整理する、文献を探す、AIの回答を確かめる。いまの目的に合う画面から始めてください。
+        </p>
+      </header>
+
+      <details className="how-to-collapsible how-to-start-notes">
+        <summary>利用前の注意と解説動画</summary>
         <p className="how-to-use-imperative">
           医療情報は、「ほぼハルシネーションがない」ではダメで、<br />
           ハルシネーションを限りなくゼロに近づける必要があります。ただし、本アプリは正確性を保証せず、PubMedでの書誌確認と人間による原典確認を支援します。
@@ -28,35 +35,44 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
           <span className="youtube-link-btn-icon" aria-hidden="true">▶</span>
           <span>🎬 AI・LLMとEBM実践・システマテックレビュー作成支援・医学情報系について</span>
         </a>
-      </header>
+      </details>
 
       <section className="how-to-quick-start" aria-labelledby="quick-start-title">
         <div className="how-to-quick-start-heading">
           <span>まずここから</span>
-          <h3 id="quick-start-title">目的を選ぶと、必要な画面へ移動できます</h3>
+          <h3 id="quick-start-title">目的から始める</h3>
         </div>
         <div className="how-to-quick-start-grid">
+          <a href="#ebm_search">
+            <strong>臨床の疑問を整理したい</strong>
+            <span>PICOがまだ曖昧でも、短い疑問から</span>
+          </a>
+          <a href="#systematic_review">
+            <strong>SRの検索戦略をつくりたい</strong>
+            <span>適格基準・検索語・検証・検索記録まで</span>
+          </a>
           <a href="#quick_evidence">
             <strong>短時間で調べたい</strong>
             <span>疑問からAI用プロンプトを作る</span>
           </a>
           <a href="#fact_check">
             <strong>AI回答を確かめたい</strong>
-            <span>PMID・書誌・主張をPubMedで照合</span>
+            <span>書誌の実在確認と、主張の照合を分ける</span>
           </a>
           <a href="#topic_exploration">
             <strong>質問のズレ・検索漏れを探したい</strong>
             <span>支持・反対・限定・本文内証拠を探索</span>
           </a>
-          <a href="#systematic_review">
-            <strong>SRの検索式を作りたい</strong>
-            <span>PICOから適格基準・検索語・検証へ</span>
+          <a href="#pubmed_tool">
+            <strong>取得した文献を整えたい</strong>
+            <span>PubMedの抄録・書誌をCSV / RISへ</span>
           </a>
         </div>
       </section>
 
       <section className="how-to-use-section">
-        <h3>30秒で分かるCPG / SR検索</h3>
+        <details>
+        <summary>診療ガイドライン・既存SRを探す場合</summary>
         <ol>
           <li>システマティックレビュー画面でTOPIC_QUERYを作成します。</li>
           <li>文献タイプ／研究デザインフィルターから「診療ガイドライン」または「SR / メタ解析」を1つ選びます。</li>
@@ -67,6 +83,7 @@ export function HowToUseTab({ settings, onSettingsChange }: Props) {
         <div className="safety-note" role="note">
           CPG/SR検索に出版年制限はありません。consensus statement等はCPG_FILTERへ含めません。focused updateは基礎ガイドラインを自動的に全面置換せず、状態不明は <code>needs_manual_review</code> とします。
         </div>
+        </details>
       </section>
 
       <section className="how-to-use-section">

@@ -1,0 +1,170 @@
+/* Quiet workflow surfaces, shared by EBM and systematic review. */
+.app-header h1 { font-size: 1.6rem; letter-spacing: 0; }
+.tab-nav-group-label, .section-kicker { letter-spacing: 0; }
+.tab-nav { border-radius: 8px; box-shadow: none; }
+.workflow-section { scroll-margin-top: 24px; }
+.workflow-section h2:focus-visible { outline: 2px solid #1a56db; outline-offset: 5px; }
+.workflow-navigator {
+  margin: 16px 0 22px;
+  padding: 12px 0;
+  border-block: 1px solid var(--color-border);
+}
+.workflow-navigator ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.workflow-navigator li { flex: 1 1 110px; min-width: 0; }
+.workflow-navigator li button {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  width: 100%;
+  min-height: 44px;
+  padding: 8px;
+  border: 1px solid transparent;
+  border-radius: 5px;
+  background: transparent;
+  color: #465364;
+  text-align: left;
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+}
+.workflow-navigator li button:not(:disabled):hover { background: #eef3f7; }
+.workflow-navigator li button:disabled { color: #697386; cursor: not-allowed; }
+.workflow-navigator li button[aria-current="step"] {
+  border-color: #b9d3e7;
+  background: #edf5fb;
+  color: #164b83;
+  font-weight: 700;
+}
+.workflow-step-number {
+  flex: 0 0 24px;
+  height: 24px;
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  background: #e9eef2;
+  color: #405369;
+  border-radius: 50%;
+  font-size: 0.75rem;
+}
+[aria-current="step"] .workflow-step-number { background: #1a56db; color: #fff; }
+.workflow-next-action {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  font: inherit;
+  font-size: 0.86rem;
+  background: transparent;
+  color: #3d505a;
+  border: none;
+  border-top: 1px solid #e7edf1;
+  padding: 12px 4px 0;
+  margin-top: 10px;
+  cursor: pointer;
+}
+.workflow-next-action strong { color: #14675c; margin-right: 8px; }
+.workflow-scope-note {
+  display: grid;
+  gap: 4px;
+  border-left: 3px solid #248979;
+  padding: 9px 14px;
+  margin-block: 12px;
+  font-size: 0.85rem;
+  background: #f2faf7;
+  color: #2b594f;
+}
+.pico-learning-guide, .ebm-scope-details {
+  margin-block: 14px;
+  padding-block: 10px;
+  border-block: 1px solid var(--color-border);
+  font-size: 0.88rem;
+}
+.pico-learning-guide summary, .ebm-scope-details summary,
+.pico-refinement-box summary { cursor: pointer; font-weight: 650; }
+.pico-learning-guide dl { margin: 12px 0; }
+.pico-learning-guide dl > div { display: grid; grid-template-columns: 160px 1fr; gap: 12px; padding-block: 8px; }
+.pico-learning-guide dt { font-weight: 650; color: #18655c; }
+.pico-learning-guide dd { margin: 0; }
+.pico-section-heading h3 { margin: 20px 0 4px; font-size: 1.05rem; }
+.pico-section-heading p { font-size: 0.86rem; color: #526270; margin: 4px 0 12px; }
+.pico-coach-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; margin-top: 16px; }
+.pico-coach-field { min-width: 0; border-left: 3px solid #347bc4; padding-left: 12px; }
+.pico-coach-i { border-left-color: #248979; }
+.pico-coach-c { border-left-color: #7c838d; }
+.pico-coach-o { border-left-color: #b68523; }
+.pico-coach-field label { display: block; font-weight: 700; font-size: 0.94rem; }
+.pico-coach-field small { display: block; font-size: 0.8rem; color: #5a6675; margin: 3px 0 8px; }
+.pico-coach-field textarea { width: 100%; min-height: 105px; resize: vertical; }
+.pico-comparison-presets { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin: 12px 0; font-size: 0.84rem; }
+.pico-comparison-presets select { min-width: 0; max-width: 100%; }
+.pico-gentle-note { font-size: 0.86rem; background: #f0f8f5; padding: 10px 14px; border-left: 3px solid #248979; }
+.ebm-sticky-bar { position: static; border-radius: 4px; }
+.prompt-tools, .prompt-preview-footer { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
+.prompt-header { flex-wrap: wrap; gap: 12px; }
+.prompt-header h3 { min-width: 0; overflow-wrap: anywhere; font-size: 0.96rem; }
+.prompt-length { color: #5c6878; font-size: 0.76rem; font-variant-numeric: tabular-nums; }
+.btn svg, .text-button svg, .workflow-next-action svg, .section-kicker svg { flex-shrink: 0; }
+.btn:has(svg) { display: inline-flex; align-items: center; justify-content: center; gap: 7px; }
+.icon-button { width: 38px; min-width: 38px; height: 38px; padding: 8px; }
+.prompt-text.prompt-preview { max-height: 190px; min-height: 80px; overflow: auto; white-space: pre-wrap; overflow-wrap: anywhere; }
+.prompt-text.prompt-preview.is-expanded { max-height: 65vh; min-height: 280px; resize: vertical; }
+.prompt-preview-footer { justify-content: space-between; padding: 8px 0 0; font-size: 0.76rem; color: #566374; }
+.text-button { display: inline-flex; align-items: center; gap: 5px; border: none; background: none; color: #235895; padding: 5px 0; font: inherit; cursor: pointer; min-height: 36px; }
+.journal-heading { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.journal-heading h2 { margin: 5px 0 8px; }
+.section-kicker { display: flex; align-items: center; gap: 7px; color: #197467; font-size: 0.8rem; font-weight: 650; }
+.journal-count { color: #566374; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.journal-empty { padding: 16px 0; color: #65717b; font-size: 0.88rem; }
+.journal-list { list-style: none; margin: 16px 0; padding: 0; border-top: 1px solid var(--color-border); }
+.journal-list > li { border-bottom: 1px solid var(--color-border); }
+.journal-list summary { padding: 12px 0; font-size: 0.86rem; cursor: pointer; }
+.journal-list summary span { margin-left: 12px; color: #506274; }
+.journal-query { white-space: pre-wrap; overflow-wrap: anywhere; max-height: 220px; overflow: auto; background: #f4f6f8; padding: 12px; font-size: 0.8rem; }
+.journal-metadata > div { display: flex; flex-wrap: wrap; gap: 10px; font-size: 0.85rem; }
+.journal-metadata dt { font-weight: 650; }
+.journal-metadata dd { margin: 0; }
+.sr-journal textarea { display: block; width: 100%; margin: 6px 0 14px; resize: vertical; }
+.sr-journal label { font-size: 0.86rem; }
+.journal-handoff { margin-block: 18px; border-block: 1px solid var(--color-border); padding: 12px 0; }
+.journal-handoff summary { cursor: pointer; font-size: 0.92rem; font-weight: 650; }
+.journal-handoff summary svg { vertical-align: middle; margin-right: 6px; }
+.journal-handoff summary > span { margin-left: 8px; font-weight: 400; color: #566374; }
+.journal-check { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; cursor: pointer; }
+.journal-check input { flex: 0 0 18px; width: 18px; height: 18px; margin-top: 4px; }
+.journal-notes { display: block; margin-top: 15px; }
+.sr-journal > .button-group { flex-wrap: wrap; }
+.sr-journal { background: transparent; border: none; border-top: 2px solid #c9ded8; border-radius: 0; box-shadow: none; padding-inline: 0; }
+.sr-pubmed-result-table .table-scroll { max-height: min(560px, 65vh); overflow: auto; }
+.sr-pubmed-result-table table { min-width: 720px; }
+.sr-pubmed-result-table th:nth-child(3) { min-width: 340px; }
+.sr-pubmed-result-table th { position: sticky; top: 0; z-index: 1; background: #eef3f7; }
+.how-to-quick-start { border-radius: 0; background: transparent; box-shadow: none; border-inline: 0; padding-inline: 0; }
+.how-to-quick-start-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.how-to-quick-start-grid a { border-radius: 6px; background: white; border-top: 3px solid #c3d8d0; }
+.how-to-quick-start-grid a:nth-child(3n) { border-top-color: #b6cde7; }
+.how-to-quick-start-grid a:nth-child(3n + 2) { border-top-color: #c5c8d0; }
+.how-to-quick-start-grid a strong { font-size: 0.95rem; }
+@media (max-width: 700px) {
+  .app-header h1 { font-size: 1.25rem; }
+  .tab-nav-buttons { display: flex; flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+  .tab-nav-buttons .tab-button { flex: 0 0 auto; white-space: nowrap; padding-inline: 12px; min-height: 44px; }
+  .tab-nav-group { min-width: 0; grid-template-columns: minmax(0, 1fr); }
+  .how-to-quick-start-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pico-coach-grid { grid-template-columns: 1fr; }
+  .pico-learning-guide dl > div { grid-template-columns: 1fr; gap: 4px; }
+  .workflow-navigator li { flex-basis: 135px; }
+  .journal-list summary span { display: block; margin: 4px 0 0 18px; }
+  .prompt-header .prompt-tools { width: 100%; }
+  .prompt-preview-footer { align-items: flex-start; flex-direction: column; }
+}
+@media (max-width: 400px) {
+  .how-to-quick-start-grid { grid-template-columns: 1fr; }
+}

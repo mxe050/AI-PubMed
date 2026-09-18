@@ -21,15 +21,7 @@ export function getPubMedUrlWarning(query: string): string | null {
   return null;
 }
 
-/**
- * Open PubMed (regular search or Advanced Search) with the given query.
- * If the encoded URL would exceed PubMed's effective URL length limit
- * (~2KB for ?term=), this falls back to copying the query to the clipboard
- * and opening the destination blank, then alerting the user.
- *
- * Returns true if opened with the term in URL (normal), false if the
- * fallback (copy + open blank) was used.
- */
+/** Returns whether the query was passed via URL rather than manual paste. */
 export async function openPubMedWithQuery(
   query: string,
   destination: "regular" | "advanced"
@@ -42,12 +34,10 @@ export async function openPubMedWithQuery(
       ? `https://pubmed.ncbi.nlm.nih.gov/advanced/?term=${encodeURIComponent(trimmed)}`
       : `https://pubmed.ncbi.nlm.nih.gov/?term=${encodeURIComponent(trimmed)}`;
 
-  // PubMed/NCBI silently strips or rejects ?term= when the encoded URL
-  // grows past ~2KB. SR final queries with study-design filters easily
-  // exceed this. Use 1900 as a safe threshold.
+  // A conservative compatibility threshold; long queries remain available in full.
   const URL_LIMIT = 1900;
 
-  if (baseFull.length <= URL_LIMIT) {
+  if (destination === "regular" && baseFull.length <= URL_LIMIT) {
     window.open(baseFull, "_blank", "noopener,noreferrer");
     return true;
   }
@@ -59,27 +49,16 @@ export async function openPubMedWithQuery(
       ? "https://pubmed.ncbi.nlm.nih.gov/advanced/"
       : "https://pubmed.ncbi.nlm.nih.gov/";
 
+  // Open during the click event, before awaiting clipboard permission.
+  window.open(baseFull.length <= URL_LIMIT ? baseFull : blankUrl, "_blank", "noopener,noreferrer");
   try {
-    await navigator.clipboard.writeText(trimmed);
+    await copyText(trimmed);
+    alert(destination === "advanced"
+      ? "検索式全文をコピーしました。\nAdvanced SearchはURLの検索式を入力欄に反映しない場合があります。Query boxへ貼り付けて検索してください。"
+      : "検索式が長いため、全文をクリップボードにコピーしました。\n開いたPubMedのクエリ欄に貼り付けて検索してください。");
   } catch {
-    // Clipboard API may fail (e.g., not in user gesture). Try fallback.
-    const ta = document.createElement("textarea");
-    ta.value = trimmed;
-    document.body.appendChild(ta);
-    ta.select();
-    try {
-      document.execCommand("copy");
-    } catch {
-      // Give up silently — still open blank below.
-    }
-    document.body.removeChild(ta);
+    alert("PubMedへの移動時に検索式を自動コピーできませんでした。\nアプリの検索式欄から全文を手動でコピーし、PubMedのクエリ欄に貼り付けてください。");
   }
-
-  window.open(blankUrl, "_blank", "noopener,noreferrer");
-
-  alert(
-    "検索式が長すぎて URL に渡せないため、検索式をクリップボードにコピーしました。\n" +
-      "開いた PubMed ページのクエリ欄に貼り付けて検索してください。"
-  );
   return false;
 }
+import { copyText } from "./textActions";

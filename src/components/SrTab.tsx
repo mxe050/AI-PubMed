@@ -34,8 +34,13 @@ import { buildEbmClassificationCopyText } from "../utils/buildEbmClassificationC
 import { parseClassificationResponse } from "../utils/parseClassificationResponse";
 import { renderClassificationNewTab } from "../utils/renderClassificationNewTab";
 import { parseKnownPmids } from "../utils/knownPmidBenchmark";
+import { openPubMedWithQuery } from "../utils/pubmedUrl";
+import { focusSection } from "../utils/focusSection";
+import { History } from "lucide-react";
 import { PubMedSearchBox } from "./PubMedSearchBox";
 import { SrPubMedDetailsChecker } from "./SrPubMedDetailsChecker";
+import { SrSearchJournal } from "./SrSearchJournal";
+import { createSrSearchRecord, type SrSearchRecord } from "../utils/srSearchJournal";
 import { SrTermTable } from "./SrTermTable";
 import { SrPubMedResultTable } from "./SrPubMedResultTable";
 import { SrStructuredQueryAccordion } from "./SrStructuredQueryAccordion";
@@ -76,6 +81,7 @@ export function SrTab({ settings }: Props) {
   } | null>(null);
   const [preparationKey, setPreparationKey] = useState(0);
   const [manualSearchOpen, setManualSearchOpen] = useState(false);
+  const [searchRecords, setSearchRecords] = useState<SrSearchRecord[]>([]);
 
   // Step 7 filters
   const [designKey, setDesignKey] = useState<StudyDesignFilterKey>("none");
@@ -138,7 +144,7 @@ export function SrTab({ settings }: Props) {
   const hasTermRows = Object.values(termTable).some((rows) => rows.length > 0);
 
   function clearAll() {
-    if (!confirm("入力内容・取得結果をすべてクリアして最初からやり直しますか？")) return;
+    if (!confirm("入力・取得結果・検索履歴をすべてクリアしますか？残す記録は先にファイル保存してください。")) return;
     setPicoP("");
     setPopulationMode("single");
     setPicoP1("");
@@ -165,6 +171,7 @@ export function SrTab({ settings }: Props) {
     setClassificationError("");
     setFilterCopyMsg("");
     setSearchCopyMsg("");
+    setSearchRecords([]);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -450,6 +457,9 @@ export function SrTab({ settings }: Props) {
       <header className="strategy-header">
         <h2>システマティックレビュー（補助機能）</h2>
         <div className="ebm-clear-bar">
+          <button className="btn btn-secondary" onClick={() => focusSection("sr-search-journal")}>
+            <History size={16} aria-hidden="true" /> 検索履歴・保存へ ({searchRecords.length})
+          </button>
           <button className="btn btn-reset" onClick={clearAll}>
             🗑 すべての入力・結果をクリアして最初からやり直す
           </button>
@@ -467,6 +477,11 @@ export function SrTab({ settings }: Props) {
         <p className="ai-format-warning" role="note">
           AIが提示した文献・PMID・DOI・MeSHは原典で照合してください。本機能は情報専門家による検索戦略設計・PRESSレビューを代替しません。
         </p>
+      </div>
+
+      <div className="workflow-scope-note">
+        <strong>この画面の到達点：PubMed検索戦略と検証記録</strong>
+        <span>検索式の完成と、SR全体の完成は別です。他の情報源の検索・文献選択・吟味は、この先で行います。</span>
       </div>
 
       <SrPreparationWorkflow
@@ -855,8 +870,8 @@ export function SrTab({ settings }: Props) {
           </p>
           <ol>
             <li>
-              上の検索式をコピーし、下の「PubMed Advanced Search を開く（外部）」から
-              Advanced Searchを開いて検索を実行する。
+              下の「PubMed Advanced Search を開く（外部）」で検索式全文をコピーし、
+              開いたページのQuery boxに貼り付けて検索する。URLだけでは入力欄に反映されない場合があります。
             </li>
             <li>Advanced Search BuilderのHistoryで、実行した検索式のDetailsを開く。</li>
             <li>
@@ -893,13 +908,8 @@ export function SrTab({ settings }: Props) {
           <button
             type="button"
             className="btn btn-secondary btn-external"
-            onClick={() => {
-              window.open(
-                "https://pubmed.ncbi.nlm.nih.gov/advanced/",
-                "_blank",
-                "noopener,noreferrer"
-              );
-            }}
+            onClick={() => void openPubMedWithQuery(effectiveSearchString, "advanced")}
+            disabled={!effectiveSearchString}
           >
             PubMed Advanced Search を開く（外部）
           </button>
@@ -912,9 +922,24 @@ export function SrTab({ settings }: Props) {
             検索式をコピー
           </button>
           <PubMedSearchBox
+            key={`${preparationKey}:${effectiveSearchString}:${currentBenchmarkKey}`}
             settings={settings}
             searchString={effectiveSearchString}
-            onResult={(r) => setPubmedResult(r)}
+            onResult={(r) => {
+              setPubmedResult(r);
+              const record = createSrSearchRecord(r, {
+                question,
+                pico: { P: picoP, P1: picoP1, P2: picoP2, I: picoI, C: picoC, O: picoO },
+                terms: termTable,
+                filter: { key: designKey, label: designFilter.label, expression: designFilter.expression },
+                populationRelation: populationRelation ?? "",
+                populationReason: populationRelationReason,
+                preparation: populationPreparationContext,
+              });
+              setSearchRecords((previous) => [...previous, record]);
+              setClassificationAiResponse("");
+              setClassificationError("");
+            }}
             retmax={100}
             buttonLabel="上位100件をプレビュー"
             buttonVariant="secondary"
@@ -1240,6 +1265,13 @@ export function SrTab({ settings }: Props) {
           </details>
         </aside>
       )}
+      <SrSearchJournal
+        key={`journal-${preparationKey}`}
+        records={searchRecords}
+        onNoteChange={(id, note) => setSearchRecords((previous) =>
+          previous.map((record) => record.id === id ? { ...record, note } : record)
+        )}
+      />
     </div>
   );
 }

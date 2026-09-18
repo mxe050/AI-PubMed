@@ -8,6 +8,7 @@ import {
   counterEvidenceFields,
 } from "./prompts/counterEvidence";
 import "./App.css";
+import "./workflow-polish.css";
 
 const HowToUseTab = lazy(() =>
   import("./components/HowToUseTab").then((module) => ({ default: module.HowToUseTab }))
@@ -61,7 +62,7 @@ const tabs: { key: TabType; label: string; kind: TabKind }[] = [
 
 const tabGroups: { label: string; kinds: TabKind[] }[] = [
   { label: "基本・メイン", kinds: ["meta", "main"] },
-  { label: "専門・補助", kinds: ["supp"] },
+  { label: "臨床・研究", kinds: ["supp"] },
 ];
 
 function tabFromHash(): TabType {
