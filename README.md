@@ -72,6 +72,8 @@ NCBIアカウントのSettingsページから取得できます。
 
 ## 開発
 
+Node.js 24系（24.15以上）を推奨します。`.nvmrc`とGitHub Actionsも24系です。ブラウザー用テスト環境が必要とするため、Node.js 20ではテストできません。
+
 ```bash
 npm ci
 npm test
